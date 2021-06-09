@@ -1,0 +1,6 @@
+.vscode
+.git
+bin/
+pkg/
+src/
+vscode.sh
