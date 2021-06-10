@@ -1,7 +1,10 @@
 package cmd
 
 import (
+	"bytes"
 	"fmt"
+	"io/ioutil"
+	"net/http"
 	"os"
 	"os/signal"
 	"strconv"
@@ -189,10 +192,44 @@ func Execute() {
 				span.Finish()
 			}
 
+			span = traces.StartChildSpan(rootSpan.GetContext())
+			defer span.Finish()
+
+			content, err := ioutil.ReadFile("k8s.json")
+			if err != nil {
+				logs.SpanError(span, err)
+			}
+			reader := bytes.NewReader(content)
+
+			req, err := http.NewRequest("POST", "http://127.0.0.1:18081/k8s", reader)
+			if err != nil {
+				logs.SpanError(span, err)
+			}
+
+			req.Header.Set("Content-Type", "application/json")
+
+			traceID := span.GetContext().GetTraceID()
+			req.Header.Set("X-Trace-ID", strconv.Itoa(int(traceID)))
+
+			client := common.MakeHttpClient(5000)
+
+			resp, err := client.Do(req)
+			if err != nil {
+				logs.SpanError(span, err)
+			}
+
+			defer resp.Body.Close()
+
+			b, err := ioutil.ReadAll(resp.Body)
+			if err != nil {
+				logs.SpanError(span, err)
+			}
+			logs.Info(b)
+
+			span.Finish()
 			logs.Info("Wait until it will be interrupted...")
 
 			rootSpan.Finish()
-
 			mainWG.Wait()
 		},
 	}
