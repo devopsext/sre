@@ -170,19 +170,28 @@ func Execute() {
 
 			logs.Info("Log message to every log provider...")
 
-			span := traces.StartSpan()
-			defer span.Finish()
+			rootSpan := traces.StartSpan()
+			span := rootSpan
 
-			logs.SpanInfo(span, "This message has correlation with span...")
+			logs.SpanInfo(rootSpan, "This message has correlation with span...")
 
 			counter := metrics.Counter("calls", "Calls counter", []string{"label"})
 
 			for i := 0; i < 10; i++ {
+
+				span := traces.StartChildSpan(span.GetContext())
+				span.SetName(fmt.Sprintf("sre-name-%d", i))
+
+				time.Sleep(time.Duration(100*i) * time.Millisecond)
 				counter.Inc(strconv.Itoa(i))
 				logs.SpanDebug(span, "Counter increment %d", i)
+
+				span.Finish()
 			}
 
 			logs.Info("Wait until it will be interrupted...")
+
+			rootSpan.Finish()
 
 			mainWG.Wait()
 		},

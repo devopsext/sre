@@ -114,6 +114,16 @@ func (js JaegerSpan) SetCarrier(object interface{}) common.TracerSpan {
 	return js
 }
 
+func (js JaegerSpan) SetName(name string) common.TracerSpan {
+
+	if js.span == nil {
+		return nil
+	}
+
+	js.span.SetOperationName(name)
+	return js
+}
+
 func (js JaegerSpan) SetTag(key string, value interface{}) common.TracerSpan {
 
 	if js.span == nil {
