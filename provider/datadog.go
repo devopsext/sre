@@ -141,6 +141,15 @@ func (dds DataDogTracerSpan) SetCarrier(object interface{}) common.TracerSpan {
 	return dds
 }
 
+func (dds DataDogTracerSpan) SetName(name string) common.TracerSpan {
+
+	if dds.span == nil {
+		return nil
+	}
+	dds.span.SetOperationName(name)
+	return dds
+}
+
 func (dds DataDogTracerSpan) SetTag(key string, value interface{}) common.TracerSpan {
 
 	if dds.span == nil {

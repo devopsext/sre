@@ -67,6 +67,14 @@ func (tss *TracesSpan) SetCarrier(object interface{}) TracerSpan {
 	return tss
 }
 
+func (tss *TracesSpan) SetName(name string) TracerSpan {
+
+	for _, s := range tss.spans {
+		s.SetName(name)
+	}
+	return tss
+}
+
 func (tss *TracesSpan) SetTag(key string, value interface{}) TracerSpan {
 
 	for _, s := range tss.spans {
