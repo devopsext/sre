@@ -362,6 +362,10 @@ func parseJaegerTags(sTags string) []opentracing.Tag {
 	pairs := strings.Split(sTags, ",")
 	tags := make([]opentracing.Tag, 0)
 	for _, p := range pairs {
+
+		if utils.IsEmpty(p) {
+			continue
+		}
 		kv := strings.SplitN(p, "=", 2)
 		k, v := strings.TrimSpace(kv[0]), strings.TrimSpace(kv[1])
 
