@@ -56,7 +56,7 @@ func main() {
     TimestampFormat: time.RFC3339Nano,
     TextColors:      true,
   })
-  // Set caller offset for file:line proper usage 
+  // set caller offset for file:line proper usage 
   stdout.SetCallerOffset(2)
 
   // initialize DataDog logger
@@ -70,7 +70,7 @@ func main() {
     Level: "info",
   }, logs, stdout)
 
-  // Add loggers
+  // add loggers
   logs.Register(stdout)
   logs.Register(datadog)
 
@@ -126,10 +126,10 @@ func main() {
     TimestampFormat: time.RFC3339Nano,
     TextColors:      true,
   })
-  // Set caller offset for file:line proper usage
+  // set caller offset for file:line proper usage
   stdout.SetCallerOffset(2)
 
-  // Add loggers
+  // add Stdout logger
   logs.Register(stdout)
 
   // initialize Prometheus metricer
@@ -138,7 +138,7 @@ func main() {
     Listen: "127.0.0.1:8080",
     Prefix: "sre",
   }, logs, stdout)
-  // Set caller offset for file:line proper usage
+  // set caller offset for file:line proper usage
   prometheus.SetCallerOffset(1)
   prometheus.Start(&mainWG)
 
@@ -148,13 +148,12 @@ func main() {
       ServiceName: "some-service",
       Environment: "stage",
     },
-    Host:  "localhost", // set DataDog agent UDP log host
-    Port:  10518, // set DataDog agent UDP log port
+    Host:  "localhost", // set DataDog agent UDP metrics host
+    Port:  10518, // set DataDog agent UDP metrics port
   }, logs, stdout)
   datadog.SetCallerOffset(1)
 
-
-  // Add metricers
+  // add metricers
   metrics.Register(prometheus)
   metrics.Register(datadog)
 
@@ -166,7 +165,7 @@ func main() {
 
 Collect go modules
 ```sh
-go mod init logs
+go mod init traces
 go mod tidy
 ```
 
@@ -188,4 +187,94 @@ curl -sk http://127.0.0.1:8080/metrics | grep sre_
 # HELP sre_calls Calls counter
 # TYPE sre_calls counter
 sre_calls{time="2021-06-17 18:00:30.248990729 +0300 EEST m=+0.002878298"} 1
+```
+
+### Traces usage
+
+Create traces.go file to test traces functionality
+```golang
+package main
+
+import (
+  "time"
+
+  "github.com/devopsext/sre/common"
+  "github.com/devopsext/sre/provider"
+)
+
+var logs = common.NewLogs()
+var traces = common.NewTraces()
+
+func test() {
+  rootSpan := traces.StartSpan()
+
+  // emulate delay of 100 msecs
+  time.Sleep(time.Duration(100) * time.Millisecond)
+
+  span := traces.StartChildSpan(rootSpan.GetContext())
+
+  // emulate delay of 100 msecs
+  time.Sleep(time.Duration(100) * time.Millisecond)
+  logs.SpanInfo(span, "Something happened")
+  span.Finish()
+
+  rootSpan.Finish()
+}
+
+func main() {
+
+  // initialize Stdout logger
+  stdout := provider.NewStdout(provider.StdoutOptions{
+    Format:          "text",
+    Level:           "info",
+    Template:        "{{.file}} {{.msg}}",
+    TimestampFormat: time.RFC3339Nano,
+    TextColors:      true,
+  })
+  // set caller offset for file:line proper usage
+  stdout.SetCallerOffset(2)
+
+  // add Stdout logger
+  logs.Register(stdout)
+
+  // initialize Jaeger tracer
+  jaeger := provider.NewJaeger(provider.JaegerOptions{
+    ServiceName: "sre",
+    AgentHost: "localhost", // set Jaeger agent host
+    AgentPort: 6831, // set Jaeger agent port
+  }, logs, stdout)
+  // set caller offset for file:line proper usage
+  jaeger.SetCallerOffset(1)
+
+  // initialize DataDog metricer
+  datadog := provider.NewDataDogTracer(provider.DataDogTracerOptions{
+    DataDogOptions: provider.DataDogOptions{
+      ServiceName: "some-service",
+      Environment: "stage",
+    },
+    Host:  "localhost", // set DataDog agent traces host
+    Port:  8126, // set DataDog agent traces port
+  }, logs, stdout)
+  datadog.SetCallerOffset(1)
+
+  // add traces
+  traces.Register(jaeger)
+  traces.Register(datadog)
+
+  test()
+}
+```
+
+Collect go modules
+```sh
+go mod init traces
+go mod tidy
+```
+
+Run logging example
+```sh
+go run traces.go
+```
+```log
+
 ```

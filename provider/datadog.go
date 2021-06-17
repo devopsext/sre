@@ -468,6 +468,10 @@ func setDataDogTracerTags(opts []tracer.StartOption, sTags string) []tracer.Star
 	pairs := strings.Split(sTags, ",")
 
 	for _, p := range pairs {
+
+		if utils.IsEmpty(p) {
+			continue
+		}
 		kv := strings.SplitN(p, "=", 2)
 		k, v := strings.TrimSpace(kv[0]), strings.TrimSpace(kv[1])
 

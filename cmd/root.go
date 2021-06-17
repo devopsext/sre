@@ -216,6 +216,7 @@ func Execute() {
 			resp, err := client.Do(req)
 			if err != nil {
 				logs.SpanError(span, err)
+				os.Exit(1)
 			}
 
 			defer resp.Body.Close()
