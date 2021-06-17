@@ -4,4 +4,3 @@ bin/
 pkg/
 src/
 vscode.sh
-k8s.json
