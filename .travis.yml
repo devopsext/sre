@@ -1,0 +1,9 @@
+language: go
+
+go:
+  - "1.16.x"
+
+go_import_path: github.com/devopsext/sre
+
+script:
+  - env GO111MODULE=on go build
