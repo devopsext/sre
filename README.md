@@ -187,9 +187,9 @@ Run metrcis example
 go run metrics.go
 ```
 ```log
-INFO[2021-06-17T18:00:30.247316085+03:00] Start prometheus endpoint...                  file="sre@v0.0.1/provider/prometheus.go:78" func="provider.(*Prometheus).Start.func1"
-INFO[2021-06-17T18:00:30.247526413+03:00] Prometheus is up. Listening...                file="sre@v0.0.1/provider/prometheus.go:88" func="provider.(*Prometheus).Start.func1"
-INFO[2021-06-17T18:00:30.248965919+03:00] Datadog metrics are up...                     file="sre@v0.0.1/provider/datadog.go:614" func=provider.NewDataDogMetricer
+INFO[2021-06-17T18:00:30.247316085+03:00] Start prometheus endpoint...                  file="sre@v0.0.2/provider/prometheus.go:78" func="provider.(*Prometheus).Start.func1"
+INFO[2021-06-17T18:00:30.247526413+03:00] Prometheus is up. Listening...                file="sre@v0.0.2/provider/prometheus.go:88" func="provider.(*Prometheus).Start.func1"
+INFO[2021-06-17T18:00:30.248965919+03:00] Datadog metrics are up...                     file="sre@v0.0.2/provider/datadog.go:614" func=provider.NewDataDogMetricer
 ```
 
 Check Prometheus metrics
