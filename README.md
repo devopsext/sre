@@ -80,8 +80,14 @@ func main() {
 
 Collect go modules
 ```sh
-go mod init logs
+go mod init sre
 go mod tidy
+```
+```log
+go: finding module for package github.com/devopsext/sre/provider
+go: finding module for package github.com/devopsext/sre/common
+go: found github.com/devopsext/sre/common in github.com/devopsext/sre v0.0.2
+go: found github.com/devopsext/sre/provider in github.com/devopsext/sre v0.0.2
 ```
 
 Run logging example
@@ -91,6 +97,7 @@ go run logs.go
 ```log
 INFO[2021-06-17T17:32:30.585651118+03:00] Info message to every log provider...         file="go/sre/logs.go:13" func=main.test
 WARN[2021-06-17T17:32:30.585798024+03:00] Warn message to every log provider...         file="go/sre/logs.go:15" func=main.test
+...
 ```
 
 ### Metrics usage
@@ -165,8 +172,14 @@ func main() {
 
 Collect go modules
 ```sh
-go mod init traces
+go mod init sre
 go mod tidy
+```
+```log
+go: finding module for package github.com/devopsext/sre/provider
+go: finding module for package github.com/devopsext/sre/common
+go: found github.com/devopsext/sre/common in github.com/devopsext/sre v0.0.2
+go: found github.com/devopsext/sre/provider in github.com/devopsext/sre v0.0.2
 ```
 
 Run logging example
@@ -267,8 +280,14 @@ func main() {
 
 Collect go modules
 ```sh
-go mod init traces
+go mod init sre
 go mod tidy
+```
+```log
+go: finding module for package github.com/devopsext/sre/provider
+go: finding module for package github.com/devopsext/sre/common
+go: found github.com/devopsext/sre/common in github.com/devopsext/sre v0.0.2
+go: found github.com/devopsext/sre/provider in github.com/devopsext/sre v0.0.2
 ```
 
 Run logging example
@@ -276,5 +295,8 @@ Run logging example
 go run traces.go
 ```
 ```log
-
+...
+INFO[2021-06-17T18:28:45.178707109+03:00] Something happened                            file="go/sre/traces.go:23" func=main.test trace_id=1198730091955389962
+INFO[2021-06-17T18:28:45.178840198+03:00] Reporting span 10a2beaae092860a:486b0277d5e7ae83:10a2beaae092860a:1  file="uber/jaeger-client-go@v2.29.1+incompatible/reporter.go:151" func="jaeger-client-go.(*compositeReporter).Report"
+INFO[2021-06-17T18:28:45.178940724+03:00] Reporting span 10a2beaae092860a:10a2beaae092860a:0000000000000000:1  file="uber/jaeger-client-go@v2.29.1+incompatible/reporter.go:151" func="jaeger-client-go.(*compositeReporter).Report"
 ```
