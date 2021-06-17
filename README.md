@@ -90,7 +90,7 @@ go: found github.com/devopsext/sre/common in github.com/devopsext/sre v0.0.2
 go: found github.com/devopsext/sre/provider in github.com/devopsext/sre v0.0.2
 ```
 
-Run logging example
+Run logs example
 ```sh
 go run logs.go
 ```
@@ -182,7 +182,7 @@ go: found github.com/devopsext/sre/common in github.com/devopsext/sre v0.0.2
 go: found github.com/devopsext/sre/provider in github.com/devopsext/sre v0.0.2
 ```
 
-Run logging example
+Run metrcis example
 ```sh
 go run metrics.go
 ```
@@ -290,7 +290,7 @@ go: found github.com/devopsext/sre/common in github.com/devopsext/sre v0.0.2
 go: found github.com/devopsext/sre/provider in github.com/devopsext/sre v0.0.2
 ```
 
-Run logging example
+Run traces example
 ```sh
 go run traces.go
 ```
