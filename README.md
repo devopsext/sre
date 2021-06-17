@@ -3,7 +3,7 @@
 Framework for golang applications which helps to send metrics, logs and traces into different monitoring tools or vendors. 
 
 [![GoDoc](https://godoc.org/github.com/devopsext/sre?status.svg)](https://godoc.org/github.com/devopsext/sre)
-[![build status](https://img.shields.io/travis/devopsext/sre/master.svg?style=flat-square)](https://travis-ci.org/devopsext/sre)
+[![build status](https://img.shields.io/travis/devopsext/sre/master.svg?style=flat-square)](https://travis-ci.com/devopsext/sre)
 
 ## Features
 
@@ -17,7 +17,7 @@ Framework for golang applications which helps to send metrics, logs and traces i
   - Jaeger
   - DataDog
 
-## Build
+## Usage
 
 ```sh
 git clone https://github.com/devopsext/sre.git
