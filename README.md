@@ -308,4 +308,5 @@ INFO[2021-06-17T18:28:45.178940724+03:00] Reporting span 10a2beaae092860a:10a2be
 ```
 
 Go to Jaeger UI and there should be seen
+
 ![Jaeger](/jaeger.png)
