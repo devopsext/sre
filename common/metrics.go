@@ -19,10 +19,6 @@ func (msc *MetricsCounter) Inc(values ...string) Counter {
 
 func (ms *Metrics) Counter(name, description string, labels []string, prefixes ...string) Counter {
 
-	if len(ms.metricers) <= 0 {
-		return nil
-	}
-
 	counter := MetricsCounter{
 		metrics:  ms,
 		counters: make(map[Metricer]Counter),

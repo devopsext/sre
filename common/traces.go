@@ -113,10 +113,6 @@ func (ts *Traces) Register(t Tracer) {
 
 func (ts *Traces) StartSpan() TracerSpan {
 
-	if len(ts.tracers) <= 0 {
-		return nil
-	}
-
 	span := TracesSpan{
 		traces:  ts,
 		spans:   make(map[Tracer]TracerSpan),
@@ -139,10 +135,6 @@ func (ts *Traces) StartSpan() TracerSpan {
 
 func (ts *Traces) StartSpanWithTraceID(traceID uint64) TracerSpan {
 
-	if len(ts.tracers) <= 0 {
-		return nil
-	}
-
 	span := TracesSpan{
 		traces:  ts,
 		spans:   make(map[Tracer]TracerSpan),
@@ -164,10 +156,6 @@ func (ts *Traces) StartSpanWithTraceID(traceID uint64) TracerSpan {
 }
 
 func (ts *Traces) StartChildSpan(object interface{}) TracerSpan {
-
-	if len(ts.tracers) <= 0 {
-		return nil
-	}
 
 	var traceID uint64
 	spanCtx, spanCtxOk := object.(*TracesSpanContext)
@@ -207,10 +195,6 @@ func (ts *Traces) StartChildSpan(object interface{}) TracerSpan {
 }
 
 func (ts *Traces) StartFollowSpan(object interface{}) TracerSpan {
-
-	if len(ts.tracers) <= 0 {
-		return nil
-	}
 
 	var traceID uint64
 	spanCtx, spanCtxOk := object.(*TracesSpanContext)
