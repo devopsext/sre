@@ -227,11 +227,14 @@ func test() {
   span := traces.StartChildSpan(rootSpan.GetContext())
 
   // emulate delay of 100 msecs
-  time.Sleep(time.Duration(100) * time.Millisecond)
+  time.Sleep(time.Duration(200) * time.Millisecond)
   logs.SpanInfo(span, "Something happened")
   span.Finish()
 
   rootSpan.Finish()
+
+  // wait for a while to delivery all spans to provider 
+  time.Sleep(time.Duration(3000) * time.Millisecond)
 }
 
 func main() {
@@ -252,9 +255,12 @@ func main() {
 
   // initialize Jaeger tracer
   jaeger := provider.NewJaeger(provider.JaegerOptions{
-    ServiceName: "sre",
-    AgentHost: "localhost", // set Jaeger agent host
-    AgentPort: 6831, // set Jaeger agent port
+    ServiceName:        "sre",
+    AgentHost:          "localhost", // set Jaeger agent host
+    AgentPort:          6831, // set Jaeger agent port
+    BufferFlushInterval: 0,
+    QueueSize:           0,
+    Tags:                "key1=value1",
   }, logs, stdout)
   // set caller offset for file:line proper usage
   jaeger.SetCallerOffset(1)
@@ -300,3 +306,6 @@ INFO[2021-06-17T18:28:45.178707109+03:00] Something happened                    
 INFO[2021-06-17T18:28:45.178840198+03:00] Reporting span 10a2beaae092860a:486b0277d5e7ae83:10a2beaae092860a:1  file="uber/jaeger-client-go@v2.29.1+incompatible/reporter.go:151" func="jaeger-client-go.(*compositeReporter).Report"
 INFO[2021-06-17T18:28:45.178940724+03:00] Reporting span 10a2beaae092860a:10a2beaae092860a:0000000000000000:1  file="uber/jaeger-client-go@v2.29.1+incompatible/reporter.go:151" func="jaeger-client-go.(*compositeReporter).Report"
 ```
+
+Go to Jaeger UI and there should be seen
+![Jaeger](/images/jaeger.png)
