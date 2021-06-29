@@ -184,12 +184,9 @@ func (js JaegerSpan) Error(err error) common.TracerSpan {
 		return nil
 	}
 
-	//_, file, line := common.GetCallerInfo(callerOffset + 3)
-
 	js.SetTag("error", true)
 	js.LogFields(map[string]interface{}{
 		"error.message": err.Error(),
-		//	"error.file":    fmt.Sprintf("%s:%d", file, line),
 	})
 	return js
 }
@@ -436,7 +433,7 @@ func NewJaeger(options JaegerOptions, logger common.Logger, stdout *Stdout) *Jae
 	tracer, enabled := newJaegerTracer(options, logger, stdout)
 	return &Jaeger{
 		options:      options,
-		callerOffset: 0,
+		callerOffset: 1,
 		tracer:       tracer,
 		logger:       logger,
 		enabled:      enabled,

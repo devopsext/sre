@@ -270,6 +270,6 @@ func NewStdout(options StdoutOptions) *Stdout {
 	return &Stdout{
 		log:          log,
 		options:      options,
-		callerOffset: 0,
+		callerOffset: 1,
 	}
 }

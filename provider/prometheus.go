@@ -100,6 +100,6 @@ func NewPrometheus(options PrometheusOptions, logger common.Logger, stdout *Stdo
 	return &Prometheus{
 		options:      options,
 		logger:       logger,
-		callerOffset: 0,
+		callerOffset: 1,
 	}
 }
