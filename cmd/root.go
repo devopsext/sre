@@ -2,6 +2,7 @@ package cmd
 
 import (
 	"bytes"
+	"errors"
 	"fmt"
 	"io/ioutil"
 	"net/http"
@@ -90,6 +91,16 @@ var datadogMetricerOptions = provider.DataDogMetricerOptions{
 	Prefix: "sre",
 }
 
+var opentelemetryOptions = provider.OpentelemetryOptions{
+	ServiceName: "",
+	Environment: "",
+	Attributes:  "",
+	Host:        "",
+	Port:        4317,
+}
+
+var opentelemetryTracerOptions = provider.OpentelemetryTracerOptions{}
+
 func interceptSyscall() {
 
 	c := make(chan os.Signal)
@@ -119,9 +130,8 @@ func Execute() {
 			datadogLoggerOptions.ServiceName = datadogOptions.ServiceName
 			datadogLoggerOptions.Environment = datadogOptions.Environment
 			datadogLoggerOptions.Tags = datadogOptions.Tags
-
 			datadogLogger := provider.NewDataDogLogger(datadogLoggerOptions, logs, stdout)
-			if common.HasElem(rootOptions.Logs, "datadog") {
+			if common.HasElem(rootOptions.Logs, "datadog") && datadogLogger != nil {
 				logs.Register(datadogLogger)
 			}
 
@@ -131,8 +141,7 @@ func Execute() {
 
 			prometheusOptions.Version = VERSION
 			prometheus := provider.NewPrometheus(prometheusOptions, logs, stdout)
-			prometheus.SetCallerOffset(1)
-			if common.HasElem(rootOptions.Metrics, "prometheus") {
+			if common.HasElem(rootOptions.Metrics, "prometheus") && prometheus != nil {
 				prometheus.Start(&mainWG)
 				metrics.Register(prometheus)
 			}
@@ -141,10 +150,8 @@ func Execute() {
 			datadogMetricerOptions.ServiceName = datadogOptions.ServiceName
 			datadogMetricerOptions.Environment = datadogOptions.Environment
 			datadogMetricerOptions.Tags = datadogOptions.Tags
-
 			datadogMetricer := provider.NewDataDogMetricer(datadogMetricerOptions, logs, stdout)
-			datadogMetricer.SetCallerOffset(1)
-			if common.HasElem(rootOptions.Metrics, "datadog") {
+			if common.HasElem(rootOptions.Metrics, "datadog") && datadogMetricer != nil {
 				metrics.Register(datadogMetricer)
 			}
 
@@ -152,8 +159,7 @@ func Execute() {
 
 			jaegerOptions.Version = VERSION
 			jaeger := provider.NewJaeger(jaegerOptions, logs, stdout)
-			jaeger.SetCallerOffset(1)
-			if common.HasElem(rootOptions.Traces, "jaeger") {
+			if common.HasElem(rootOptions.Traces, "jaeger") && jaeger != nil {
 				traces.Register(jaeger)
 			}
 
@@ -161,11 +167,20 @@ func Execute() {
 			datadogTracerOptions.ServiceName = datadogOptions.ServiceName
 			datadogTracerOptions.Environment = datadogOptions.Environment
 			datadogTracerOptions.Tags = datadogOptions.Tags
-
 			datadogTracer := provider.NewDataDogTracer(datadogTracerOptions, logs, stdout)
-			datadogTracer.SetCallerOffset(1)
-			if common.HasElem(rootOptions.Traces, "datadog") {
+			if common.HasElem(rootOptions.Traces, "datadog") && datadogTracer != nil {
 				traces.Register(datadogTracer)
+			}
+
+			opentelemetryTracerOptions.Version = VERSION
+			opentelemetryTracerOptions.ServiceName = opentelemetryOptions.ServiceName
+			opentelemetryTracerOptions.Environment = opentelemetryOptions.Environment
+			opentelemetryTracerOptions.Attributes = opentelemetryOptions.Attributes
+			opentelemetryTracerOptions.Host = opentelemetryOptions.Host
+			opentelemetryTracerOptions.Port = opentelemetryOptions.Port
+			opentelemtryTracer := provider.NewOpentelemetryTracer(opentelemetryTracerOptions, logs, stdout)
+			if common.HasElem(rootOptions.Traces, "opentelemetry") && opentelemtryTracer != nil {
+				traces.Register(opentelemtryTracer)
 			}
 
 		},
@@ -180,7 +195,7 @@ func Execute() {
 
 			counter := metrics.Counter("calls", "Calls counter", []string{"label"})
 
-			for i := 0; i < 10; i++ {
+			for i := 0; i < 5; i++ {
 
 				span := traces.StartChildSpan(span.GetContext())
 				span.SetName(fmt.Sprintf("sre-name-%d", i))
@@ -208,7 +223,13 @@ func Execute() {
 
 			req.Header.Set("Content-Type", "application/json")
 
-			traceID := span.GetContext().GetTraceID()
+			ctx := span.GetContext()
+			if ctx == nil {
+				logs.SpanError(span, errors.New("no span context found"))
+				os.Exit(1)
+			}
+
+			traceID := ctx.GetTraceID()
 			req.Header.Set("X-Trace-ID", strconv.Itoa(int(traceID)))
 
 			client := common.MakeHttpClient(5000)
@@ -264,17 +285,20 @@ func Execute() {
 	flags.StringVar(&datadogOptions.ServiceName, "datadog-service-name", datadogOptions.ServiceName, "DataDog service name")
 	flags.StringVar(&datadogOptions.Environment, "datadog-environment", datadogOptions.Environment, "DataDog environment")
 	flags.StringVar(&datadogOptions.Tags, "datadog-tags", datadogOptions.Tags, "DataDog tags")
-
 	flags.StringVar(&datadogTracerOptions.Host, "datadog-tracer-host", datadogTracerOptions.Host, "DataDog tracer host")
 	flags.IntVar(&datadogTracerOptions.Port, "datadog-tracer-port", datadogTracerOptions.Port, "Datadog tracer port")
-
 	flags.StringVar(&datadogLoggerOptions.Host, "datadog-logger-host", datadogLoggerOptions.Host, "DataDog logger host")
 	flags.IntVar(&datadogLoggerOptions.Port, "datadog-logger-port", datadogLoggerOptions.Port, "Datadog logger port")
 	flags.StringVar(&datadogLoggerOptions.Level, "datadog-logger-level", datadogLoggerOptions.Level, "DataDog logger level: info, warn, error, debug, panic")
-
 	flags.StringVar(&datadogMetricerOptions.Host, "datadog-metricer-host", datadogMetricerOptions.Host, "DataDog metricer host")
 	flags.IntVar(&datadogMetricerOptions.Port, "datadog-metricer-port", datadogMetricerOptions.Port, "Datadog metricer port")
 	flags.StringVar(&datadogMetricerOptions.Prefix, "datadog-metricer-prefix", datadogMetricerOptions.Prefix, "DataDog metricer prefix")
+
+	flags.StringVar(&opentelemetryOptions.ServiceName, "opentelemetry-service-name", opentelemetryOptions.ServiceName, "Opentelemetry service name")
+	flags.StringVar(&opentelemetryOptions.Environment, "opentelemetry-environment", opentelemetryOptions.Environment, "Opentelemetry environment")
+	flags.StringVar(&opentelemetryOptions.Host, "opentelemetry-host", opentelemetryOptions.Host, "Opentelemetry tracer host")
+	flags.IntVar(&opentelemetryOptions.Port, "opentelemetry-port", opentelemetryOptions.Port, "Opentelemetry tracer port")
+	flags.StringVar(&opentelemetryOptions.Attributes, "opentelemetry-attributes", opentelemetryOptions.Attributes, "Opentelemetry attributes")
 
 	interceptSyscall()
 

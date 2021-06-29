@@ -319,7 +319,7 @@ func NewDataDogTracer(options DataDogTracerOptions, logger common.Logger, stdout
 
 	return &DataDogTracer{
 		options:      options,
-		callerOffset: 0,
+		callerOffset: 1,
 		logger:       logger,
 		enabled:      enabled,
 	}
@@ -538,7 +538,7 @@ func NewDataDogLogger(options DataDogLoggerOptions, logger common.Logger, stdout
 		stdout:       stdout,
 		log:          log,
 		options:      options,
-		callerOffset: 0,
+		callerOffset: 1,
 	}
 }
 
@@ -629,7 +629,7 @@ func NewDataDogMetricer(options DataDogMetricerOptions, logger common.Logger, st
 	return &DataDogMetricer{
 		options:      options,
 		logger:       logger,
-		callerOffset: 0,
+		callerOffset: 1,
 		client:       client,
 	}
 }
