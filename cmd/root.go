@@ -2,7 +2,6 @@ package cmd
 
 import (
 	"bytes"
-	"errors"
 	"fmt"
 	"io/ioutil"
 	"net/http"
@@ -189,26 +188,28 @@ func Execute() {
 			logs.Info("Log message to every log provider...")
 
 			rootSpan := traces.StartSpan()
-			span := rootSpan
+			rootSpan.SetBaggageItem("some-restriction", "enabled")
+			spanCtx := rootSpan.GetContext()
 
 			logs.SpanInfo(rootSpan, "This message has correlation with span...")
 
 			counter := metrics.Counter("calls", "Calls counter", []string{"label"})
 
-			for i := 0; i < 5; i++ {
+			for i := 0; i < 10; i++ {
 
-				span := traces.StartChildSpan(span.GetContext())
-				span.SetName(fmt.Sprintf("sre-name-%d", i))
+				span := traces.StartChildSpan(spanCtx)
+				span.SetName(fmt.Sprintf("name-%d", i))
 
 				time.Sleep(time.Duration(100*i) * time.Millisecond)
 				counter.Inc(strconv.Itoa(i))
 				logs.SpanDebug(span, "Counter increment %d", i)
 
+				spanCtx = span.GetContext()
 				span.Finish()
 			}
 
-			span = traces.StartChildSpan(rootSpan.GetContext())
-			defer span.Finish()
+			span := traces.StartChildSpan(rootSpan.GetContext())
+			span.SetName("call")
 
 			content, err := ioutil.ReadFile("k8s.json")
 			if err != nil {
@@ -224,11 +225,6 @@ func Execute() {
 			req.Header.Set("Content-Type", "application/json")
 
 			ctx := span.GetContext()
-			if ctx == nil {
-				logs.SpanError(span, errors.New("no span context found"))
-				os.Exit(1)
-			}
-
 			traceID := ctx.GetTraceID()
 			req.Header.Set("X-Trace-ID", strconv.Itoa(int(traceID)))
 
@@ -237,6 +233,9 @@ func Execute() {
 			resp, err := client.Do(req)
 			if err != nil {
 				logs.SpanError(span, err)
+				span.Finish()
+				rootSpan.Finish()
+				time.Sleep(time.Duration(1000) * time.Millisecond)
 				os.Exit(1)
 			}
 
@@ -252,6 +251,7 @@ func Execute() {
 			logs.Info("Wait until it will be interrupted...")
 
 			rootSpan.Finish()
+			time.Sleep(time.Duration(1000) * time.Millisecond)
 			mainWG.Wait()
 		},
 	}

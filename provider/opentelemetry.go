@@ -14,6 +14,7 @@ import (
 
 	"go.opentelemetry.io/otel"
 	"go.opentelemetry.io/otel/attribute"
+	"go.opentelemetry.io/otel/codes"
 	"go.opentelemetry.io/otel/exporters/otlp/otlptrace/otlptracegrpc"
 	"go.opentelemetry.io/otel/propagation"
 	"go.opentelemetry.io/otel/sdk/resource"
@@ -31,18 +32,23 @@ type OpentelemetryOptions struct {
 	Port        int
 }
 
+const headerTraceID string = "X-Trace-ID"
+
 type OpentelemetryTracerOptions struct {
 	OpentelemetryOptions
+	HeaderTraceID string
 }
 
 type OpentelemetryTracerSpanContext struct {
+	tracerSpan OpentelemetryTracerSpan
+	context    *trace.SpanContext
 }
 
 type OpentelemetryTracerSpan struct {
-	span        trace.Span
-	spanContext *OpentelemetryTracerSpanContext
-	context     context.Context
-	tracer      *OpentelemetryTracer
+	span              trace.Span
+	tracerSpanContext *OpentelemetryTracerSpanContext
+	context           context.Context
+	tracer            *OpentelemetryTracer
 }
 
 type OpentelemetryTracer struct {
@@ -56,20 +62,34 @@ type OpentelemetryTracer struct {
 
 func (ottsc OpentelemetryTracerSpanContext) GetTraceID() uint64 {
 
-	/*if ottsc.context == nil {
+	if ottsc.context == nil || !ottsc.context.HasTraceID() {
 		return 0
 	}
-	return ottsc.context.TraceID()*/
-	return 0
+
+	traceID := ottsc.context.TraceID()
+	sTraceID := traceID.String()
+	dec, err := strconv.ParseInt(sTraceID, 16, 32)
+	if err != nil {
+		ottsc.tracerSpan.tracer.logger.Error(err)
+		return 0
+	}
+	return uint64(dec)
 }
 
-func (ddsc OpentelemetryTracerSpanContext) GetSpanID() uint64 {
+func (ottsc OpentelemetryTracerSpanContext) GetSpanID() uint64 {
 
-	/*if ddsc.context == nil {
+	if ottsc.context == nil || !ottsc.context.HasSpanID() {
 		return 0
 	}
-	return ddsc.context.SpanID()*/
-	return 0
+
+	spanID := ottsc.context.SpanID()
+	sSpanID := spanID.String()
+	dec, err := strconv.ParseInt(sSpanID, 16, 32)
+	if err != nil {
+		ottsc.tracerSpan.tracer.logger.Error(err)
+		return 0
+	}
+	return uint64(dec)
 }
 
 func (otts OpentelemetryTracerSpan) GetContext() common.TracerSpanContext {
@@ -77,14 +97,16 @@ func (otts OpentelemetryTracerSpan) GetContext() common.TracerSpanContext {
 		return nil
 	}
 
-	if otts.spanContext != nil {
-		return otts.spanContext
+	if otts.tracerSpanContext != nil {
+		return otts.tracerSpanContext
 	}
 
-	otts.spanContext = &OpentelemetryTracerSpanContext{
-		//context: otts.span.Context(),
+	context := otts.span.SpanContext()
+	otts.tracerSpanContext = &OpentelemetryTracerSpanContext{
+		context:    &context,
+		tracerSpan: otts,
 	}
-	return otts.spanContext
+	return otts.tracerSpanContext
 }
 
 func (otts OpentelemetryTracerSpan) SetCarrier(object interface{}) common.TracerSpan {
@@ -94,9 +116,11 @@ func (otts OpentelemetryTracerSpan) SetCarrier(object interface{}) common.Tracer
 	}
 
 	if reflect.TypeOf(object) != reflect.TypeOf(http.Header{}) {
-		otts.tracer.logger.Error(errors.New("Other than http.Header is not supported yet"))
+		otts.tracer.logger.Error(errors.New("other than http.Header is not supported yet"))
 		return otts
 	}
+
+	// take a look at TextMapPropagator instead
 
 	/*var h http.Header = object.(http.Header)
 	err := tracer.Inject(otts.span.Context(), tracer.HTTPHeadersCarrier(h))
@@ -123,7 +147,6 @@ func (otts OpentelemetryTracerSpan) SetTag(key string, value interface{}) common
 
 	attr := attribute.Key(key)
 	var v attribute.KeyValue
-
 	switch value.(type) {
 	case bool:
 		v = attr.Bool(value.(bool))
@@ -149,7 +172,12 @@ func (otts OpentelemetryTracerSpan) SetBaggageItem(restrictedKey, value string) 
 	if otts.span == nil {
 		return nil
 	}
-	//otts.span.SetBaggageItem(restrictedKey, value)
+	// may be SetBaggage should be replaceb by AddEvent
+	otts.span.AddEvent("",
+		trace.WithAttributes(
+			attribute.String("event", "baggage"),
+			attribute.String("key", restrictedKey),
+			attribute.String("value", value)))
 	return otts
 }
 
@@ -157,8 +185,10 @@ func (otts OpentelemetryTracerSpan) Error(err error) common.TracerSpan {
 	if otts.span == nil {
 		return nil
 	}
-
-	otts.span.RecordError(err)
+	otts.span.SetStatus(codes.Error, "")
+	otts.span.AddEvent("",
+		trace.WithAttributes(
+			attribute.String("error.message", err.Error())))
 	return otts
 }
 
@@ -198,42 +228,55 @@ func (ott *OpentelemetryTracer) StartSpan() common.TracerSpan {
 
 	s, ctx := ott.startSpanFromContext(context.Background(), ott.callerOffset+4,
 		trace.WithAttributes(ott.attributes...),
-		trace.WithNewRoot())
+		trace.WithNewRoot(),
+	)
 
 	return OpentelemetryTracerSpan{
 		span:    s,
 		context: ctx,
 		tracer:  ott,
 	}
+}
+
+func (ott *OpentelemetryTracer) getSpanTraceID(spanID, traceID uint64) (*trace.SpanID, *trace.TraceID) {
+
+	sSpanID := fmt.Sprintf("%016x", spanID)
+	traceSpanID, err := trace.SpanIDFromHex(sSpanID)
+	if err != nil {
+		ott.logger.Error(err)
+		return nil, nil
+	}
+
+	sTraceID := fmt.Sprintf("%032x", traceID)
+	traceTraceID, err := trace.TraceIDFromHex(sTraceID)
+	if err != nil {
+		ott.logger.Error(err)
+		return &traceSpanID, nil
+	}
+
+	return &traceSpanID, &traceTraceID
 }
 
 func (ott *OpentelemetryTracer) StartSpanWithTraceID(traceID uint64) common.TracerSpan {
 
-	sSpanID := fmt.Sprintf("%x", i)
-	sTraceID := strconv.FormatInt(int64(traceID), 16)
+	parentCtx := context.Background()
 
-	trace.
+	var opts []trace.SpanStartOption
+	opts = append(opts, trace.WithAttributes(ott.attributes...))
+	opts = append(opts, trace.WithNewRoot())
 
-	traceSpanID, err := trace.SpanIDFromHex(sSpanID)
-	if err != nil {
-		ott.logger.Error(err)
+	traceSpanID, traceTraceID := ott.getSpanTraceID(traceID, traceID)
+	if traceSpanID != nil && traceTraceID != nil {
+		spanCtx := trace.NewSpanContext(trace.SpanContextConfig{
+			SpanID:  *traceSpanID,
+			TraceID: *traceTraceID,
+		})
+		parentCtx = trace.ContextWithSpanContext(context.Background(), spanCtx)
+	} else {
+		opts = append(opts, trace.WithNewRoot())
 	}
 
-	traceTraceID, err := trace.TraceIDFromHex(sTraceID)
-	if err != nil {
-		ott.logger.Error(err)
-	}
-
-	spanContext := trace.NewSpanContext(trace.SpanContextConfig{
-		SpanID:  traceSpanID,
-		TraceID: traceTraceID,
-	})
-
-	parentCtx := trace.ContextWithSpanContext(context.Background(), spanContext)
-
-	s, ctx := ott.startSpanFromContext(parentCtx, ott.callerOffset+4,
-		trace.WithAttributes(ott.attributes...),
-	)
+	s, ctx := ott.startSpanFromContext(parentCtx, ott.callerOffset+4, opts...)
 	return OpentelemetryTracerSpan{
 		span:    s,
 		context: ctx,
@@ -241,33 +284,59 @@ func (ott *OpentelemetryTracer) StartSpanWithTraceID(traceID uint64) common.Trac
 	}
 }
 
-func (ott *OpentelemetryTracer) getOpentracingSpanContext(object interface{}) *trace.SpanContext {
+func (ott *OpentelemetryTracer) getSpanContext(object interface{}) (context.Context, *trace.SpanContext) {
 
-	/*	h, ok := object.(http.Header)
-		if ok {
-			spanContext, err := trace.Extract(tracer.HTTPHeadersCarrier(h))
-			if err != nil {
-				ott.logger.Error(err)
-				return nil
-			}
-			return spanContext
+	h, ok := object.(http.Header)
+	if ok {
+
+		// take a look at TextMapPropagator instead
+
+		headerName := ott.options.HeaderTraceID
+		if utils.IsEmpty(headerName) {
+			headerName = headerTraceID
 		}
 
-		ottsc, ok := object.(*OpentelemetryTracerSpanContext)
-		if ok {
-			return ottsc.context
-		}*/
-	return nil
+		s := h.Get(headerName)
+		if utils.IsEmpty(s) {
+			ott.logger.Error("Opentelemetry header is not found")
+			return nil, nil
+		}
+
+		traceID, err := strconv.ParseInt(s, 10, 64)
+		if err != nil {
+			ott.logger.Error(err)
+			return nil, nil
+		}
+
+		traceSpanID, traceTraceID := ott.getSpanTraceID(0, uint64(traceID))
+		if traceSpanID != nil && traceTraceID != nil {
+			ott.logger.Error(err)
+			return nil, nil
+		}
+
+		spanCtx := trace.NewSpanContext(trace.SpanContextConfig{
+			SpanID:  *traceSpanID,
+			TraceID: *traceTraceID,
+		})
+		parentCtx := trace.ContextWithRemoteSpanContext(context.Background(), spanCtx)
+		return parentCtx, &spanCtx
+	}
+
+	ottsc, ok := object.(*OpentelemetryTracerSpanContext)
+	if ok {
+		return ottsc.tracerSpan.context, ottsc.context
+	}
+	return nil, nil
 }
 
 func (ott *OpentelemetryTracer) StartChildSpan(object interface{}) common.TracerSpan {
 
-	spanContext := ott.getOpentracingSpanContext(object)
+	parentCtx, spanContext := ott.getSpanContext(object)
 	if spanContext == nil {
 		return nil
 	}
 
-	s, ctx := ott.startChildOfSpan(context.Background(), spanContext)
+	s, ctx := ott.startChildOfSpan(parentCtx, spanContext)
 	return OpentelemetryTracerSpan{
 		span:    s,
 		context: ctx,
@@ -277,12 +346,12 @@ func (ott *OpentelemetryTracer) StartChildSpan(object interface{}) common.Tracer
 
 func (ott *OpentelemetryTracer) StartFollowSpan(object interface{}) common.TracerSpan {
 
-	spanContext := ott.getOpentracingSpanContext(object)
+	parentCtx, spanContext := ott.getSpanContext(object)
 	if spanContext == nil {
 		return nil
 	}
 
-	s, ctx := ott.startChildOfSpan(context.Background(), spanContext)
+	s, ctx := ott.startChildOfSpan(parentCtx, spanContext)
 	return OpentelemetryTracerSpan{
 		span:    s,
 		context: ctx,
@@ -351,6 +420,7 @@ func startOpentelemtryTracer(options OpentelemetryTracerOptions, logger common.L
 	traceExporter, err := otlptracegrpc.New(ctx,
 		otlptracegrpc.WithInsecure(),
 		otlptracegrpc.WithEndpoint(fmt.Sprintf("%s:%d", options.Host, options.Port)),
+		//		otlptracegrpc.WithDialOption(grpc.WithBlock()), // uncomment in a case of debug
 	)
 	if err != nil {
 		stdout.Error(err)

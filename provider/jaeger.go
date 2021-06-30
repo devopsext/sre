@@ -102,7 +102,7 @@ func (js JaegerSpan) SetCarrier(object interface{}) common.TracerSpan {
 	}
 
 	if reflect.TypeOf(object) != reflect.TypeOf(http.Header{}) {
-		js.jaeger.logger.Error(errors.New("Other than http.Header is not supported yet"))
+		js.jaeger.logger.Error(errors.New("other than http.Header is not supported yet"))
 		return js
 	}
 
@@ -260,13 +260,13 @@ func (j *Jaeger) StartSpanWithTraceID(traceID uint64) common.TracerSpan {
 		Low:  traceID, // set your own trace ID
 		High: 0,
 	}
-	var spanID jaeger.SpanID = jaeger.SpanID(traceID)
+	var newSpanID jaeger.SpanID = jaeger.SpanID(traceID)
 	parentID := jaeger.SpanID(0)
 	sampled := true
 
 	baggage := make(map[string]string)
 
-	newJaegerSpanCtx := jaeger.NewSpanContext(newTraceID, spanID, parentID, sampled, baggage)
+	newJaegerSpanCtx := jaeger.NewSpanContext(newTraceID, newSpanID, parentID, sampled, baggage)
 
 	s, ctx := j.startSpanFromContext(context.Background(), j.callerOffset+4, jaeger.SelfRef(newJaegerSpanCtx))
 
@@ -278,7 +278,7 @@ func (j *Jaeger) StartSpanWithTraceID(traceID uint64) common.TracerSpan {
 	}
 }
 
-func (j *Jaeger) getOpentracingSpanContext(object interface{}) opentracing.SpanContext {
+func (j *Jaeger) getSpanContext(object interface{}) opentracing.SpanContext {
 
 	h, ok := object.(http.Header)
 	if ok {
@@ -299,7 +299,7 @@ func (j *Jaeger) getOpentracingSpanContext(object interface{}) opentracing.SpanC
 
 func (j *Jaeger) StartChildSpan(object interface{}) common.TracerSpan {
 
-	spanContext := j.getOpentracingSpanContext(object)
+	spanContext := j.getSpanContext(object)
 	if spanContext == nil {
 		return nil
 	}
@@ -314,7 +314,7 @@ func (j *Jaeger) StartChildSpan(object interface{}) common.TracerSpan {
 
 func (j *Jaeger) StartFollowSpan(object interface{}) common.TracerSpan {
 
-	spanContext := j.getOpentracingSpanContext(object)
+	spanContext := j.getSpanContext(object)
 	if spanContext == nil {
 		return nil
 	}

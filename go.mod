@@ -22,6 +22,5 @@ require (
 	go.opentelemetry.io/otel/trace v1.0.0-RC1
 	go.uber.org/atomic v1.7.0 // indirect
 	golang.org/x/time v0.0.0-20210608053304-ed9ce3a009e4 // indirect
-	google.golang.org/grpc v1.38.0
 	gopkg.in/DataDog/dd-trace-go.v1 v1.31.1
 )

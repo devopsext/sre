@@ -2,6 +2,7 @@ package common
 
 type TracerSpanContext interface {
 	GetTraceID() uint64
+	GetSpanID() uint64
 }
 
 type TracerSpan interface {
