@@ -24,7 +24,7 @@ Framework for golang applications which helps to send metrics, logs and traces i
 ### Requirements
 
 - Jaeger works with its [Jaeger agent](https://www.jaegertracing.io/docs/latest/getting-started/)
-- DataDog uses self made [DataDog agent](https://docs.datadoghq.com/agent/)
+- DataDog uses [DataDog agent](https://docs.datadoghq.com/agent/) for logs, metrics and traces
 - Opentelemetry communicates with its [Opentelemetry collector](https://github.com/open-telemetry/opentelemetry-collector)
 
 ### Envs
@@ -72,7 +72,7 @@ func main() {
   // initialize DataDog logger
   datadog := provider.NewDataDogLogger(provider.DataDogLoggerOptions{
     DataDogOptions: provider.DataDogOptions{
-      ServiceName: "some-service",
+      ServiceName: "sre-datadog",
       Environment: "stage",
     },
     Host:  "localhost", // set DataDog agent UDP logs host
@@ -160,7 +160,7 @@ func main() {
   // initialize DataDog metricer
   datadog := provider.NewDataDogMetricer(provider.DataDogMetricerOptions{
     DataDogOptions: provider.DataDogOptions{
-      ServiceName: "some-service",
+      ServiceName: "sre-datadog",
       Environment: "stage",
     },
     Host:  "localhost", // set DataDog agent UDP metrics host
@@ -216,86 +216,93 @@ Create traces.go file to test traces functionality
 package main
 
 import (
-  "time"
+	"fmt"
+	"time"
 
-  "github.com/devopsext/sre/common"
-  "github.com/devopsext/sre/provider"
+	"github.com/devopsext/sre/common"
+	"github.com/devopsext/sre/provider"
 )
 
 var logs = common.NewLogs()
 var traces = common.NewTraces()
 
 func test() {
-  rootSpan := traces.StartSpan()
 
-  // emulate delay of 100 msecs
-  time.Sleep(time.Duration(100) * time.Millisecond)
+	rootSpan := traces.StartSpan()
+	spanCtx := rootSpan.GetContext()
+	for i := 0; i < 10; i++ {
 
-  span := traces.StartChildSpan(rootSpan.GetContext())
+		span := traces.StartChildSpan(spanCtx)
+		span.SetName(fmt.Sprintf("name-%d", i))
 
-  // emulate delay of 100 msecs
-  time.Sleep(time.Duration(200) * time.Millisecond)
-  logs.SpanInfo(span, "Something happened")
-  span.Finish()
+		time.Sleep(time.Duration(100*i) * time.Millisecond)
+		logs.SpanDebug(span, "Counter increment %d", i)
 
-  rootSpan.Finish()
+		spanCtx = span.GetContext()
+		span.Finish()
+	}
 
-  // wait for a while to delivery all spans to provider 
-  time.Sleep(time.Duration(3000) * time.Millisecond)
+	// emulate delay of 100 msecs
+	time.Sleep(time.Duration(200) * time.Millisecond)
+
+	rootSpan.Finish()
+
+	// wait for a while to delivery all spans to provider
+	time.Sleep(time.Duration(3000) * time.Millisecond)
 }
 
 func main() {
 
-  // initialize Stdout logger
-  stdout := provider.NewStdout(provider.StdoutOptions{
-    Format:          "text",
-    Level:           "info",
-    Template:        "{{.file}} {{.msg}}",
-    TimestampFormat: time.RFC3339Nano,
-    TextColors:      true,
-  })
-  // set caller offset for file:line proper usage
-  stdout.SetCallerOffset(2)
+	// initialize Stdout logger
+	stdout := provider.NewStdout(provider.StdoutOptions{
+		Format:          "text",
+		Level:           "info",
+		Template:        "{{.file}} {{.msg}}",
+		TimestampFormat: time.RFC3339Nano,
+		TextColors:      true,
+	})
+	// set caller offset for file:line proper usage
+	stdout.SetCallerOffset(2)
 
-  // add Stdout logger
-  logs.Register(stdout)
+	// add Stdout logger
+	logs.Register(stdout)
 
-  // initialize Jaeger tracer
-  jaeger := provider.NewJaeger(provider.JaegerOptions{
-    ServiceName:         "sre",
-    AgentHost:           "localhost", // set Jaeger agent host
-    AgentPort:           6831, // set Jaeger agent port
-    BufferFlushInterval: 0,
-    QueueSize:           0,
-    Tags:                "key1=value1",
-  }, logs, stdout)
+	// initialize Jaeger tracer
+	jaeger := provider.NewJaeger(provider.JaegerOptions{
+		ServiceName:         "sre-jaeger",
+		AgentHost:           "localhost", // set Jaeger agent host
+		AgentPort:           6831,        // set Jaeger agent port
+		BufferFlushInterval: 0,
+		QueueSize:           0,
+		Tags:                "key1=value1",
+	}, logs, stdout)
 
-  // initialize DataDog tracer
-  datadog := provider.NewDataDogTracer(provider.DataDogTracerOptions{
-    DataDogOptions: provider.DataDogOptions{
-      ServiceName: "some-service",
-      Environment: "stage",
-    },
-    Host:  "localhost", // set DataDog agent traces host
-    Port:  8126, // set DataDog agent traces port
-  }, logs, stdout)
+	// initialize DataDog tracer
+	datadog := provider.NewDataDogTracer(provider.DataDogTracerOptions{
+		DataDogOptions: provider.DataDogOptions{
+			ServiceName: "sre-datadog",
+			Environment: "stage",
+		},
+		Host: "localhost", // set DataDog agent traces host
+		Port: 8126,        // set DataDog agent traces port
+	}, logs, stdout)
 
-  // initialize Opentelemetry tracer
-  opentelemetry := provider.NewOpentelemetryTracer(provider.OpentelemetryTracerOptions{
-    OpentelemetryOptions: provider.OpentelemetryOptions{
-      ServiceName: "some-service",
-      Environment: "stage",
-    },
-    Host:  "localhost", // set Opentelemetry collector traces host
-    Port:  4317, // set Opentelemetry collector traces port
-  }, logs, stdout)
+	// initialize Opentelemetry tracer
+	opentelemetry := provider.NewOpentelemetryTracer(provider.OpentelemetryTracerOptions{
+		OpentelemetryOptions: provider.OpentelemetryOptions{
+			ServiceName: "sre-opentelemetry",
+			Environment: "stage",
+			Host:        "localhost", // set Opentelemetry collector traces host
+			Port:        4317,        // set Opentelemetry collector traces port
+		},
+	}, logs, stdout)
 
-// add traces
-  traces.Register(jaeger)
-  traces.Register(datadog)
-  traces.Register(opentelemetry)
+	// add traces
+	traces.Register(jaeger)
+	traces.Register(datadog)
+	traces.Register(opentelemetry)
 
-  test()
+	test()
 }
 ```
 
