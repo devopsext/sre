@@ -16,6 +16,7 @@ type TracesSpanContext struct {
 type TracesSpan struct {
 	spans       map[Tracer]TracerSpan
 	traceID     uint64
+	spanID      uint64
 	spanContext *TracesSpanContext
 	traces      *Traces
 }
@@ -31,6 +32,14 @@ func (tssc TracesSpanContext) GetTraceID() uint64 {
 		return 0
 	}
 	return tssc.span.traceID
+}
+
+func (tssc TracesSpanContext) GetSpanID() uint64 {
+
+	if tssc.span == nil {
+		return 0
+	}
+	return tssc.span.spanID
 }
 
 func (tss *TracesSpan) GetContext() TracerSpanContext {
@@ -113,10 +122,14 @@ func (ts *Traces) Register(t Tracer) {
 
 func (ts *Traces) StartSpan() TracerSpan {
 
+	traceID := ts.randomNumber()
+	spanID := ts.randomNumber()
+
 	span := TracesSpan{
 		traces:  ts,
 		spans:   make(map[Tracer]TracerSpan),
-		traceID: ts.randomNumber(),
+		traceID: traceID,
+		spanID:  spanID,
 	}
 
 	for _, t := range ts.tracers {
@@ -133,12 +146,13 @@ func (ts *Traces) StartSpan() TracerSpan {
 	return &span
 }
 
-func (ts *Traces) StartSpanWithTraceID(traceID uint64) TracerSpan {
+func (ts *Traces) StartSpanWithTraceID(spanID, traceID uint64) TracerSpan {
 
 	span := TracesSpan{
 		traces:  ts,
 		spans:   make(map[Tracer]TracerSpan),
 		traceID: traceID,
+		spanID:  spanID,
 	}
 
 	for _, t := range ts.tracers {
@@ -158,15 +172,19 @@ func (ts *Traces) StartSpanWithTraceID(traceID uint64) TracerSpan {
 func (ts *Traces) StartChildSpan(object interface{}) TracerSpan {
 
 	var traceID uint64
+	var spanID uint64
+
 	spanCtx, spanCtxOk := object.(*TracesSpanContext)
 	if spanCtxOk {
 		traceID = spanCtx.GetTraceID()
+		spanID = spanCtx.GetSpanID()
 	}
 
 	span := TracesSpan{
 		traces:  ts,
 		spans:   make(map[Tracer]TracerSpan),
 		traceID: traceID,
+		spanID:  spanID,
 	}
 
 	for _, t := range ts.tracers {
@@ -184,10 +202,17 @@ func (ts *Traces) StartChildSpan(object interface{}) TracerSpan {
 		if s != nil {
 			span.spans[t] = s
 
-			// find first traceID if there is no on
 			sCtx := s.GetContext()
-			if sCtx != nil && span.traceID == 0 {
-				span.traceID = sCtx.GetTraceID()
+			if sCtx != nil {
+
+				// find first traceID if there is no one
+				if span.traceID == 0 {
+					span.traceID = sCtx.GetTraceID()
+				}
+				// find first spanID if there is no one
+				if span.spanID == 0 {
+					span.spanID = sCtx.GetSpanID()
+				}
 			}
 		}
 	}
@@ -197,15 +222,20 @@ func (ts *Traces) StartChildSpan(object interface{}) TracerSpan {
 func (ts *Traces) StartFollowSpan(object interface{}) TracerSpan {
 
 	var traceID uint64
+
+	var spanID uint64
+
 	spanCtx, spanCtxOk := object.(*TracesSpanContext)
 	if spanCtxOk {
 		traceID = spanCtx.GetTraceID()
+		spanID = spanCtx.GetSpanID()
 	}
 
 	span := TracesSpan{
 		traces:  ts,
 		spans:   make(map[Tracer]TracerSpan),
 		traceID: traceID,
+		spanID:  spanID,
 	}
 
 	for _, t := range ts.tracers {
@@ -223,10 +253,17 @@ func (ts *Traces) StartFollowSpan(object interface{}) TracerSpan {
 		if s != nil {
 			span.spans[t] = s
 
-			// find first traceID if there is no on
 			sCtx := s.GetContext()
-			if sCtx != nil && span.traceID == 0 {
-				span.traceID = sCtx.GetTraceID()
+			if sCtx != nil {
+
+				// find first traceID if there is no one
+				if span.traceID == 0 {
+					span.traceID = sCtx.GetTraceID()
+				}
+				// find first spanID if there is no one
+				if span.spanID == 0 {
+					span.spanID = sCtx.GetSpanID()
+				}
 			}
 		}
 	}

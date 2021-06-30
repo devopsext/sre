@@ -129,7 +129,7 @@ func (dds DataDogTracerSpan) SetCarrier(object interface{}) common.TracerSpan {
 	}
 
 	if reflect.TypeOf(object) != reflect.TypeOf(http.Header{}) {
-		dds.datadog.logger.Error(errors.New("Other than http.Header is not supported yet"))
+		dds.datadog.logger.Error(errors.New("other than http.Header is not supported yet"))
 		return dds
 	}
 
@@ -223,8 +223,9 @@ func (dd *DataDogTracer) StartSpan() common.TracerSpan {
 
 func (dd *DataDogTracer) StartSpanWithTraceID(traceID uint64) common.TracerSpan {
 
-	opt := tracer.WithSpanID(traceID) // due to span ID equals trace ID if there is no parent
-	s, ctx := dd.startSpanFromContext(context.Background(), dd.callerOffset+4, opt)
+	s, ctx := dd.startSpanFromContext(context.Background(), dd.callerOffset+4,
+		tracer.WithSpanID(traceID),
+	)
 	return DataDogTracerSpan{
 		span:    s,
 		context: ctx,
@@ -232,7 +233,7 @@ func (dd *DataDogTracer) StartSpanWithTraceID(traceID uint64) common.TracerSpan 
 	}
 }
 
-func (dd *DataDogTracer) getOpentracingSpanContext(object interface{}) ddtrace.SpanContext {
+func (dd *DataDogTracer) getSpanContext(object interface{}) ddtrace.SpanContext {
 
 	h, ok := object.(http.Header)
 	if ok {
@@ -253,7 +254,7 @@ func (dd *DataDogTracer) getOpentracingSpanContext(object interface{}) ddtrace.S
 
 func (dd *DataDogTracer) StartChildSpan(object interface{}) common.TracerSpan {
 
-	spanContext := dd.getOpentracingSpanContext(object)
+	spanContext := dd.getSpanContext(object)
 	if spanContext == nil {
 		return nil
 	}
@@ -267,7 +268,8 @@ func (dd *DataDogTracer) StartChildSpan(object interface{}) common.TracerSpan {
 }
 
 func (dd *DataDogTracer) StartFollowSpan(object interface{}) common.TracerSpan {
-	spanContext := dd.getOpentracingSpanContext(object)
+
+	spanContext := dd.getSpanContext(object)
 	if spanContext == nil {
 		return nil
 	}
