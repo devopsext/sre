@@ -27,7 +27,7 @@ Framework for golang applications which helps to send metrics, logs and traces i
 - DataDog uses self made [DataDog agent](https://docs.datadoghq.com/agent/)
 - Opentelemetry communicates with its [Opentelemetry collector](https://github.com/open-telemetry/opentelemetry-collector)
 
-### Env
+### Envs
 
 Set proper GOROOT and PATH variables
 ```sh
@@ -262,15 +262,15 @@ func main() {
 
   // initialize Jaeger tracer
   jaeger := provider.NewJaeger(provider.JaegerOptions{
-    ServiceName:        "sre",
-    AgentHost:          "localhost", // set Jaeger agent host
-    AgentPort:          6831, // set Jaeger agent port
+    ServiceName:         "sre",
+    AgentHost:           "localhost", // set Jaeger agent host
+    AgentPort:           6831, // set Jaeger agent port
     BufferFlushInterval: 0,
     QueueSize:           0,
     Tags:                "key1=value1",
   }, logs, stdout)
 
-  // initialize DataDog metricer
+  // initialize DataDog tracer
   datadog := provider.NewDataDogTracer(provider.DataDogTracerOptions{
     DataDogOptions: provider.DataDogOptions{
       ServiceName: "some-service",
@@ -280,9 +280,20 @@ func main() {
     Port:  8126, // set DataDog agent traces port
   }, logs, stdout)
 
-  // add traces
+  // initialize Opentelemetry tracer
+  opentelemetry := provider.NewOpentelemetryTracer(provider.OpentelemetryTracerOptions{
+    OpentelemetryOptions: provider.OpentelemetryOptions{
+      ServiceName: "some-service",
+      Environment: "stage",
+    },
+    Host:  "localhost", // set Opentelemetry collector traces host
+    Port:  4317, // set Opentelemetry collector traces port
+  }, logs, stdout)
+
+// add traces
   traces.Register(jaeger)
   traces.Register(datadog)
+  traces.Register(opentelemetry)
 
   test()
 }
