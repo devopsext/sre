@@ -134,10 +134,6 @@ func (ts *Traces) StartSpan() TracerSpan {
 
 	for _, t := range ts.tracers {
 
-		if !t.Enabled() {
-			continue
-		}
-
 		s := t.StartSpanWithTraceID(span.traceID)
 		if s != nil {
 			span.spans[t] = s
@@ -156,10 +152,6 @@ func (ts *Traces) StartSpanWithTraceID(spanID, traceID uint64) TracerSpan {
 	}
 
 	for _, t := range ts.tracers {
-
-		if !t.Enabled() {
-			continue
-		}
 
 		s := t.StartSpanWithTraceID(span.traceID)
 		if s != nil {
@@ -188,10 +180,6 @@ func (ts *Traces) StartChildSpan(object interface{}) TracerSpan {
 	}
 
 	for _, t := range ts.tracers {
-
-		if !t.Enabled() {
-			continue
-		}
 
 		var s TracerSpan
 		if spanCtxOk {
@@ -239,10 +227,6 @@ func (ts *Traces) StartFollowSpan(object interface{}) TracerSpan {
 	}
 
 	for _, t := range ts.tracers {
-
-		if !t.Enabled() {
-			continue
-		}
 
 		var s TracerSpan
 		if spanCtxOk {

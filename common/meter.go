@@ -4,6 +4,6 @@ type Counter interface {
 	Inc(labelValues ...string) Counter
 }
 
-type Metricer interface {
+type Meter interface {
 	Counter(name, description string, labels []string, prefixes ...string) Counter
 }

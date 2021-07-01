@@ -38,11 +38,11 @@ type JaegerSpan struct {
 	span         opentracing.Span
 	spanContext  *JaegerSpanContext
 	context      context.Context
-	jaeger       *Jaeger
+	tracer       *JaegerTracer
 	callerOffset int
 }
 
-type Jaeger struct {
+type JaegerTracer struct {
 	enabled      bool
 	options      JaegerOptions
 	callerOffset int
@@ -102,14 +102,14 @@ func (js JaegerSpan) SetCarrier(object interface{}) common.TracerSpan {
 	}
 
 	if reflect.TypeOf(object) != reflect.TypeOf(http.Header{}) {
-		js.jaeger.logger.Error(errors.New("other than http.Header is not supported yet"))
+		js.tracer.logger.Error(errors.New("other than http.Header is not supported yet"))
 		return js
 	}
 
 	var h http.Header = object.(http.Header)
-	err := js.jaeger.tracer.Inject(js.span.Context(), opentracing.HTTPHeaders, opentracing.HTTPHeadersCarrier(h))
+	err := js.tracer.tracer.Inject(js.span.Context(), opentracing.HTTPHeaders, opentracing.HTTPHeadersCarrier(h))
 	if err != nil {
-		js.jaeger.logger.Error(err)
+		js.tracer.logger.Error(err)
 	}
 	return js
 }
@@ -208,7 +208,7 @@ func (js JaegerSpan) Finish() {
 	js.span.Finish()
 }
 
-func (j *Jaeger) startSpanFromContext(ctx context.Context, offset int, opts ...opentracing.StartSpanOption) (opentracing.Span, context.Context) {
+func (j *JaegerTracer) startSpanFromContext(ctx context.Context, offset int, opts ...opentracing.StartSpanOption) (opentracing.Span, context.Context) {
 
 	operation, file, line := common.GetCallerInfo(offset)
 
@@ -219,7 +219,7 @@ func (j *Jaeger) startSpanFromContext(ctx context.Context, offset int, opts ...o
 	return span, context
 }
 
-func (j *Jaeger) startChildOfSpan(ctx context.Context, spanContext opentracing.SpanContext) (opentracing.Span, context.Context) {
+func (j *JaegerTracer) startChildOfSpan(ctx context.Context, spanContext opentracing.SpanContext) (opentracing.Span, context.Context) {
 
 	var span opentracing.Span
 	var context context.Context
@@ -231,7 +231,7 @@ func (j *Jaeger) startChildOfSpan(ctx context.Context, spanContext opentracing.S
 	return span, context
 }
 
-func (j *Jaeger) startFollowsFromSpan(ctx context.Context, spanContext opentracing.SpanContext) (opentracing.Span, context.Context) {
+func (j *JaegerTracer) startFollowsFromSpan(ctx context.Context, spanContext opentracing.SpanContext) (opentracing.Span, context.Context) {
 
 	var span opentracing.Span
 	var context context.Context
@@ -243,18 +243,18 @@ func (j *Jaeger) startFollowsFromSpan(ctx context.Context, spanContext opentraci
 	return span, context
 }
 
-func (j *Jaeger) StartSpan() common.TracerSpan {
+func (j *JaegerTracer) StartSpan() common.TracerSpan {
 
 	s, ctx := j.startSpanFromContext(context.Background(), j.callerOffset+4)
 	return JaegerSpan{
 		span:         s,
 		context:      ctx,
-		jaeger:       j,
+		tracer:       j,
 		callerOffset: j.callerOffset,
 	}
 }
 
-func (j *Jaeger) StartSpanWithTraceID(traceID uint64) common.TracerSpan {
+func (j *JaegerTracer) StartSpanWithTraceID(traceID uint64) common.TracerSpan {
 
 	newTraceID := jaeger.TraceID{
 		Low:  traceID, // set your own trace ID
@@ -273,12 +273,12 @@ func (j *Jaeger) StartSpanWithTraceID(traceID uint64) common.TracerSpan {
 	return JaegerSpan{
 		span:         s,
 		context:      ctx,
-		jaeger:       j,
+		tracer:       j,
 		callerOffset: j.callerOffset,
 	}
 }
 
-func (j *Jaeger) getSpanContext(object interface{}) opentracing.SpanContext {
+func (j *JaegerTracer) getSpanContext(object interface{}) opentracing.SpanContext {
 
 	h, ok := object.(http.Header)
 	if ok {
@@ -297,7 +297,7 @@ func (j *Jaeger) getSpanContext(object interface{}) opentracing.SpanContext {
 	return nil
 }
 
-func (j *Jaeger) StartChildSpan(object interface{}) common.TracerSpan {
+func (j *JaegerTracer) StartChildSpan(object interface{}) common.TracerSpan {
 
 	spanContext := j.getSpanContext(object)
 	if spanContext == nil {
@@ -308,11 +308,11 @@ func (j *Jaeger) StartChildSpan(object interface{}) common.TracerSpan {
 	return JaegerSpan{
 		span:    s,
 		context: ctx,
-		jaeger:  j,
+		tracer:  j,
 	}
 }
 
-func (j *Jaeger) StartFollowSpan(object interface{}) common.TracerSpan {
+func (j *JaegerTracer) StartFollowSpan(object interface{}) common.TracerSpan {
 
 	spanContext := j.getSpanContext(object)
 	if spanContext == nil {
@@ -323,11 +323,11 @@ func (j *Jaeger) StartFollowSpan(object interface{}) common.TracerSpan {
 	return JaegerSpan{
 		span:    s,
 		context: ctx,
-		jaeger:  j,
+		tracer:  j,
 	}
 }
 
-func (j *Jaeger) SetCallerOffset(offset int) {
+func (j *JaegerTracer) SetCallerOffset(offset int) {
 	j.callerOffset = offset
 }
 
@@ -349,7 +349,7 @@ func (j *JaegerLogger) Infof(msg string, args ...interface{}) {
 	}
 }
 
-func (j *Jaeger) Enabled() bool {
+func (j *JaegerTracer) Enabled() bool {
 	return j.enabled
 }
 
@@ -381,12 +381,11 @@ func parseJaegerTags(sTags string) []opentracing.Tag {
 	return tags
 }
 
-func newJaegerTracer(options JaegerOptions, logger common.Logger, stdout *Stdout) (opentracing.Tracer, bool) {
+func newJaegerTracer(options JaegerOptions, logger common.Logger, stdout *Stdout) opentracing.Tracer {
 
 	disabled := utils.IsEmpty(options.AgentHost) && utils.IsEmpty(options.Endpoint)
 	if disabled {
-		stdout.Debug("Jaeger tracer is disabled.")
-		return nil, false
+		return nil
 	}
 
 	tags := parseJaegerTags(options.Tags)
@@ -422,20 +421,26 @@ func newJaegerTracer(options JaegerOptions, logger common.Logger, stdout *Stdout
 	tracer, _, err := cfg.NewTracer(jaegerConfig.Logger(&JaegerLogger{logger: logger}))
 	if err != nil {
 		stdout.Error(err)
-		return opentracing.NoopTracer{}, false
+		return nil
 	}
 	opentracing.SetGlobalTracer(tracer)
-	return tracer, !disabled
+	return tracer
 }
 
-func NewJaeger(options JaegerOptions, logger common.Logger, stdout *Stdout) *Jaeger {
+func NewJaegerTracer(options JaegerOptions, logger common.Logger, stdout *Stdout) *JaegerTracer {
 
-	tracer, enabled := newJaegerTracer(options, logger, stdout)
-	return &Jaeger{
+	tracer := newJaegerTracer(options, logger, stdout)
+	if tracer == nil {
+		stdout.Debug("Jaeger tracer is disabled.")
+		return nil
+	}
+
+	logger.Info("Jaeger tracer is up...")
+
+	return &JaegerTracer{
 		options:      options,
 		callerOffset: 1,
 		tracer:       tracer,
 		logger:       logger,
-		enabled:      enabled,
 	}
 }

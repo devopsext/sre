@@ -1,12 +1,12 @@
 package common
 
 type MetricsCounter struct {
-	counters map[Metricer]Counter
+	counters map[Meter]Counter
 	metrics  *Metrics
 }
 
 type Metrics struct {
-	metricers []Metricer
+	Meters []Meter
 }
 
 func (msc *MetricsCounter) Inc(values ...string) Counter {
@@ -21,10 +21,10 @@ func (ms *Metrics) Counter(name, description string, labels []string, prefixes .
 
 	counter := MetricsCounter{
 		metrics:  ms,
-		counters: make(map[Metricer]Counter),
+		counters: make(map[Meter]Counter),
 	}
 
-	for _, m := range ms.metricers {
+	for _, m := range ms.Meters {
 
 		c := m.Counter(name, description, labels, prefixes...)
 		if c != nil {
@@ -34,9 +34,9 @@ func (ms *Metrics) Counter(name, description string, labels []string, prefixes .
 	return &counter
 }
 
-func (ms *Metrics) Register(m Metricer) {
+func (ms *Metrics) Register(m Meter) {
 	if ms != nil {
-		ms.metricers = append(ms.metricers, m)
+		ms.Meters = append(ms.Meters, m)
 	}
 }
 
