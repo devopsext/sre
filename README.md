@@ -13,6 +13,7 @@ Framework for golang applications which helps to send metrics, logs and traces i
 - Monitoring tools (aka metrics)
   - [Prometheus](github.com/prometheus/client_golang)
   - [DataDog](https://github.com/DataDog/datadog-go)
+  - [Opentelemetry](https://github.com/open-telemetry/opentelemetry-go)
 - Tracing tools (aka traces)
   - [Jaeger](https://github.com/jaegertracing/jaeger-client-go)
   - [DataDog](https://github.com/DataDog/dd-trace-go)
@@ -149,16 +150,16 @@ func main() {
   // add Stdout logger
   logs.Register(stdout)
 
-  // initialize Prometheus metricer
-  prometheus := provider.NewPrometheus(provider.PrometheusOptions{
+  // initialize Prometheus meter
+  prometheus := provider.NewPrometheusMeter(provider.PrometheusOptions{
     URL:    "/metrics",
     Listen: "127.0.0.1:8080",
     Prefix: "sre",
   }, logs, stdout)
   prometheus.Start(&mainWG)
 
-  // initialize DataDog metricer
-  datadog := provider.NewDataDogMetricer(provider.DataDogMetricerOptions{
+  // initialize DataDog meter
+  datadog := provider.NewDataDogMeter(provider.DataDogMeterOptions{
     DataDogOptions: provider.DataDogOptions{
       ServiceName: "sre-datadog",
       Environment: "stage",
@@ -167,9 +168,21 @@ func main() {
     Port:  10518, // set DataDog agent UDP metrics port
   }, logs, stdout)
 
-  // add metricers
+  // initialize Opentelemetry meter
+  opentelemetry := provider.OpentelemetryMeter(provider.OpentelemetryMeterOptions{
+    OpentelemetryOptions: provider.OpentelemetryOptions{
+      ServiceName: "sre-opentelemetry",
+      Environment: "stage",
+    },
+    Host:   "localhost", // set Opentelemetry collector metrics host
+    Port:   4317,        // set Opentelemetry collector metrics port
+    Prefix: "sre",
+  }, logs, stdout)
+
+  // add meters
   metrics.Register(prometheus)
   metrics.Register(datadog)
+  metrics.Register(opentelemetry)
 
   test()
 
@@ -216,11 +229,11 @@ Create traces.go file to test traces functionality
 package main
 
 import (
-	"fmt"
-	"time"
+  "fmt"
+  "time"
 
-	"github.com/devopsext/sre/common"
-	"github.com/devopsext/sre/provider"
+  "github.com/devopsext/sre/common"
+  "github.com/devopsext/sre/provider"
 )
 
 var logs = common.NewLogs()
@@ -228,81 +241,81 @@ var traces = common.NewTraces()
 
 func test() {
 
-	rootSpan := traces.StartSpan()
-	spanCtx := rootSpan.GetContext()
-	for i := 0; i < 10; i++ {
+  rootSpan := traces.StartSpan()
+  spanCtx := rootSpan.GetContext()
+  for i := 0; i < 10; i++ {
 
-		span := traces.StartChildSpan(spanCtx)
-		span.SetName(fmt.Sprintf("name-%d", i))
+    span := traces.StartChildSpan(spanCtx)
+    span.SetName(fmt.Sprintf("name-%d", i))
 
-		time.Sleep(time.Duration(100*i) * time.Millisecond)
-		logs.SpanDebug(span, "Counter increment %d", i)
+    time.Sleep(time.Duration(100*i) * time.Millisecond)
+    logs.SpanDebug(span, "Counter increment %d", i)
 
-		spanCtx = span.GetContext()
-		span.Finish()
-	}
+    spanCtx = span.GetContext()
+    span.Finish()
+  }
 
-	// emulate delay of 100 msecs
-	time.Sleep(time.Duration(200) * time.Millisecond)
+  // emulate delay of 100 msecs
+  time.Sleep(time.Duration(200) * time.Millisecond)
 
-	rootSpan.Finish()
+  rootSpan.Finish()
 
-	// wait for a while to delivery all spans to provider
-	time.Sleep(time.Duration(3000) * time.Millisecond)
+  // wait for a while to delivery all spans to provider
+  time.Sleep(time.Duration(3000) * time.Millisecond)
 }
 
 func main() {
 
-	// initialize Stdout logger
-	stdout := provider.NewStdout(provider.StdoutOptions{
-		Format:          "text",
-		Level:           "info",
-		Template:        "{{.file}} {{.msg}}",
-		TimestampFormat: time.RFC3339Nano,
-		TextColors:      true,
-	})
-	// set caller offset for file:line proper usage
-	stdout.SetCallerOffset(2)
+  // initialize Stdout logger
+  stdout := provider.NewStdout(provider.StdoutOptions{
+    Format:          "text",
+    Level:           "info",
+    Template:        "{{.file}} {{.msg}}",
+    TimestampFormat: time.RFC3339Nano,
+    TextColors:      true,
+  })
+  // set caller offset for file:line proper usage
+  stdout.SetCallerOffset(2)
 
-	// add Stdout logger
-	logs.Register(stdout)
+  // add Stdout logger
+  logs.Register(stdout)
 
-	// initialize Jaeger tracer
-	jaeger := provider.NewJaeger(provider.JaegerOptions{
-		ServiceName:         "sre-jaeger",
-		AgentHost:           "localhost", // set Jaeger agent host
-		AgentPort:           6831,        // set Jaeger agent port
-		BufferFlushInterval: 0,
-		QueueSize:           0,
-		Tags:                "key1=value1",
-	}, logs, stdout)
+  // initialize Jaeger tracer
+  jaeger := provider.NewJaegerTracer(provider.JaegerOptions{
+    ServiceName:         "sre-jaeger",
+    AgentHost:           "localhost", // set Jaeger agent host
+    AgentPort:           6831,        // set Jaeger agent port
+    BufferFlushInterval: 0,
+    QueueSize:           0,
+    Tags:                "key1=value1",
+  }, logs, stdout)
 
-	// initialize DataDog tracer
-	datadog := provider.NewDataDogTracer(provider.DataDogTracerOptions{
-		DataDogOptions: provider.DataDogOptions{
-			ServiceName: "sre-datadog",
-			Environment: "stage",
-		},
-		Host: "localhost", // set DataDog agent traces host
-		Port: 8126,        // set DataDog agent traces port
-	}, logs, stdout)
+  // initialize DataDog tracer
+  datadog := provider.NewDataDogTracer(provider.DataDogTracerOptions{
+    DataDogOptions: provider.DataDogOptions{
+      ServiceName: "sre-datadog",
+      Environment: "stage",
+    },
+    Host: "localhost", // set DataDog agent traces host
+    Port: 8126,        // set DataDog agent traces port
+  }, logs, stdout)
 
-	// initialize Opentelemetry tracer
-	opentelemetry := provider.NewOpentelemetryTracer(provider.OpentelemetryTracerOptions{
-		OpentelemetryOptions: provider.OpentelemetryOptions{
-			ServiceName: "sre-opentelemetry",
-			Environment: "stage",
-			Host:        "localhost", // set Opentelemetry collector traces host
-			Port:        4317,        // set Opentelemetry collector traces port
-		},
-	}, logs, stdout)
+  // initialize Opentelemetry tracer
+  opentelemetry := provider.NewOpentelemetryTracer(provider.OpentelemetryTracerOptions{
+    OpentelemetryOptions: provider.OpentelemetryOptions{
+      ServiceName: "sre-opentelemetry",
+      Environment: "stage",
+    },
+    Host: "localhost", // set Opentelemetry collector traces host
+    Port: 4317,        // set Opentelemetry collector traces port
+  }, logs, stdout)
 
-	// add traces
-	traces.Register(jaeger)
-	traces.Register(datadog)
-	traces.Register(opentelemetry)
+  // add traces
+  traces.Register(jaeger)
+  traces.Register(datadog)
+  traces.Register(opentelemetry)
 
-	test()
+  test()
 }
 ```
 
@@ -332,6 +345,10 @@ INFO[2021-06-17T18:28:45.178940724+03:00] Reporting span 10a2beaae092860a:10a2be
 Go to Jaeger UI and there should be seen
 
 ![Jaeger](/jaeger.png)
+
+For a case of Opentelemetry (Lightstep) screenshoot will be
+
+![Lightstep](/lightstep.png)
 
 ## Framework in other projects
 

@@ -16,7 +16,6 @@ type TracerSpan interface {
 }
 
 type Tracer interface {
-	Enabled() bool
 	StartSpan() TracerSpan
 	StartSpanWithTraceID(traceID uint64) TracerSpan
 	StartChildSpan(object interface{}) TracerSpan

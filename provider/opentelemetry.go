@@ -16,6 +16,8 @@ import (
 	"go.opentelemetry.io/otel/attribute"
 	"go.opentelemetry.io/otel/codes"
 	"go.opentelemetry.io/otel/exporters/otlp/otlptrace/otlptracegrpc"
+	"go.opentelemetry.io/otel/metric"
+	"go.opentelemetry.io/otel/metric/global"
 	"go.opentelemetry.io/otel/propagation"
 	"go.opentelemetry.io/otel/sdk/resource"
 	sdktrace "go.opentelemetry.io/otel/sdk/trace"
@@ -28,15 +30,22 @@ type OpentelemetryOptions struct {
 	Version     string
 	Environment string
 	Attributes  string
-	Host        string
-	Port        int
 }
 
 const headerTraceID string = "X-Trace-ID"
 
 type OpentelemetryTracerOptions struct {
 	OpentelemetryOptions
+	Host          string
+	Port          int
 	HeaderTraceID string
+}
+
+type OpentelemetryMeterOptions struct {
+	OpentelemetryOptions
+	Host   string
+	Port   int
+	Prefix string
 }
 
 type OpentelemetryTracerSpanContext struct {
@@ -52,10 +61,24 @@ type OpentelemetryTracerSpan struct {
 }
 
 type OpentelemetryTracer struct {
-	enabled      bool
 	options      OpentelemetryTracerOptions
 	logger       common.Logger
 	tracer       trace.Tracer
+	attributes   []attribute.KeyValue
+	callerOffset int
+}
+
+type OpentelemetryCounter struct {
+	meter   *OpentelemetryMeter
+	counter *metric.Int64Counter
+	labels  []string
+	prefix  string
+}
+
+type OpentelemetryMeter struct {
+	options      OpentelemetryMeterOptions
+	logger       common.Logger
+	meter        *metric.Meter
 	attributes   []attribute.KeyValue
 	callerOffset int
 }
@@ -121,6 +144,7 @@ func (otts OpentelemetryTracerSpan) SetCarrier(object interface{}) common.Tracer
 	}
 
 	// take a look at TextMapPropagator instead
+	// otel.GetTextMapPropagator().Inject(ctx, propagation.HeaderCarrier(r.Header))
 
 	/*var h http.Header = object.(http.Header)
 	err := tracer.Inject(otts.span.Context(), tracer.HTTPHeadersCarrier(h))
@@ -290,6 +314,7 @@ func (ott *OpentelemetryTracer) getSpanContext(object interface{}) (context.Cont
 	if ok {
 
 		// take a look at TextMapPropagator instead
+		//ctx := otel.GetTextMapPropagator().Extract(r.Context(), propagation.HeaderCarrier(r.Header))
 
 		headerName := ott.options.HeaderTraceID
 		if utils.IsEmpty(headerName) {
@@ -363,10 +388,6 @@ func (ott *OpentelemetryTracer) SetCallerOffset(offset int) {
 	ott.callerOffset = offset
 }
 
-func (ott *OpentelemetryTracer) Enabled() bool {
-	return ott.enabled
-}
-
 func parseOpentelemetryAttrributes(sAttributes string) []attribute.KeyValue {
 
 	env := utils.GetEnvironment()
@@ -395,11 +416,11 @@ func parseOpentelemetryAttrributes(sAttributes string) []attribute.KeyValue {
 	return attributes
 }
 
-func startOpentelemtryTracer(options OpentelemetryTracerOptions, logger common.Logger, stdout *Stdout) (trace.Tracer, bool) {
+func startOpentelemtryTracer(options OpentelemetryTracerOptions, logger common.Logger, stdout *Stdout) trace.Tracer {
 
 	disabled := utils.IsEmpty(options.Host)
 	if disabled {
-		stdout.Debug("Opentelemetry tracer is disabled.")
+		return nil
 	}
 
 	var err error
@@ -414,7 +435,7 @@ func startOpentelemtryTracer(options OpentelemetryTracerOptions, logger common.L
 	)
 	if err != nil {
 		stdout.Error(err)
-		return nil, false
+		return nil
 	}
 
 	traceExporter, err := otlptracegrpc.New(ctx,
@@ -424,7 +445,7 @@ func startOpentelemtryTracer(options OpentelemetryTracerOptions, logger common.L
 	)
 	if err != nil {
 		stdout.Error(err)
-		return nil, false
+		return nil
 	}
 
 	bsp := sdktrace.NewBatchSpanProcessor(traceExporter)
@@ -438,24 +459,110 @@ func startOpentelemtryTracer(options OpentelemetryTracerOptions, logger common.L
 	otel.SetTextMapPropagator(propagation.TraceContext{})
 
 	_, file, _ := common.GetCallerInfo(1)
-
 	tracer := otel.Tracer(file)
 
 	//defer func() { tracerProvider.Shutdown(ctx) }()
 
-	return tracer, !disabled
+	return tracer
 }
 
 func NewOpentelemetryTracer(options OpentelemetryTracerOptions, logger common.Logger, stdout *Stdout) *OpentelemetryTracer {
 
-	tracer, enabled := startOpentelemtryTracer(options, logger, stdout)
+	tracer := startOpentelemtryTracer(options, logger, stdout)
+	if tracer == nil {
+		stdout.Debug("Opentelemetry tracer is disabled.")
+		return nil
+	}
+
 	attributes := parseOpentelemetryAttrributes(options.Attributes)
 
+	logger.Info("Opentelemetry tracer is up...")
+
 	return &OpentelemetryTracer{
-		enabled:      enabled,
 		options:      options,
 		logger:       logger,
 		tracer:       tracer,
+		attributes:   attributes,
+		callerOffset: 1,
+	}
+}
+
+func (otc *OpentelemetryCounter) getGlobalTags(labelValues ...string) []attribute.KeyValue {
+
+	var labels []attribute.KeyValue
+	l := len(labelValues)
+
+	for index, name := range otc.labels {
+
+		if l > index {
+			value := attribute.String(name, labelValues[index])
+			labels = append(labels, value)
+		}
+	}
+	return labels
+}
+
+func (otc *OpentelemetryCounter) Inc(labelValues ...string) common.Counter {
+
+	labels := otc.getGlobalTags(labelValues...)
+	otc.counter.Add(context.Background(), 1, labels...)
+	return otc
+}
+
+func (otm *OpentelemetryMeter) Counter(name, description string, labels []string, prefixes ...string) common.Counter {
+
+	var names []string
+
+	if !utils.IsEmpty(otm.options.Prefix) {
+		names = append(names, otm.options.Prefix)
+	}
+
+	for _, v := range prefixes {
+		names = append(names, v)
+	}
+
+	names = append(names, name)
+	newName := strings.Join(names, ".")
+
+	counter := metric.Must(*otm.meter).NewInt64Counter(newName, metric.WithDescription(description))
+	counter.Bind(otm.attributes...)
+
+	return &OpentelemetryCounter{
+		meter:   otm,
+		counter: &counter,
+		labels:  labels,
+	}
+}
+
+func startOpentelemetryMeter(options OpentelemetryMeterOptions) *metric.Meter {
+
+	if utils.IsEmpty(options.Host) {
+		return nil
+	}
+
+	_, file, _ := common.GetCallerInfo(1)
+	meter := global.Meter(file)
+
+	return &meter
+}
+
+func NewOpentelemetryMeter(options OpentelemetryMeterOptions, logger common.Logger, stdout *Stdout) *OpentelemetryMeter {
+
+	meter := startOpentelemetryMeter(options)
+	if meter == nil {
+		stdout.Debug("Opentelemetry meter is disabled.")
+		return nil
+	}
+
+	attributes := parseOpentelemetryAttrributes(options.Attributes)
+	attributes = append(attributes, semconv.ServiceNameKey.String(options.ServiceName),
+		semconv.ServiceVersionKey.String(options.Version),
+		semconv.DeploymentEnvironmentKey.String(options.Environment))
+
+	return &OpentelemetryMeter{
+		options:      options,
+		logger:       logger,
+		meter:        meter,
 		attributes:   attributes,
 		callerOffset: 1,
 	}

@@ -84,7 +84,7 @@ var datadogLoggerOptions = provider.DataDogLoggerOptions{
 	Level: "info",
 }
 
-var datadogMetricerOptions = provider.DataDogMetricerOptions{
+var datadogMeterOptions = provider.DataDogMeterOptions{
 	Host:   "",
 	Port:   10518,
 	Prefix: "sre",
@@ -94,11 +94,18 @@ var opentelemetryOptions = provider.OpentelemetryOptions{
 	ServiceName: "",
 	Environment: "",
 	Attributes:  "",
-	Host:        "",
-	Port:        4317,
 }
 
-var opentelemetryTracerOptions = provider.OpentelemetryTracerOptions{}
+var opentelemetryTracerOptions = provider.OpentelemetryTracerOptions{
+	Host: "",
+	Port: 4317,
+}
+
+var opentelemetryMeterOptions = provider.OpentelemetryMeterOptions{
+	Host:   "",
+	Port:   4317,
+	Prefix: "sre",
+}
 
 func interceptSyscall() {
 
@@ -139,25 +146,34 @@ func Execute() {
 			// Metrics
 
 			prometheusOptions.Version = VERSION
-			prometheus := provider.NewPrometheus(prometheusOptions, logs, stdout)
+			prometheus := provider.NewPrometheusMeter(prometheusOptions, logs, stdout)
 			if common.HasElem(rootOptions.Metrics, "prometheus") && prometheus != nil {
 				prometheus.Start(&mainWG)
 				metrics.Register(prometheus)
 			}
 
-			datadogMetricerOptions.Version = VERSION
-			datadogMetricerOptions.ServiceName = datadogOptions.ServiceName
-			datadogMetricerOptions.Environment = datadogOptions.Environment
-			datadogMetricerOptions.Tags = datadogOptions.Tags
-			datadogMetricer := provider.NewDataDogMetricer(datadogMetricerOptions, logs, stdout)
-			if common.HasElem(rootOptions.Metrics, "datadog") && datadogMetricer != nil {
-				metrics.Register(datadogMetricer)
+			datadogMeterOptions.Version = VERSION
+			datadogMeterOptions.ServiceName = datadogOptions.ServiceName
+			datadogMeterOptions.Environment = datadogOptions.Environment
+			datadogMeterOptions.Tags = datadogOptions.Tags
+			datadogMeter := provider.NewDataDogMeter(datadogMeterOptions, logs, stdout)
+			if common.HasElem(rootOptions.Metrics, "datadog") && datadogMeter != nil {
+				metrics.Register(datadogMeter)
+			}
+
+			opentelemetryMeterOptions.Version = VERSION
+			opentelemetryMeterOptions.ServiceName = opentelemetryOptions.ServiceName
+			opentelemetryMeterOptions.Environment = opentelemetryOptions.Environment
+			opentelemetryMeterOptions.Attributes = opentelemetryOptions.Attributes
+			opentelemetryMeter := provider.NewOpentelemetryMeter(opentelemetryMeterOptions, logs, stdout)
+			if common.HasElem(rootOptions.Metrics, "opentelemetry") && opentelemetryMeter != nil {
+				metrics.Register(opentelemetryMeter)
 			}
 
 			// Tracing
 
 			jaegerOptions.Version = VERSION
-			jaeger := provider.NewJaeger(jaegerOptions, logs, stdout)
+			jaeger := provider.NewJaegerTracer(jaegerOptions, logs, stdout)
 			if common.HasElem(rootOptions.Traces, "jaeger") && jaeger != nil {
 				traces.Register(jaeger)
 			}
@@ -175,8 +191,6 @@ func Execute() {
 			opentelemetryTracerOptions.ServiceName = opentelemetryOptions.ServiceName
 			opentelemetryTracerOptions.Environment = opentelemetryOptions.Environment
 			opentelemetryTracerOptions.Attributes = opentelemetryOptions.Attributes
-			opentelemetryTracerOptions.Host = opentelemetryOptions.Host
-			opentelemetryTracerOptions.Port = opentelemetryOptions.Port
 			opentelemtryTracer := provider.NewOpentelemetryTracer(opentelemetryTracerOptions, logs, stdout)
 			if common.HasElem(rootOptions.Traces, "opentelemetry") && opentelemtryTracer != nil {
 				traces.Register(opentelemtryTracer)
@@ -193,7 +207,7 @@ func Execute() {
 
 			logs.SpanInfo(rootSpan, "This message has correlation with span...")
 
-			counter := metrics.Counter("calls", "Calls counter", []string{"label"})
+			counter := metrics.Counter("calls", "Calls counter", []string{"label"}, "counter", "of", "iteration")
 
 			for i := 0; i < 10; i++ {
 
@@ -290,15 +304,18 @@ func Execute() {
 	flags.StringVar(&datadogLoggerOptions.Host, "datadog-logger-host", datadogLoggerOptions.Host, "DataDog logger host")
 	flags.IntVar(&datadogLoggerOptions.Port, "datadog-logger-port", datadogLoggerOptions.Port, "Datadog logger port")
 	flags.StringVar(&datadogLoggerOptions.Level, "datadog-logger-level", datadogLoggerOptions.Level, "DataDog logger level: info, warn, error, debug, panic")
-	flags.StringVar(&datadogMetricerOptions.Host, "datadog-metricer-host", datadogMetricerOptions.Host, "DataDog metricer host")
-	flags.IntVar(&datadogMetricerOptions.Port, "datadog-metricer-port", datadogMetricerOptions.Port, "Datadog metricer port")
-	flags.StringVar(&datadogMetricerOptions.Prefix, "datadog-metricer-prefix", datadogMetricerOptions.Prefix, "DataDog metricer prefix")
+	flags.StringVar(&datadogMeterOptions.Host, "datadog-meter-host", datadogMeterOptions.Host, "DataDog meter host")
+	flags.IntVar(&datadogMeterOptions.Port, "datadog-meter-port", datadogMeterOptions.Port, "Datadog meter port")
+	flags.StringVar(&datadogMeterOptions.Prefix, "datadog-meter-prefix", datadogMeterOptions.Prefix, "DataDog meter prefix")
 
 	flags.StringVar(&opentelemetryOptions.ServiceName, "opentelemetry-service-name", opentelemetryOptions.ServiceName, "Opentelemetry service name")
 	flags.StringVar(&opentelemetryOptions.Environment, "opentelemetry-environment", opentelemetryOptions.Environment, "Opentelemetry environment")
-	flags.StringVar(&opentelemetryOptions.Host, "opentelemetry-host", opentelemetryOptions.Host, "Opentelemetry tracer host")
-	flags.IntVar(&opentelemetryOptions.Port, "opentelemetry-port", opentelemetryOptions.Port, "Opentelemetry tracer port")
 	flags.StringVar(&opentelemetryOptions.Attributes, "opentelemetry-attributes", opentelemetryOptions.Attributes, "Opentelemetry attributes")
+	flags.StringVar(&opentelemetryTracerOptions.Host, "opentelemetry-tracer-host", opentelemetryTracerOptions.Host, "Opentelemetry tracer host")
+	flags.IntVar(&opentelemetryTracerOptions.Port, "opentelemetry-tracer-port", opentelemetryTracerOptions.Port, "Opentelemetry tracer port")
+	flags.StringVar(&opentelemetryMeterOptions.Host, "opentelemetry-meter-host", opentelemetryMeterOptions.Host, "Opentelemetry meter host")
+	flags.IntVar(&opentelemetryMeterOptions.Port, "opentelemetry-meter-port", opentelemetryMeterOptions.Port, "Opentelemetry meter port")
+	flags.StringVar(&opentelemetryMeterOptions.Prefix, "opentelemetry-meter-prefix", opentelemetryMeterOptions.Prefix, "Opentelemetry meter prefix")
 
 	interceptSyscall()
 

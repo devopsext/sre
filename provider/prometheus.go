@@ -23,7 +23,7 @@ type PrometheusCounter struct {
 	counterVec *prometheus.CounterVec
 }
 
-type Prometheus struct {
+type PrometheusMeter struct {
 	options      PrometheusOptions
 	logger       common.Logger
 	callerOffset int
@@ -35,11 +35,7 @@ func (pc *PrometheusCounter) Inc(labelValues ...string) common.Counter {
 	return pc
 }
 
-func (p *Prometheus) SetCallerOffset(offset int) {
-	p.callerOffset = offset
-}
-
-func (p *Prometheus) Counter(name, description string, labels []string, prefixes ...string) common.Counter {
+func (p *PrometheusMeter) Counter(name, description string, labels []string, prefixes ...string) common.Counter {
 
 	var names []string
 
@@ -67,7 +63,7 @@ func (p *Prometheus) Counter(name, description string, labels []string, prefixes
 	}
 }
 
-func (p *Prometheus) Start(wg *sync.WaitGroup) {
+func (p *PrometheusMeter) Start(wg *sync.WaitGroup) {
 
 	wg.Add(1)
 
@@ -95,9 +91,9 @@ func (p *Prometheus) Start(wg *sync.WaitGroup) {
 	}(wg)
 }
 
-func NewPrometheus(options PrometheusOptions, logger common.Logger, stdout *Stdout) *Prometheus {
+func NewPrometheusMeter(options PrometheusOptions, logger common.Logger, stdout *Stdout) *PrometheusMeter {
 
-	return &Prometheus{
+	return &PrometheusMeter{
 		options:      options,
 		logger:       logger,
 		callerOffset: 1,

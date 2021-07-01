@@ -27,23 +27,23 @@ type DataDogOptions struct {
 }
 
 type DataDogTracerOptions struct {
+	DataDogOptions
 	Host string
 	Port int
-	DataDogOptions
 }
 
 type DataDogLoggerOptions struct {
+	DataDogOptions
 	Host  string
 	Port  int
 	Level string
-	DataDogOptions
 }
 
-type DataDogMetricerOptions struct {
+type DataDogMeterOptions struct {
+	DataDogOptions
 	Host   string
 	Port   int
 	Prefix string
-	DataDogOptions
 }
 
 type DataDogTracerSpanContext struct {
@@ -54,7 +54,7 @@ type DataDogTracerSpan struct {
 	span        ddtrace.Span
 	spanContext *DataDogTracerSpanContext
 	context     context.Context
-	datadog     *DataDogTracer
+	tracer      *DataDogTracer
 }
 
 type DataDogTracerLogger struct {
@@ -62,7 +62,6 @@ type DataDogTracerLogger struct {
 }
 
 type DataDogTracer struct {
-	enabled      bool
 	options      DataDogTracerOptions
 	logger       common.Logger
 	callerOffset int
@@ -76,16 +75,16 @@ type DataDogLogger struct {
 	callerOffset int
 }
 
-type DataDogMetricerCounter struct {
-	metricer    *DataDogMetricer
+type DataDogCounter struct {
+	meter       *DataDogMeter
 	name        string
 	description string
 	labels      []string
 	prefix      string
 }
 
-type DataDogMetricer struct {
-	options      DataDogMetricerOptions
+type DataDogMeter struct {
+	options      DataDogMeterOptions
 	logger       common.Logger
 	callerOffset int
 	client       *statsd.Client
@@ -129,14 +128,14 @@ func (dds DataDogTracerSpan) SetCarrier(object interface{}) common.TracerSpan {
 	}
 
 	if reflect.TypeOf(object) != reflect.TypeOf(http.Header{}) {
-		dds.datadog.logger.Error(errors.New("other than http.Header is not supported yet"))
+		dds.tracer.logger.Error(errors.New("other than http.Header is not supported yet"))
 		return dds
 	}
 
 	var h http.Header = object.(http.Header)
 	err := tracer.Inject(dds.span.Context(), tracer.HTTPHeadersCarrier(h))
 	if err != nil {
-		dds.datadog.logger.Error(err)
+		dds.tracer.logger.Error(err)
 	}
 	return dds
 }
@@ -217,7 +216,7 @@ func (dd *DataDogTracer) StartSpan() common.TracerSpan {
 	return DataDogTracerSpan{
 		span:    s,
 		context: ctx,
-		datadog: dd,
+		tracer:  dd,
 	}
 }
 
@@ -229,7 +228,7 @@ func (dd *DataDogTracer) StartSpanWithTraceID(traceID uint64) common.TracerSpan 
 	return DataDogTracerSpan{
 		span:    s,
 		context: ctx,
-		datadog: dd,
+		tracer:  dd,
 	}
 }
 
@@ -263,7 +262,7 @@ func (dd *DataDogTracer) StartChildSpan(object interface{}) common.TracerSpan {
 	return DataDogTracerSpan{
 		span:    s,
 		context: ctx,
-		datadog: dd,
+		tracer:  dd,
 	}
 }
 
@@ -278,7 +277,7 @@ func (dd *DataDogTracer) StartFollowSpan(object interface{}) common.TracerSpan {
 	return DataDogTracerSpan{
 		span:    s,
 		context: ctx,
-		datadog: dd,
+		tracer:  dd,
 	}
 }
 
@@ -286,15 +285,11 @@ func (dd *DataDogTracer) SetCallerOffset(offset int) {
 	dd.callerOffset = offset
 }
 
-func (dd *DataDogTracer) Enabled() bool {
-	return dd.enabled
-}
-
-func startDataDogTracer(options DataDogTracerOptions, logger common.Logger, stdout *Stdout) bool {
+func startDataDogTracer(options DataDogTracerOptions, logger common.Logger) bool {
 
 	disabled := utils.IsEmpty(options.Host)
 	if disabled {
-		stdout.Debug("DataDog tracer is disabled.")
+		return false
 	}
 
 	addr := net.JoinHostPort(
@@ -312,18 +307,23 @@ func startDataDogTracer(options DataDogTracerOptions, logger common.Logger, stdo
 	opts = setDataDogTracerTags(opts, options.Tags)
 
 	tracer.Start(opts...)
-	return !disabled
+	return true
 }
 
 func NewDataDogTracer(options DataDogTracerOptions, logger common.Logger, stdout *Stdout) *DataDogTracer {
 
-	enabled := startDataDogTracer(options, logger, stdout)
+	enabled := startDataDogTracer(options, logger)
+	if !enabled {
+		stdout.Debug("DataDog tracer is disabled.")
+		return nil
+	}
+
+	logger.Info("DataDog tracer is up...")
 
 	return &DataDogTracer{
 		options:      options,
 		callerOffset: 1,
 		logger:       logger,
-		enabled:      enabled,
 	}
 }
 
@@ -535,6 +535,8 @@ func NewDataDogLogger(options DataDogLoggerOptions, logger common.Logger, stdout
 
 	log.SetOutput(connection)
 
+	logger.Info("DataDog logger is up...")
+
 	return &DataDogLogger{
 		connection:   connection,
 		stdout:       stdout,
@@ -544,24 +546,24 @@ func NewDataDogLogger(options DataDogLoggerOptions, logger common.Logger, stdout
 	}
 }
 
-func (ddmc *DataDogMetricerCounter) getGlobalTags() []string {
+func (ddmc *DataDogCounter) getGlobalTags() []string {
 
 	var tags []string
 
-	for _, v := range strings.Split(ddmc.metricer.options.Tags, ",") {
+	for _, v := range strings.Split(ddmc.meter.options.Tags, ",") {
 		tags = append(tags, strings.Replace(v, "=", ":", 1))
 	}
 	return tags
 }
 
-func (ddmc *DataDogMetricerCounter) getLabelTags(labelValues ...string) []string {
+func (ddmc *DataDogCounter) getLabelTags(labelValues ...string) []string {
 
 	var tags []string
 
 	tags = append(tags, ddmc.getGlobalTags()...)
-	tags = append(tags, fmt.Sprintf("dd.service:%s", ddmc.metricer.options.ServiceName))
-	tags = append(tags, fmt.Sprintf("dd.version:%s", ddmc.metricer.options.Version))
-	tags = append(tags, fmt.Sprintf("dd.env:%s", ddmc.metricer.options.Environment))
+	tags = append(tags, fmt.Sprintf("dd.service:%s", ddmc.meter.options.ServiceName))
+	tags = append(tags, fmt.Sprintf("dd.version:%s", ddmc.meter.options.Version))
+	tags = append(tags, fmt.Sprintf("dd.env:%s", ddmc.meter.options.Environment))
 
 	for k, v := range ddmc.labels {
 
@@ -575,25 +577,25 @@ func (ddmc *DataDogMetricerCounter) getLabelTags(labelValues ...string) []string
 	return tags
 }
 
-func (ddmc *DataDogMetricerCounter) Inc(labelValues ...string) common.Counter {
+func (ddmc *DataDogCounter) Inc(labelValues ...string) common.Counter {
 
 	newName := ddmc.name
 	if !utils.IsEmpty(ddmc.prefix) {
 		newName = fmt.Sprintf("%s.%s", ddmc.prefix, newName)
 	}
 
-	err := ddmc.metricer.client.Incr(newName, ddmc.getLabelTags(labelValues...), 1)
+	err := ddmc.meter.client.Incr(newName, ddmc.getLabelTags(labelValues...), 1)
 	if err != nil {
-		ddmc.metricer.logger.Error(err)
+		ddmc.meter.logger.Error(err)
 	}
 	return ddmc
 }
 
-func (ddm *DataDogMetricer) SetCallerOffset(offset int) {
+/*func (ddm *DataDogMeter) SetCallerOffset(offset int) {
 	ddm.callerOffset = offset
-}
+}*/
 
-func (ddm *DataDogMetricer) Counter(name, description string, labels []string, prefixes ...string) common.Counter {
+func (ddm *DataDogMeter) Counter(name, description string, labels []string, prefixes ...string) common.Counter {
 
 	var names []string
 
@@ -605,8 +607,8 @@ func (ddm *DataDogMetricer) Counter(name, description string, labels []string, p
 		names = append(names, strings.Join(prefixes, "_"))
 	}
 
-	return &DataDogMetricerCounter{
-		metricer:    ddm,
+	return &DataDogCounter{
+		meter:       ddm,
 		name:        name,
 		description: description,
 		labels:      labels,
@@ -614,9 +616,10 @@ func (ddm *DataDogMetricer) Counter(name, description string, labels []string, p
 	}
 }
 
-func NewDataDogMetricer(options DataDogMetricerOptions, logger common.Logger, stdout *Stdout) *DataDogMetricer {
+func NewDataDogMeter(options DataDogMeterOptions, logger common.Logger, stdout *Stdout) *DataDogMeter {
 
 	if utils.IsEmpty(options.Host) {
+		stdout.Debug("DataDog meter is disabled.")
 		return nil
 	}
 
@@ -626,9 +629,9 @@ func NewDataDogMetricer(options DataDogMetricerOptions, logger common.Logger, st
 		return nil
 	}
 
-	logger.Info("Datadog metrics are up...")
+	logger.Info("DataDog meter is up...")
 
-	return &DataDogMetricer{
+	return &DataDogMeter{
 		options:      options,
 		logger:       logger,
 		callerOffset: 1,
