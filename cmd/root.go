@@ -242,7 +242,6 @@ func Execute() {
 			}
 
 			req.Header.Set("Content-Type", "application/json")
-
 			ctx := span.GetContext()
 			if ctx == nil {
 				logs.SpanError(span, "no span context found")

@@ -38,7 +38,7 @@ export GOROOT="$HOME/go/root/1.16.4"
 export PATH="$PATH:$GOROOT/bin"
 ```
 
-## Go modules
+### Go modules
 
 Set go.mod manually
 ```plain
@@ -315,7 +315,7 @@ func main() {
 
   // add traces
   traces.Register(jaeger)
-   if datadog != nil {
+  if datadog != nil {
     traces.Register(datadog)
   }
   traces.Register(opentelemetry)
