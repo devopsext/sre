@@ -254,8 +254,11 @@ func (ts *Traces) StartFollowSpan(object interface{}) TracerSpan {
 	return &span
 }
 
-func (ts *Traces) Enabled() bool {
-	return true
+func (ts *Traces) Stop() {
+
+	for _, t := range ts.tracers {
+		t.Stop()
+	}
 }
 
 func NewTraces() *Traces {

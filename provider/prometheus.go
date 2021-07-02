@@ -1,6 +1,7 @@
 package provider
 
 import (
+	"fmt"
 	"net"
 	"net/http"
 	"strings"
@@ -20,6 +21,7 @@ type PrometheusOptions struct {
 }
 
 type PrometheusCounter struct {
+	meter      *PrometheusMeter
 	counterVec *prometheus.CounterVec
 }
 
@@ -31,7 +33,10 @@ type PrometheusMeter struct {
 
 func (pc *PrometheusCounter) Inc(labelValues ...string) common.Counter {
 
-	pc.counterVec.WithLabelValues(labelValues...).Inc()
+	_, file, line := common.GetCallerInfo(pc.meter.callerOffset + 3)
+	newValues := append(labelValues, fmt.Sprintf("%s:%d", file, line))
+
+	pc.counterVec.WithLabelValues(newValues...).Inc()
 	return pc
 }
 
@@ -43,10 +48,7 @@ func (p *PrometheusMeter) Counter(name, description string, labels []string, pre
 		names = append(names, p.options.Prefix)
 	}
 
-	for _, v := range prefixes {
-		names = append(names, v)
-	}
-
+	names = append(names, prefixes...)
 	names = append(names, name)
 	newName := strings.Join(names, "_")
 
@@ -55,12 +57,19 @@ func (p *PrometheusMeter) Counter(name, description string, labels []string, pre
 		Help: description,
 	}
 
+	labels = append(labels, "file")
+
 	counterVec := prometheus.NewCounterVec(config, labels)
 	prometheus.Register(counterVec)
 
 	return &PrometheusCounter{
+		meter:      p,
 		counterVec: counterVec,
 	}
+}
+
+func (p *PrometheusMeter) SetCallerOffset(offset int) {
+	p.callerOffset = offset
 }
 
 func (p *PrometheusMeter) Start(wg *sync.WaitGroup) {
@@ -89,6 +98,10 @@ func (p *PrometheusMeter) Start(wg *sync.WaitGroup) {
 		}
 
 	}(wg)
+}
+
+func (p *PrometheusMeter) Stop() {
+	// nothing here
 }
 
 func NewPrometheusMeter(options PrometheusOptions, logger common.Logger, stdout *Stdout) *PrometheusMeter {

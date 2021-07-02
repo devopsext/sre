@@ -26,7 +26,7 @@ Framework for golang applications which helps to send metrics, logs and traces i
 
 - Jaeger works with its [Jaeger agent](https://www.jaegertracing.io/docs/latest/getting-started/)
 - DataDog uses [DataDog agent](https://docs.datadoghq.com/agent/) for logs, metrics and traces
-- Opentelemetry communicates with its [Opentelemetry collector](https://github.com/open-telemetry/opentelemetry-collector)
+- Opentelemetry communicates with its [Opentelemetry agent](https://github.com/open-telemetry/opentelemetry-collector)
 
 ### Envs
 
@@ -76,8 +76,8 @@ func main() {
       ServiceName: "sre-datadog",
       Environment: "stage",
     },
-    Host:  "localhost", // set DataDog agent UDP logs host
-    Port:  10518, // set DataDog agent UDP logs port
+    AgentHost:  "localhost", // set DataDog agent UDP logs host
+    AgentPort:  10518, // set DataDog agent UDP logs port
     Level: "info",
   }, logs, stdout)
 
@@ -164,8 +164,8 @@ func main() {
       ServiceName: "sre-datadog",
       Environment: "stage",
     },
-    Host:  "localhost", // set DataDog agent UDP metrics host
-    Port:  10518, // set DataDog agent UDP metrics port
+    AgentHost:  "localhost", // set DataDog agent UDP metrics host
+    AgentPort:  10518, // set DataDog agent UDP metrics port
   }, logs, stdout)
 
   // initialize Opentelemetry meter
@@ -174,8 +174,8 @@ func main() {
       ServiceName: "sre-opentelemetry",
       Environment: "stage",
     },
-    Host:   "localhost", // set Opentelemetry collector metrics host
-    Port:   4317,        // set Opentelemetry collector metrics port
+    AgentHost:   "localhost", // set Opentelemetry agent metrics host
+    AgentPort:   4317,        // set Opentelemetry agent metrics port
     Prefix: "sre",
   }, logs, stdout)
 
@@ -187,6 +187,7 @@ func main() {
   test()
 
   mainWG.Wait()
+  metrics.Stop() // finalize metrics delivery
 }
 ```
 
@@ -296,8 +297,8 @@ func main() {
       ServiceName: "sre-datadog",
       Environment: "stage",
     },
-    Host: "localhost", // set DataDog agent traces host
-    Port: 8126,        // set DataDog agent traces port
+    AgentHost: "localhost", // set DataDog agent traces host
+    AgentPort: 8126,        // set DataDog agent traces port
   }, logs, stdout)
 
   // initialize Opentelemetry tracer
@@ -306,8 +307,8 @@ func main() {
       ServiceName: "sre-opentelemetry",
       Environment: "stage",
     },
-    Host: "localhost", // set Opentelemetry collector traces host
-    Port: 4317,        // set Opentelemetry collector traces port
+    AgentHost: "localhost", // set Opentelemetry agent traces host
+    AgentPort: 4317,        // set Opentelemetry agnet traces port
   }, logs, stdout)
 
   // add traces
@@ -316,6 +317,8 @@ func main() {
   traces.Register(opentelemetry)
 
   test()
+
+  traces.Stop() // finalize traces delivery
 }
 ```
 
