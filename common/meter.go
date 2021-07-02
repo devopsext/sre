@@ -6,4 +6,5 @@ type Counter interface {
 
 type Meter interface {
 	Counter(name, description string, labels []string, prefixes ...string) Counter
+	Stop()
 }

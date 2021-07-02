@@ -74,20 +74,20 @@ var datadogOptions = provider.DataDogOptions{
 }
 
 var datadogTracerOptions = provider.DataDogTracerOptions{
-	Host: "",
-	Port: 8126,
+	AgentHost: "",
+	AgentPort: 8126,
 }
 
 var datadogLoggerOptions = provider.DataDogLoggerOptions{
-	Host:  "",
-	Port:  10518,
-	Level: "info",
+	AgentHost: "",
+	AgentPort: 10518,
+	Level:     "info",
 }
 
 var datadogMeterOptions = provider.DataDogMeterOptions{
-	Host:   "",
-	Port:   10518,
-	Prefix: "sre",
+	AgentHost: "",
+	AgentPort: 10518,
+	Prefix:    "sre",
 }
 
 var opentelemetryOptions = provider.OpentelemetryOptions{
@@ -97,20 +97,21 @@ var opentelemetryOptions = provider.OpentelemetryOptions{
 }
 
 var opentelemetryTracerOptions = provider.OpentelemetryTracerOptions{
-	Host: "",
-	Port: 4317,
+	AgentHost: "",
+	AgentPort: 4317,
 }
 
 var opentelemetryMeterOptions = provider.OpentelemetryMeterOptions{
-	Host:   "",
-	Port:   4317,
-	Prefix: "sre",
+	AgentHost:     "",
+	AgentPort:     4317,
+	Prefix:        "sre",
+	CollectPeriod: 1000,
 }
 
 func interceptSyscall() {
 
 	c := make(chan os.Signal)
-	signal.Notify(c, os.Interrupt, syscall.SIGTERM, syscall.SIGQUIT, syscall.SIGKILL)
+	signal.Notify(c, os.Interrupt, syscall.SIGTERM, syscall.SIGQUIT)
 	go func() {
 		<-c
 		logs.Info("Exiting...")
@@ -182,6 +183,7 @@ func Execute() {
 			datadogTracerOptions.ServiceName = datadogOptions.ServiceName
 			datadogTracerOptions.Environment = datadogOptions.Environment
 			datadogTracerOptions.Tags = datadogOptions.Tags
+			datadogLoggerOptions.Debug = datadogOptions.Debug
 			datadogTracer := provider.NewDataDogTracer(datadogTracerOptions, logs, stdout)
 			if common.HasElem(rootOptions.Traces, "datadog") && datadogTracer != nil {
 				traces.Register(datadogTracer)
@@ -198,6 +200,9 @@ func Execute() {
 
 		},
 		Run: func(cmd *cobra.Command, args []string) {
+
+			defer metrics.Stop()
+			defer traces.Stop()
 
 			logs.Info("Log message to every log provider...")
 
@@ -239,6 +244,13 @@ func Execute() {
 			req.Header.Set("Content-Type", "application/json")
 
 			ctx := span.GetContext()
+			if ctx == nil {
+				logs.SpanError(span, "no span context found")
+				span.Finish()
+				rootSpan.Finish()
+				time.Sleep(time.Duration(1000) * time.Millisecond)
+				os.Exit(0)
+			}
 			traceID := ctx.GetTraceID()
 			req.Header.Set("X-Trace-ID", strconv.Itoa(int(traceID)))
 
@@ -250,7 +262,7 @@ func Execute() {
 				span.Finish()
 				rootSpan.Finish()
 				time.Sleep(time.Duration(1000) * time.Millisecond)
-				os.Exit(1)
+				os.Exit(0)
 			}
 
 			defer resp.Body.Close()
@@ -295,26 +307,28 @@ func Execute() {
 	flags.IntVar(&jaegerOptions.BufferFlushInterval, "jaeger-buffer-flush-interval", jaegerOptions.BufferFlushInterval, "Jaeger buffer flush interval")
 	flags.IntVar(&jaegerOptions.QueueSize, "jaeger-queue-size", jaegerOptions.QueueSize, "Jaeger queue size")
 	flags.StringVar(&jaegerOptions.Tags, "jaeger-tags", jaegerOptions.Tags, "Jaeger tags, comma separated list of name=value")
+	flags.BoolVar(&jaegerOptions.Debug, "jaeger-debug", jaegerOptions.Debug, "Jaeger debug")
 
 	flags.StringVar(&datadogOptions.ServiceName, "datadog-service-name", datadogOptions.ServiceName, "DataDog service name")
 	flags.StringVar(&datadogOptions.Environment, "datadog-environment", datadogOptions.Environment, "DataDog environment")
 	flags.StringVar(&datadogOptions.Tags, "datadog-tags", datadogOptions.Tags, "DataDog tags")
-	flags.StringVar(&datadogTracerOptions.Host, "datadog-tracer-host", datadogTracerOptions.Host, "DataDog tracer host")
-	flags.IntVar(&datadogTracerOptions.Port, "datadog-tracer-port", datadogTracerOptions.Port, "Datadog tracer port")
-	flags.StringVar(&datadogLoggerOptions.Host, "datadog-logger-host", datadogLoggerOptions.Host, "DataDog logger host")
-	flags.IntVar(&datadogLoggerOptions.Port, "datadog-logger-port", datadogLoggerOptions.Port, "Datadog logger port")
+	flags.BoolVar(&datadogOptions.Debug, "datadog-debug", datadogOptions.Debug, "DataDog debug")
+	flags.StringVar(&datadogTracerOptions.AgentHost, "datadog-tracer-agent-host", datadogTracerOptions.AgentHost, "DataDog tracer agent host")
+	flags.IntVar(&datadogTracerOptions.AgentPort, "datadog-tracer-agent-port", datadogTracerOptions.AgentPort, "Datadog tracer agent port")
+	flags.StringVar(&datadogLoggerOptions.AgentHost, "datadog-logger-agent-host", datadogLoggerOptions.AgentHost, "DataDog logger agent host")
+	flags.IntVar(&datadogLoggerOptions.AgentPort, "datadog-logger-agent-port", datadogLoggerOptions.AgentPort, "Datadog logger agent port")
 	flags.StringVar(&datadogLoggerOptions.Level, "datadog-logger-level", datadogLoggerOptions.Level, "DataDog logger level: info, warn, error, debug, panic")
-	flags.StringVar(&datadogMeterOptions.Host, "datadog-meter-host", datadogMeterOptions.Host, "DataDog meter host")
-	flags.IntVar(&datadogMeterOptions.Port, "datadog-meter-port", datadogMeterOptions.Port, "Datadog meter port")
+	flags.StringVar(&datadogMeterOptions.AgentHost, "datadog-meter-agent-host", datadogMeterOptions.AgentHost, "DataDog meter agent host")
+	flags.IntVar(&datadogMeterOptions.AgentPort, "datadog-meter-agent-port", datadogMeterOptions.AgentPort, "Datadog meter agent port")
 	flags.StringVar(&datadogMeterOptions.Prefix, "datadog-meter-prefix", datadogMeterOptions.Prefix, "DataDog meter prefix")
 
 	flags.StringVar(&opentelemetryOptions.ServiceName, "opentelemetry-service-name", opentelemetryOptions.ServiceName, "Opentelemetry service name")
 	flags.StringVar(&opentelemetryOptions.Environment, "opentelemetry-environment", opentelemetryOptions.Environment, "Opentelemetry environment")
 	flags.StringVar(&opentelemetryOptions.Attributes, "opentelemetry-attributes", opentelemetryOptions.Attributes, "Opentelemetry attributes")
-	flags.StringVar(&opentelemetryTracerOptions.Host, "opentelemetry-tracer-host", opentelemetryTracerOptions.Host, "Opentelemetry tracer host")
-	flags.IntVar(&opentelemetryTracerOptions.Port, "opentelemetry-tracer-port", opentelemetryTracerOptions.Port, "Opentelemetry tracer port")
-	flags.StringVar(&opentelemetryMeterOptions.Host, "opentelemetry-meter-host", opentelemetryMeterOptions.Host, "Opentelemetry meter host")
-	flags.IntVar(&opentelemetryMeterOptions.Port, "opentelemetry-meter-port", opentelemetryMeterOptions.Port, "Opentelemetry meter port")
+	flags.StringVar(&opentelemetryTracerOptions.AgentHost, "opentelemetry-tracer-agent-host", opentelemetryTracerOptions.AgentHost, "Opentelemetry tracer agent host")
+	flags.IntVar(&opentelemetryTracerOptions.AgentPort, "opentelemetry-tracer-agent-port", opentelemetryTracerOptions.AgentPort, "Opentelemetry tracer agent port")
+	flags.StringVar(&opentelemetryMeterOptions.AgentHost, "opentelemetry-meter-agent-host", opentelemetryMeterOptions.AgentHost, "Opentelemetry meter agent host")
+	flags.IntVar(&opentelemetryMeterOptions.AgentPort, "opentelemetry-meter-agent-port", opentelemetryMeterOptions.AgentPort, "Opentelemetry meter agent port")
 	flags.StringVar(&opentelemetryMeterOptions.Prefix, "opentelemetry-meter-prefix", opentelemetryMeterOptions.Prefix, "Opentelemetry meter prefix")
 
 	interceptSyscall()

@@ -28,6 +28,7 @@ type JaegerOptions struct {
 	QueueSize           int
 	Tags                string
 	Version             string
+	Debug               bool
 }
 
 type JaegerSpanContext struct {
@@ -43,14 +44,13 @@ type JaegerSpan struct {
 }
 
 type JaegerTracer struct {
-	enabled      bool
 	options      JaegerOptions
 	callerOffset int
 	tracer       opentracing.Tracer
 	logger       common.Logger
 }
 
-type JaegerLogger struct {
+type JaegerInternalLogger struct {
 	logger common.Logger
 }
 
@@ -331,11 +331,11 @@ func (j *JaegerTracer) SetCallerOffset(offset int) {
 	j.callerOffset = offset
 }
 
-func (j *JaegerLogger) Error(msg string) {
+func (j *JaegerInternalLogger) Error(msg string) {
 	j.logger.Stack(-2).Error(msg).Stack(2)
 }
 
-func (j *JaegerLogger) Infof(msg string, args ...interface{}) {
+func (j *JaegerInternalLogger) Infof(msg string, args ...interface{}) {
 
 	if utils.IsEmpty(msg) {
 		return
@@ -349,8 +349,8 @@ func (j *JaegerLogger) Infof(msg string, args ...interface{}) {
 	}
 }
 
-func (j *JaegerTracer) Enabled() bool {
-	return j.enabled
+func (j *JaegerTracer) Stop() {
+	// nothing here
 }
 
 func parseJaegerTags(sTags string) []opentracing.Tag {
@@ -418,7 +418,13 @@ func newJaegerTracer(options JaegerOptions, logger common.Logger, stdout *Stdout
 		},
 	}
 
-	tracer, _, err := cfg.NewTracer(jaegerConfig.Logger(&JaegerLogger{logger: logger}))
+	var configOpts []jaegerConfig.Option
+
+	if options.Debug {
+		configOpts = append(configOpts, jaegerConfig.Logger(&JaegerInternalLogger{logger: logger}))
+	}
+
+	tracer, _, err := cfg.NewTracer(configOpts...)
 	if err != nil {
 		stdout.Error(err)
 		return nil

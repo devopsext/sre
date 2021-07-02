@@ -24,26 +24,27 @@ type DataDogOptions struct {
 	Environment string
 	Version     string
 	Tags        string
+	Debug       bool
 }
 
 type DataDogTracerOptions struct {
 	DataDogOptions
-	Host string
-	Port int
+	AgentHost string
+	AgentPort int
 }
 
 type DataDogLoggerOptions struct {
 	DataDogOptions
-	Host  string
-	Port  int
-	Level string
+	AgentHost string
+	AgentPort int
+	Level     string
 }
 
 type DataDogMeterOptions struct {
 	DataDogOptions
-	Host   string
-	Port   int
-	Prefix string
+	AgentHost string
+	AgentPort int
+	Prefix    string
 }
 
 type DataDogTracerSpanContext struct {
@@ -57,7 +58,7 @@ type DataDogTracerSpan struct {
 	tracer      *DataDogTracer
 }
 
-type DataDogTracerLogger struct {
+type DataDogInternalLogger struct {
 	logger common.Logger
 }
 
@@ -183,7 +184,7 @@ func (dds DataDogTracerSpan) Finish() {
 	dds.span.Finish()
 }
 
-func (ddtl *DataDogTracerLogger) Log(msg string) {
+func (ddtl *DataDogInternalLogger) Log(msg string) {
 	ddtl.logger.Info(msg)
 }
 
@@ -285,16 +286,20 @@ func (dd *DataDogTracer) SetCallerOffset(offset int) {
 	dd.callerOffset = offset
 }
 
+func (dd *DataDogTracer) Stop() {
+	tracer.Stop()
+}
+
 func startDataDogTracer(options DataDogTracerOptions, logger common.Logger) bool {
 
-	disabled := utils.IsEmpty(options.Host)
+	disabled := utils.IsEmpty(options.AgentHost)
 	if disabled {
 		return false
 	}
 
 	addr := net.JoinHostPort(
-		options.Host,
-		strconv.Itoa(options.Port),
+		options.AgentHost,
+		strconv.Itoa(options.AgentPort),
 	)
 
 	var opts []tracer.StartOption
@@ -302,7 +307,10 @@ func startDataDogTracer(options DataDogTracerOptions, logger common.Logger) bool
 	opts = append(opts, tracer.WithServiceName(options.ServiceName))
 	opts = append(opts, tracer.WithServiceVersion(options.Version))
 	opts = append(opts, tracer.WithEnv(options.Environment))
-	opts = append(opts, tracer.WithLogger(&DataDogTracerLogger{logger: logger}))
+
+	if options.Debug {
+		opts = append(opts, tracer.WithLogger(&DataDogInternalLogger{logger: logger}))
+	}
 
 	opts = setDataDogTracerTags(opts, options.Tags)
 
@@ -494,12 +502,12 @@ func setDataDogTracerTags(opts []tracer.StartOption, sTags string) []tracer.Star
 
 func NewDataDogLogger(options DataDogLoggerOptions, logger common.Logger, stdout *Stdout) *DataDogLogger {
 
-	if utils.IsEmpty(options.Host) {
+	if utils.IsEmpty(options.AgentHost) {
 		stdout.Debug("DataDog logger is disabled.")
 		return nil
 	}
 
-	address := fmt.Sprintf("%s:%d", options.Host, options.Port)
+	address := fmt.Sprintf("%s:%d", options.AgentHost, options.AgentPort)
 	serverAddr, err := net.ResolveUDPAddr("udp", address)
 	if err != nil {
 		stdout.Error(err)
@@ -584,16 +592,20 @@ func (ddmc *DataDogCounter) Inc(labelValues ...string) common.Counter {
 		newName = fmt.Sprintf("%s.%s", ddmc.prefix, newName)
 	}
 
-	err := ddmc.meter.client.Incr(newName, ddmc.getLabelTags(labelValues...), 1)
+	newValues := ddmc.getLabelTags(labelValues...)
+	_, file, line := common.GetCallerInfo(ddmc.meter.callerOffset + 3)
+	newValues = append(newValues, fmt.Sprintf("file:%s", fmt.Sprintf("%s:%d", file, line)))
+
+	err := ddmc.meter.client.Incr(newName, newValues, 1)
 	if err != nil {
 		ddmc.meter.logger.Error(err)
 	}
 	return ddmc
 }
 
-/*func (ddm *DataDogMeter) SetCallerOffset(offset int) {
+func (ddm *DataDogMeter) SetCallerOffset(offset int) {
 	ddm.callerOffset = offset
-}*/
+}
 
 func (ddm *DataDogMeter) Counter(name, description string, labels []string, prefixes ...string) common.Counter {
 
@@ -616,14 +628,18 @@ func (ddm *DataDogMeter) Counter(name, description string, labels []string, pref
 	}
 }
 
+func (ddm *DataDogMeter) Stop() {
+	// nothing here
+}
+
 func NewDataDogMeter(options DataDogMeterOptions, logger common.Logger, stdout *Stdout) *DataDogMeter {
 
-	if utils.IsEmpty(options.Host) {
+	if utils.IsEmpty(options.AgentHost) {
 		stdout.Debug("DataDog meter is disabled.")
 		return nil
 	}
 
-	client, err := statsd.New(fmt.Sprintf("%s:%d", options.Host, options.Port))
+	client, err := statsd.New(fmt.Sprintf("%s:%d", options.AgentHost, options.AgentPort))
 	if err != nil {
 		logger.Error(err)
 		return nil

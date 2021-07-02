@@ -34,6 +34,13 @@ func (ms *Metrics) Counter(name, description string, labels []string, prefixes .
 	return &counter
 }
 
+func (ms *Metrics) Stop() {
+
+	for _, m := range ms.Meters {
+		m.Stop()
+	}
+}
+
 func (ms *Metrics) Register(m Meter) {
 	if ms != nil {
 		ms.Meters = append(ms.Meters, m)

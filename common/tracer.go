@@ -20,4 +20,5 @@ type Tracer interface {
 	StartSpanWithTraceID(traceID uint64) TracerSpan
 	StartChildSpan(object interface{}) TracerSpan
 	StartFollowSpan(object interface{}) TracerSpan
+	Stop()
 }
