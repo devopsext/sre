@@ -7,14 +7,16 @@ Framework for golang applications which helps to send metrics, logs and traces i
 
 ## Features
 
-- Logging tools (aka logs):
+- Provide plain text, json logs with trace ID (if log entry is based on a span) and source line info
+- Provide additional labels and tags for metrics, like: source line, service name and it's version
+- Support logging tools (aka logs):
   - Stdout (text, json, template) based on [Logrus](github.com/sirupsen/logrus)
   - DataDog based on [Logrus](github.com/sirupsen/logrus) over UDP
-- Monitoring tools (aka metrics)
+- Support monitoring tools (aka metrics)
   - [Prometheus](github.com/prometheus/client_golang)
   - [DataDog](https://github.com/DataDog/datadog-go)
   - [Opentelemetry](https://github.com/open-telemetry/opentelemetry-go)
-- Tracing tools (aka traces)
+- Support tracing tools (aka traces)
   - [Jaeger](https://github.com/jaegertracing/jaeger-client-go)
   - [DataDog](https://github.com/DataDog/dd-trace-go)
   - [Opentelemetry](https://github.com/open-telemetry/opentelemetry-go)
@@ -35,6 +37,29 @@ Set proper GOROOT and PATH variables
 export GOROOT="$HOME/go/root/1.16.4"
 export PATH="$PATH:$GOROOT/bin"
 ```
+
+## Go modules
+
+Set go.mod manually
+```plain
+module sre
+
+go 1.16
+
+require github.com/devopsext/sre v0.0.5
+```
+
+Collect go modules
+```sh
+go get
+```
+```log
+go: finding module for package github.com/devopsext/sre/provider
+go: finding module for package github.com/devopsext/sre/common
+go: found github.com/devopsext/sre/common in github.com/devopsext/sre v0.0.5
+go: found github.com/devopsext/sre/provider in github.com/devopsext/sre v0.0.5
+```
+
 
 ### Logs usage
 
@@ -61,7 +86,7 @@ func main() {
 
   // initialize Stdout logger
   stdout := provider.NewStdout(provider.StdoutOptions{
-    Format:          "text",
+    Format:          "template",
     Level:           "info",
     Template:        "{{.file}} {{.msg}}",
     TimestampFormat: time.RFC3339Nano,
@@ -89,25 +114,14 @@ func main() {
 }
 ```
 
-Collect go modules
-```sh
-go mod init sre
-go mod tidy
-```
-```log
-go: finding module for package github.com/devopsext/sre/provider
-go: finding module for package github.com/devopsext/sre/common
-go: found github.com/devopsext/sre/common in github.com/devopsext/sre v0.0.4
-go: found github.com/devopsext/sre/provider in github.com/devopsext/sre v0.0.4
-```
-
 Run logs example
 ```sh
 go run logs.go
 ```
 ```log
-INFO[2021-06-17T17:32:30.585651118+03:00] Info message to every log provider...
-WARN[2021-06-17T17:32:30.585798024+03:00] Warn message to every log provider...
+go/sre/logs.go:13 Info message to every log provider...
+go/sre/logs.go:14 Debug message to every log provider...
+go/sre/logs.go:15 Warn message to every log provider...
 ...
 ```
 
@@ -138,8 +152,8 @@ func main() {
 
   // initialize Stdout logger
   stdout := provider.NewStdout(provider.StdoutOptions{
-    Format:          "text",
-    Level:           "info",
+    Format:          "template",
+    Level:           "debug",
     Template:        "{{.file}} {{.msg}}",
     TimestampFormat: time.RFC3339Nano,
     TextColors:      true,
@@ -169,7 +183,7 @@ func main() {
   }, logs, stdout)
 
   // initialize Opentelemetry meter
-  opentelemetry := provider.OpentelemetryMeter(provider.OpentelemetryMeterOptions{
+  opentelemetry := provider.NewOpentelemetryMeter(provider.OpentelemetryMeterOptions{
     OpentelemetryOptions: provider.OpentelemetryOptions{
       ServiceName: "sre-opentelemetry",
       Environment: "stage",
@@ -191,26 +205,14 @@ func main() {
 }
 ```
 
-Collect go modules
-```sh
-go mod init sre
-go mod tidy
-```
-```log
-go: finding module for package github.com/devopsext/sre/provider
-go: finding module for package github.com/devopsext/sre/common
-go: found github.com/devopsext/sre/common in github.com/devopsext/sre v0.0.4
-go: found github.com/devopsext/sre/provider in github.com/devopsext/sre v0.0.4
-```
-
 Run metrcis example
 ```sh
 go run metrics.go
 ```
 ```log
-INFO[2021-06-17T18:00:30.247316085+03:00] Start prometheus endpoint...
-INFO[2021-06-17T18:00:30.247526413+03:00] Prometheus is up. Listening...
-INFO[2021-06-17T18:00:30.248965919+03:00] Datadog metrics are up...
+sre@v0.0.5/provider/prometheus.go:83 Start prometheus endpoint...
+sre@v0.0.5/provider/prometheus.go:93 Prometheus is up. Listening...
+sre@v0.0.5/provider/datadog.go:648 DataDog meter is up...
 ```
 
 Check Prometheus metrics
@@ -269,8 +271,8 @@ func main() {
 
   // initialize Stdout logger
   stdout := provider.NewStdout(provider.StdoutOptions{
-    Format:          "text",
-    Level:           "info",
+    Format:          "template",
+    Level:           "debug",
     Template:        "{{.file}} {{.msg}}",
     TimestampFormat: time.RFC3339Nano,
     TextColors:      true,
@@ -297,7 +299,7 @@ func main() {
       ServiceName: "sre-datadog",
       Environment: "stage",
     },
-    AgentHost: "localhost", // set DataDog agent traces host
+    AgentHost: "", // set DataDog agent traces host
     AgentPort: 8126,        // set DataDog agent traces port
   }, logs, stdout)
 
@@ -313,7 +315,9 @@ func main() {
 
   // add traces
   traces.Register(jaeger)
-  traces.Register(datadog)
+   if datadog != nil {
+    traces.Register(datadog)
+  }
   traces.Register(opentelemetry)
 
   test()
@@ -322,27 +326,19 @@ func main() {
 }
 ```
 
-Collect go modules
-```sh
-go mod init sre
-go mod tidy
-```
-```log
-go: finding module for package github.com/devopsext/sre/provider
-go: finding module for package github.com/devopsext/sre/common
-go: found github.com/devopsext/sre/common in github.com/devopsext/sre v0.0.4
-go: found github.com/devopsext/sre/provider in github.com/devopsext/sre v0.0.4
-```
-
 Run traces example
 ```sh
 go run traces.go
 ```
 ```log
 ...
-INFO[2021-06-17T18:28:45.178707109+03:00] Something happened
-INFO[2021-06-17T18:28:45.178840198+03:00] Reporting span 10a2beaae092860a:486b0277d5e7ae83:10a2beaae092860a:1
-INFO[2021-06-17T18:28:45.178940724+03:00] Reporting span 10a2beaae092860a:10a2beaae092860a:0000000000000000:1
+sre@v0.0.5/provider/jaeger.go:444 Jaeger tracer is up...
+go/sre/traces.go:66 DataDog tracer is disabled.
+sre@v0.0.5/provider/opentelemetry.go:493 Opentelemetry tracer is up...
+go/sre/traces.go:24 Counter increment 0
+go/sre/traces.go:24 Counter increment 1
+go/sre/traces.go:24 Counter increment 2
+...
 ```
 
 Go to Jaeger UI and there should be seen
