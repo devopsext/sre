@@ -46,7 +46,7 @@ module sre
 
 go 1.16
 
-require github.com/devopsext/sre v0.0.5
+require github.com/devopsext/sre v0.0.6
 ```
 
 Collect go modules
@@ -56,8 +56,8 @@ go get
 ```log
 go: finding module for package github.com/devopsext/sre/provider
 go: finding module for package github.com/devopsext/sre/common
-go: found github.com/devopsext/sre/common in github.com/devopsext/sre v0.0.5
-go: found github.com/devopsext/sre/provider in github.com/devopsext/sre v0.0.5
+go: found github.com/devopsext/sre/common in github.com/devopsext/sre v0.0.6
+go: found github.com/devopsext/sre/provider in github.com/devopsext/sre v0.0.6
 ```
 
 
@@ -210,9 +210,9 @@ Run metrcis example
 go run metrics.go
 ```
 ```log
-sre@v0.0.5/provider/prometheus.go:83 Start prometheus endpoint...
-sre@v0.0.5/provider/prometheus.go:93 Prometheus is up. Listening...
-sre@v0.0.5/provider/datadog.go:648 DataDog meter is up...
+sre@v0.0.6/provider/prometheus.go:83 Start prometheus endpoint...
+sre@v0.0.6/provider/prometheus.go:93 Prometheus is up. Listening...
+sre@v0.0.6/provider/datadog.go:648 DataDog meter is up...
 ```
 
 Check Prometheus metrics
@@ -332,9 +332,9 @@ go run traces.go
 ```
 ```log
 ...
-sre@v0.0.5/provider/jaeger.go:444 Jaeger tracer is up...
+sre@v0.0.6/provider/jaeger.go:444 Jaeger tracer is up...
 go/sre/traces.go:66 DataDog tracer is disabled.
-sre@v0.0.5/provider/opentelemetry.go:493 Opentelemetry tracer is up...
+sre@v0.0.6/provider/opentelemetry.go:493 Opentelemetry tracer is up...
 go/sre/traces.go:24 Counter increment 0
 go/sre/traces.go:24 Counter increment 1
 go/sre/traces.go:24 Counter increment 2
