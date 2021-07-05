@@ -3,8 +3,9 @@
 Framework for golang applications which helps to send metrics, logs and traces into different monitoring tools or vendors. 
 
 [![godoc](https://godoc.org/github.com/devopsext/sre?status.svg)](https://godoc.org/github.com/devopsext/sre)
-[![build status](https://travis-ci.com/devopsext/sre.svg?branch=main)](https://travis-ci.com/devopsext/sre)
 [![go report](	https://goreportcard.com/badge/github.com/devopsext/sre)](https://goreportcard.com/report/github.com/devopsext/sre)
+[![codecov](https://codecov.io/github.com/devopsext/sre/branch/main/graph/badge.svg?token=M78C7PVMDV)](https://codecov.io/github.com/devopsext/sre)
+[![build status](https://travis-ci.com/devopsext/sre.svg?branch=main)](https://travis-ci.com/devopsext/sre)
 
 ## Features
 
