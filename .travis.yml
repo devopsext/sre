@@ -5,7 +5,12 @@ go:
 
 go_import_path: github.com/devopsext/sre
 
+before_install:
+  - env GO111MODULE=on go get -t -v ./...
+
 script:
-  - env GO111MODULE=on
   - go test -race -coverprofile=coverage.txt -covermode=atomic
   - go build
+
+after_success:
+  - bash <(curl -s https://codecov.io/bash)
