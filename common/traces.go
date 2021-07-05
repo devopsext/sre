@@ -142,13 +142,13 @@ func (ts *Traces) StartSpan() TracerSpan {
 	return &span
 }
 
-func (ts *Traces) StartSpanWithTraceID(spanID, traceID uint64) TracerSpan {
+func (ts *Traces) StartSpanWithTraceID(traceID uint64) TracerSpan {
 
 	span := TracesSpan{
 		traces:  ts,
 		spans:   make(map[Tracer]TracerSpan),
 		traceID: traceID,
-		spanID:  spanID,
+		spanID:  0,
 	}
 
 	for _, t := range ts.tracers {
