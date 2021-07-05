@@ -342,7 +342,7 @@ func (ott *OpentelemetryTracer) getSpanContext(object interface{}) (context.Cont
 			return nil, nil
 		}
 
-		traceSpanID, traceTraceID := ott.getSpanTraceID(0, uint64(traceID))
+		traceSpanID, traceTraceID := ott.getSpanTraceID(uint64(traceID), uint64(traceID))
 		if traceSpanID != nil && traceTraceID != nil {
 			ott.logger.Error(err)
 			return nil, nil

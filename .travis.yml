@@ -6,4 +6,6 @@ go:
 go_import_path: github.com/devopsext/sre
 
 script:
-  - env GO111MODULE=on go build
+  - env GO111MODULE=on
+  - go test -race -coverprofile=coverage.txt -covermode=atomic
+  - go build
