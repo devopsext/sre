@@ -4,7 +4,7 @@ Framework for golang applications which helps to send metrics, logs and traces i
 
 [![godoc](https://godoc.org/github.com/devopsext/sre?status.svg)](https://godoc.org/github.com/devopsext/sre)
 [![go report](	https://goreportcard.com/badge/github.com/devopsext/sre)](https://goreportcard.com/report/github.com/devopsext/sre)
-[![codecov](https://codecov.io/github.com/devopsext/sre/branch/main/graph/badge.svg?token=M78C7PVMDV)](https://codecov.io/github.com/devopsext/sre)
+[![codecov](https://codecov.io/gh/devopsext/sre/branch/main/graph/badge.svg?token=M78C7PVMDV)](https://codecov.io/gh/devopsext/sre)
 [![build status](https://travis-ci.com/devopsext/sre.svg?branch=main)](https://travis-ci.com/devopsext/sre)
 
 ## Features
@@ -17,7 +17,7 @@ Framework for golang applications which helps to send metrics, logs and traces i
 - Support monitoring tools (aka metrics)
   - [Prometheus](github.com/prometheus/client_golang)
   - [DataDog](https://github.com/DataDog/datadog-go)
-  - [Opentelemetry](https://github.com/open-telemetry/opentelemetry-go)
+  - [Opente1lemetry](https://github.com/open-telemetry/opentelemetry-go)
 - Support tracing tools (aka traces)
   - [Jaeger](https://github.com/jaegertracing/jaeger-client-go)
   - [DataDog](https://github.com/DataDog/dd-trace-go)
