@@ -172,7 +172,7 @@ func main() {
     Listen: "127.0.0.1:8080",
     Prefix: "sre",
   }, logs, stdout)
-  prometheus.Start(&mainWG)
+  prometheus.StartInWaitGroup(&mainWG)
 
   // initialize DataDog meter
   datadog := provider.NewDataDogMeter(provider.DataDogMeterOptions{

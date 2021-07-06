@@ -73,31 +73,35 @@ func (p *PrometheusMeter) SetCallerOffset(offset int) {
 	p.callerOffset = offset
 }
 
-func (p *PrometheusMeter) Start(wg *sync.WaitGroup) {
+func (p *PrometheusMeter) Start() bool {
+
+	p.logger.Info("Start prometheus endpoint...")
+
+	http.Handle(p.options.URL, promhttp.Handler())
+
+	listener, err := net.Listen("tcp", p.options.Listen)
+	if err != nil {
+		p.logger.Error(err)
+		return false
+	}
+	p.listener = &listener
+	p.logger.Info("Prometheus is up. Listening...")
+	err = http.Serve(listener, nil)
+	if err != nil {
+		p.logger.Error(err)
+		return false
+	}
+	return true
+}
+
+func (p *PrometheusMeter) StartInWaitGroup(wg *sync.WaitGroup) {
 
 	wg.Add(1)
 
 	go func(wg *sync.WaitGroup) {
 
 		defer wg.Done()
-
-		p.logger.Info("Start prometheus endpoint...")
-
-		http.Handle(p.options.URL, promhttp.Handler())
-
-		listener, err := net.Listen("tcp", p.options.Listen)
-		if err != nil {
-			p.logger.Error(err)
-			return
-		}
-		p.listener = &listener
-		p.logger.Info("Prometheus is up. Listening...")
-		err = http.Serve(listener, nil)
-		if err != nil {
-			p.logger.Error(err)
-			return
-		}
-
+		p.Start()
 	}(wg)
 }
 

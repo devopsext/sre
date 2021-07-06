@@ -9,6 +9,8 @@ import (
 	"sync"
 	"testing"
 	"time"
+
+	"github.com/devopsext/sre/common"
 )
 
 func TestPrometheus(t *testing.T) {
@@ -45,7 +47,7 @@ func TestPrometheus(t *testing.T) {
 	prometheus.SetCallerOffset(1)
 
 	var wg sync.WaitGroup
-	prometheus.Start(&wg)
+	prometheus.StartInWaitGroup(&wg)
 	defer prometheus.Stop()
 
 	counter := prometheus.Counter(metricName, "description", []string{"one", "two", "three"}, secondPrefix)
@@ -99,5 +101,37 @@ func TestPrometheus(t *testing.T) {
 
 	if value != strconv.Itoa(maxCounter) {
 		t.Errorf("Invalid metric value %s, expected %d", value, maxCounter)
+	}
+}
+
+func TestPrometheusWrongListen(t *testing.T) {
+
+	stdout := NewStdout(StdoutOptions{
+		Format:          "template",
+		Level:           "debug",
+		Template:        "{{.msg}}",
+		TimestampFormat: time.RFC3339Nano,
+	})
+	if stdout == nil {
+		t.Error("Invalid stdout")
+	}
+	stdout.SetCallerOffset(1)
+
+	URL := "/wrong"
+	port := 10000
+	host := common.GetGuid()
+
+	prometheus := NewPrometheusMeter(PrometheusOptions{
+		URL:    URL,
+		Listen: fmt.Sprintf("%s:%d", host, port),
+		Prefix: "test",
+	}, nil, stdout)
+	if prometheus == nil {
+		t.Error("Invalid prometheus")
+	}
+	prometheus.SetCallerOffset(1)
+
+	if prometheus.Start() {
+		t.Error("Invalid startup option")
 	}
 }
