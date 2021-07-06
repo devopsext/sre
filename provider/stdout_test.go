@@ -58,14 +58,14 @@ func output(stdout *Stdout, level string) string {
 	return msg
 }
 
-func testTemplate(t *testing.T, level, template string, span common.TracerSpan) {
+func test(t *testing.T, format, level, template string, span common.TracerSpan) {
 
 	oldStdout := os.Stdout
 	r, w, _ := os.Pipe()
 	os.Stdout = w
 
 	stdout := NewStdout(StdoutOptions{
-		Format:          "template",
+		Format:          format,
 		Level:           level,
 		Template:        template,
 		TimestampFormat: time.RFC3339Nano,
@@ -93,12 +93,24 @@ func testTemplate(t *testing.T, level, template string, span common.TracerSpan) 
 	t.Logf("Output is ... [%s]", output)
 	t.Logf("Message is ... [%s]", msg)
 
-	if strings.Compare(output, msg) != 0 {
-		t.Error("Stdout message is wrong")
+	switch format {
+	case "template":
+		if strings.Compare(output, msg) != 0 {
+			t.Error("Stdout template message is wrong")
+		}
+	case "text":
+		if !strings.Contains(output, msg) {
+			t.Error("Stdout text message is wrong")
+		}
 	}
 }
 
-func testSpan(t *testing.T, level string) {
+func testTemplate(t *testing.T, level string, span common.TracerSpan) {
+
+	test(t, "template", level, "{{.msg}}", nil)
+}
+
+func testTemplateSpan(t *testing.T, level string) {
 
 	tracer := common.NewTraces()
 	if tracer == nil {
@@ -115,16 +127,26 @@ func testSpan(t *testing.T, level string) {
 		t.Error("Invalid span")
 	}
 
-	testTemplate(t, "info", "{{.msg}} {{.trace_id}}", span)
+	test(t, "template", level, "{{.msg}} {{.trace_id}}", span)
 }
 
 func TestStdout(t *testing.T) {
-	testTemplate(t, "info", "{{.msg}}", nil)
-	testTemplate(t, "error", "{{.msg}}", nil)
-	testTemplate(t, "warn", "{{.msg}}", nil)
-	testTemplate(t, "debug", "{{.msg}}", nil)
-	testSpan(t, "info")
-	testSpan(t, "error")
-	testSpan(t, "warn")
-	testSpan(t, "debug")
+	testTemplate(t, "", nil)
+	testTemplate(t, "info", nil)
+	testTemplate(t, "error", nil)
+	testTemplate(t, "warn", nil)
+	testTemplate(t, "debug", nil)
+
+	testTemplateSpan(t, "")
+	testTemplateSpan(t, "info")
+	testTemplateSpan(t, "error")
+	testTemplateSpan(t, "warn")
+	testTemplateSpan(t, "debug")
+
+	test(t, "text", "", "", nil)
+	test(t, "text", "info", "", nil)
+	test(t, "text", "error", "", nil)
+	test(t, "text", "warn", "", nil)
+	test(t, "text", "debug", "", nil)
+
 }
