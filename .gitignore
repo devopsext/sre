@@ -4,3 +4,5 @@ bin/
 pkg/
 src/
 vscode.sh
+coverage.txt
+__debug_bin

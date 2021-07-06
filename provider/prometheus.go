@@ -29,6 +29,7 @@ type PrometheusMeter struct {
 	options      PrometheusOptions
 	logger       common.Logger
 	callerOffset int
+	listener     *net.Listener
 }
 
 func (pc *PrometheusCounter) Inc(labelValues ...string) common.Counter {
@@ -89,7 +90,7 @@ func (p *PrometheusMeter) Start(wg *sync.WaitGroup) {
 			p.logger.Error(err)
 			return
 		}
-
+		p.listener = &listener
 		p.logger.Info("Prometheus is up. Listening...")
 		err = http.Serve(listener, nil)
 		if err != nil {
@@ -101,10 +102,17 @@ func (p *PrometheusMeter) Start(wg *sync.WaitGroup) {
 }
 
 func (p *PrometheusMeter) Stop() {
-	// nothing here
+	if p.listener != nil {
+		l := *p.listener
+		l.Close()
+	}
 }
 
 func NewPrometheusMeter(options PrometheusOptions, logger common.Logger, stdout *Stdout) *PrometheusMeter {
+
+	if logger == nil {
+		logger = stdout
+	}
 
 	return &PrometheusMeter{
 		options:      options,
