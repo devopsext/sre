@@ -44,10 +44,6 @@ func (tssc TracesSpanContext) GetSpanID() uint64 {
 
 func (tss *TracesSpan) GetContext() TracerSpanContext {
 
-	if len(tss.spans) <= 0 {
-		return nil
-	}
-
 	if tss.spanContext != nil {
 		return tss.spanContext
 	}
@@ -148,7 +144,7 @@ func (ts *Traces) StartSpanWithTraceID(traceID uint64) TracerSpan {
 		traces:  ts,
 		spans:   make(map[Tracer]TracerSpan),
 		traceID: traceID,
-		spanID:  0,
+		spanID:  ts.randomNumber(),
 	}
 
 	for _, t := range ts.tracers {
@@ -261,14 +257,18 @@ func (ts *Traces) Stop() {
 	}
 }
 
+func (ts *Traces) NewTraceID() uint64 {
+	return ts.randomNumber()
+}
+
 func NewTraces() *Traces {
 
 	ts := Traces{}
 
-	seedGenerator := utils.NewRand(time.Now().UnixNano())
+	generator := utils.NewRand(time.Now().UnixNano())
 	pool := sync.Pool{
 		New: func() interface{} {
-			return rand.NewSource(seedGenerator.Int63())
+			return rand.NewSource(generator.Int63())
 		},
 	}
 
