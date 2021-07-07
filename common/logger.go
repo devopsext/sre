@@ -9,7 +9,7 @@ type Logger interface {
 	SpanError(span TracerSpan, obj interface{}, args ...interface{}) Logger
 	Debug(obj interface{}, args ...interface{}) Logger
 	SpanDebug(span TracerSpan, obj interface{}, args ...interface{}) Logger
-	Panic(obj interface{}, args ...interface{}) Logger
-	SpanPanic(span TracerSpan, obj interface{}, args ...interface{}) Logger
+	Panic(obj interface{}, args ...interface{})
+	SpanPanic(span TracerSpan, obj interface{}, args ...interface{})
 	Stack(offset int) Logger
 }

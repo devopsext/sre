@@ -13,7 +13,7 @@ import (
 	"github.com/devopsext/sre/common"
 )
 
-func outputSpan(t *testing.T, stdout *Stdout, level string, span common.TracerSpan) string {
+func outputSpan(t *testing.T, stdout *Stdout, level string, span common.TracerSpan, args ...interface{}) string {
 
 	ctx := span.GetContext()
 	if ctx == nil {
@@ -25,44 +25,44 @@ func outputSpan(t *testing.T, stdout *Stdout, level string, span common.TracerSp
 	msg := fmt.Sprintf("Some %s message...", level)
 	switch level {
 	case "info":
-		stdout.SpanInfo(span, msg)
+		stdout.SpanInfo(span, msg, args...)
 	case "error":
-		stdout.SpanError(span, errors.New(msg))
+		stdout.SpanError(span, errors.New(msg), args...)
 	case "panic":
-		stdout.SpanPanic(span, msg)
+		stdout.SpanPanic(span, msg, args...)
 	case "warn":
-		stdout.SpanWarn(span, msg)
+		stdout.SpanWarn(span, msg, args...)
 	case "debug":
-		stdout.SpanDebug(span, msg)
+		stdout.SpanDebug(span, msg, args...)
 	default:
-		stdout.SpanInfo(nil, msg)
+		stdout.SpanInfo(nil, msg, args...)
 		sTraceID = "<no value>"
 	}
 
 	return fmt.Sprintf("%s %s", msg, sTraceID)
 }
 
-func output(stdout *Stdout, level string) string {
+func output(stdout *Stdout, level string, args ...interface{}) string {
 
 	msg := fmt.Sprintf("Some %s message...", level)
 	switch level {
 	case "info":
-		stdout.Info(msg)
+		stdout.Info(msg, args...)
 	case "error":
-		stdout.Error(errors.New(msg))
+		stdout.Error(errors.New(msg), args...)
 	case "panic":
-		stdout.Panic(msg)
+		stdout.Panic(msg, args...)
 	case "warn":
-		stdout.Warn(msg)
+		stdout.Warn(msg, args...)
 	case "debug":
-		stdout.Debug(msg)
+		stdout.Debug(msg, args...)
 	default:
-		stdout.Info(msg)
+		stdout.Info(msg, args...)
 	}
 	return msg
 }
 
-func test(t *testing.T, format, level, template string, span common.TracerSpan) {
+func test(t *testing.T, format, level, template string, span common.TracerSpan, args ...interface{}) {
 
 	oldStdout := os.Stdout
 	r, w, _ := os.Pipe()
@@ -185,4 +185,9 @@ func TestStdoutWrongTemplate(t *testing.T) {
 	}()
 
 	test(t, "template", "info", "{{.msg {{.trace2_id}}", nil)
+}
+
+func TestStdoutWrongArgs(t *testing.T) {
+
+	test(t, "template", "info", "{{.msg}}", nil, nil)
 }
