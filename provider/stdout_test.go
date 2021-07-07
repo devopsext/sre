@@ -175,3 +175,14 @@ func TestStdoutPanicSpan(t *testing.T) {
 
 	testTemplateSpan(t, "panic")
 }
+
+func TestStdoutWrongTemplate(t *testing.T) {
+
+	defer func() {
+		if r := recover(); r == nil {
+			t.Error("It should be paniced")
+		}
+	}()
+
+	test(t, "template", "info", "{{.msg {{.trace2_id}}", nil)
+}
