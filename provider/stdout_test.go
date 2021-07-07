@@ -4,6 +4,7 @@ import (
 	"fmt"
 	"io/ioutil"
 	"os"
+	"strconv"
 	"strings"
 	"testing"
 	"time"
@@ -18,6 +19,7 @@ func outputSpan(t *testing.T, stdout *Stdout, level string, span common.TracerSp
 		t.Error("Invalid span context")
 	}
 	traceID := ctx.GetTraceID()
+	sTraceID := strconv.Itoa(int(traceID))
 
 	msg := fmt.Sprintf("Some %s message...", level)
 	switch level {
@@ -32,10 +34,11 @@ func outputSpan(t *testing.T, stdout *Stdout, level string, span common.TracerSp
 	case "debug":
 		stdout.SpanDebug(span, msg)
 	default:
-		stdout.SpanInfo(span, msg)
+		stdout.SpanInfo(nil, msg)
+		sTraceID = "<no value>"
 	}
 
-	return fmt.Sprintf("%s %d", msg, traceID)
+	return fmt.Sprintf("%s %s", msg, sTraceID)
 }
 
 func output(stdout *Stdout, level string) string {
@@ -131,7 +134,7 @@ func testTemplateSpan(t *testing.T, level string) {
 	test(t, "template", level, "{{.msg}} {{.trace_id}}", span)
 }
 
-func TestNormalStdout(t *testing.T) {
+func TestStdoutNormal(t *testing.T) {
 
 	testTemplate(t, "", nil)
 	testTemplate(t, "info", nil)
@@ -150,7 +153,7 @@ func TestNormalStdout(t *testing.T) {
 	test(t, "", "", "", nil)
 }
 
-func TestPanicStdout(t *testing.T) {
+func TestStdoutPanic(t *testing.T) {
 
 	defer func() {
 		if r := recover(); r == nil {
@@ -159,4 +162,15 @@ func TestPanicStdout(t *testing.T) {
 	}()
 
 	test(t, "", "panic", "", nil)
+}
+
+func TestStdoutPanicSpan(t *testing.T) {
+
+	defer func() {
+		if r := recover(); r == nil {
+			t.Error("It should be paniced")
+		}
+	}()
+
+	testTemplateSpan(t, "panic")
 }
