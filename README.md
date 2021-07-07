@@ -17,7 +17,7 @@ Framework for golang applications which helps to send metrics, logs and traces i
 - Support monitoring tools (aka metrics)
   - [Prometheus](github.com/prometheus/client_golang)
   - [DataDog](https://github.com/DataDog/datadog-go)
-  - [Opente1lemetry](https://github.com/open-telemetry/opentelemetry-go)
+  - [Opentelemetry](https://github.com/open-telemetry/opentelemetry-go)
 - Support tracing tools (aka traces)
   - [Jaeger](https://github.com/jaegertracing/jaeger-client-go)
   - [DataDog](https://github.com/DataDog/dd-trace-go)
@@ -289,7 +289,7 @@ func main() {
   jaeger := provider.NewJaegerTracer(provider.JaegerOptions{
     ServiceName:         "sre-jaeger",
     AgentHost:           "localhost", // set Jaeger agent host
-    AgentPort:           6831,        // set Jaeger agent port
+    AgentPort:           6831, // set Jaeger agent port
     BufferFlushInterval: 0,
     QueueSize:           0,
     Tags:                "key1=value1",

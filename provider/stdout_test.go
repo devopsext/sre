@@ -75,6 +75,7 @@ func test(t *testing.T, format, level, template string, span common.TracerSpan) 
 		t.Error("Invalid stdout")
 	}
 	stdout.SetCallerOffset(2)
+	stdout.Stack(-1).Stack(1)
 
 	var msg string
 	if span != nil {
@@ -98,9 +99,9 @@ func test(t *testing.T, format, level, template string, span common.TracerSpan) 
 		if strings.Compare(output, msg) != 0 {
 			t.Error("Stdout template message is wrong")
 		}
-	case "text":
+	case "text", "json":
 		if !strings.Contains(output, msg) {
-			t.Error("Stdout text message is wrong")
+			t.Error("Stdout text/json message is wrong")
 		}
 	}
 }
@@ -130,7 +131,8 @@ func testTemplateSpan(t *testing.T, level string) {
 	test(t, "template", level, "{{.msg}} {{.trace_id}}", span)
 }
 
-func TestStdout(t *testing.T) {
+func TestNormalStdout(t *testing.T) {
+
 	testTemplate(t, "", nil)
 	testTemplate(t, "info", nil)
 	testTemplate(t, "error", nil)
@@ -144,9 +146,17 @@ func TestStdout(t *testing.T) {
 	testTemplateSpan(t, "debug")
 
 	test(t, "text", "", "", nil)
-	test(t, "text", "info", "", nil)
-	test(t, "text", "error", "", nil)
-	test(t, "text", "warn", "", nil)
-	test(t, "text", "debug", "", nil)
+	test(t, "json", "", "", nil)
+	test(t, "", "", "", nil)
+}
 
+func TestPanicStdout(t *testing.T) {
+
+	defer func() {
+		if r := recover(); r == nil {
+			t.Error("It should be paniced")
+		}
+	}()
+
+	test(t, "", "panic", "", nil)
 }
