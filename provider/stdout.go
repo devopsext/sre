@@ -194,7 +194,7 @@ func (so *Stdout) Panic(obj interface{}, args ...interface{}) common.Logger {
 	if exists, message := so.exists(logrus.PanicLevel, obj, args...); exists {
 		so.log.WithFields(so.addCallerFields(3)).Panicln(message)
 	}
-	return so
+	return nil
 }
 
 func (so *Stdout) SpanPanic(span common.TracerSpan, obj interface{}, args ...interface{}) common.Logger {
@@ -203,7 +203,7 @@ func (so *Stdout) SpanPanic(span common.TracerSpan, obj interface{}, args ...int
 		fields := so.addSpanFields(span, so.addCallerFields(3))
 		so.log.WithFields(fields).Panicln(message)
 	}
-	return so
+	return nil
 }
 
 func (so *Stdout) Stack(offset int) common.Logger {
