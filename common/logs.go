@@ -82,18 +82,16 @@ func (ls *Logs) SpanDebug(span TracerSpan, obj interface{}, args ...interface{})
 	return ls
 }
 
-func (ls *Logs) Panic(obj interface{}, args ...interface{}) Logger {
+func (ls *Logs) Panic(obj interface{}, args ...interface{}) {
 	for _, l := range ls.loggers {
 		l.Panic(obj, args...)
 	}
-	return ls
 }
 
-func (ls *Logs) SpanPanic(span TracerSpan, obj interface{}, args ...interface{}) Logger {
+func (ls *Logs) SpanPanic(span TracerSpan, obj interface{}, args ...interface{}) {
 	for _, l := range ls.loggers {
 		l.SpanPanic(span, obj, args...)
 	}
-	return ls
 }
 
 func (ls *Logs) Stack(offset int) Logger {

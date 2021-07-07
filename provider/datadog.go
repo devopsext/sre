@@ -418,21 +418,19 @@ func (dd *DataDogLogger) SpanDebug(span common.TracerSpan, obj interface{}, args
 	return dd
 }
 
-func (dd *DataDogLogger) Panic(obj interface{}, args ...interface{}) common.Logger {
+func (dd *DataDogLogger) Panic(obj interface{}, args ...interface{}) {
 
 	if exists, fields, message := dd.exists(logrus.PanicLevel, obj, args...); exists {
 		dd.log.WithFields(fields).Panicln(message)
 	}
-	return dd
 }
 
-func (dd *DataDogLogger) SpanPanic(span common.TracerSpan, obj interface{}, args ...interface{}) common.Logger {
+func (dd *DataDogLogger) SpanPanic(span common.TracerSpan, obj interface{}, args ...interface{}) {
 
 	if exists, fields, message := dd.exists(logrus.PanicLevel, obj, args...); exists {
 		fields = dd.addSpanFields(span, fields)
 		dd.log.WithFields(fields).Panicln(message)
 	}
-	return dd
 }
 
 func (dd *DataDogLogger) Stack(offset int) common.Logger {
