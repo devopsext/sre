@@ -1,6 +1,7 @@
 package provider
 
 import (
+	"errors"
 	"fmt"
 	"io/ioutil"
 	"os"
@@ -26,7 +27,7 @@ func outputSpan(t *testing.T, stdout *Stdout, level string, span common.TracerSp
 	case "info":
 		stdout.SpanInfo(span, msg)
 	case "error":
-		stdout.SpanError(span, msg)
+		stdout.SpanError(span, errors.New(msg))
 	case "panic":
 		stdout.SpanPanic(span, msg)
 	case "warn":
@@ -48,7 +49,7 @@ func output(stdout *Stdout, level string) string {
 	case "info":
 		stdout.Info(msg)
 	case "error":
-		stdout.Error(msg)
+		stdout.Error(errors.New(msg))
 	case "panic":
 		stdout.Panic(msg)
 	case "warn":
