@@ -88,7 +88,8 @@ func TestJaeger(t *testing.T) {
 
 	headers := make(http.Header)
 
-	nilHeaderSpan := jaeger.StartFollowSpan(t)
+	span.SetCarrier(t)
+	nilHeaderSpan := jaeger.StartFollowSpan(headers)
 	if nilHeaderSpan != nil {
 		t.Fatal("Invalid nil header span")
 	}

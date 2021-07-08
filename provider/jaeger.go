@@ -152,20 +152,22 @@ func (js JaegerSpan) LogFields(fields map[string]interface{}) common.TracerSpan 
 
 			var logField opentracingLog.Field
 			switch v.(type) {
-			case bool:
-				logField = opentracingLog.Bool(k, v.(bool))
-			case int:
-				logField = opentracingLog.Int(k, v.(int))
-			case int64:
-				logField = opentracingLog.Int64(k, v.(int64))
 			case string:
 				logField = opentracingLog.String(k, v.(string))
-			case float32:
-				logField = opentracingLog.Float32(k, v.(float32))
-			case float64:
-				logField = opentracingLog.Float64(k, v.(float64))
-			case error:
-				logField = opentracingLog.Error(v.(error))
+				/*case bool:
+					logField = opentracingLog.Bool(k, v.(bool))
+				case int:
+					logField = opentracingLog.Int(k, v.(int))
+				case int64:
+					logField = opentracingLog.Int64(k, v.(int64))
+				case string:
+					logField = opentracingLog.String(k, v.(string))
+				case float32:
+					logField = opentracingLog.Float32(k, v.(float32))
+				case float64:
+					logField = opentracingLog.Float64(k, v.(float64))
+				case error:
+					logField = opentracingLog.Error(v.(error))*/
 			}
 
 			logFields = append(logFields, logField)
