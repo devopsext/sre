@@ -368,10 +368,12 @@ func parseJaegerTags(sTags string) []opentracing.Tag {
 
 		if strings.HasPrefix(v, "${") && strings.HasSuffix(v, "}") {
 			ed := strings.SplitN(v[2:len(v)-1], ":", 2)
-			e, d := ed[0], ed[1]
-			v = env.Get(e, "").(string)
-			if v == "" && d != "" {
-				v = d
+			if len(ed) > 1 {
+				e, d := ed[0], ed[1]
+				v = env.Get(e, "").(string)
+				if v == "" && d != "" {
+					v = d
+				}
 			}
 		}
 

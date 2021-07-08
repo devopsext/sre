@@ -2,6 +2,7 @@ package provider
 
 import (
 	"errors"
+	"net/http"
 	"testing"
 	"time"
 )
@@ -23,7 +24,7 @@ func jaegerNew(agentHost string) (*JaegerTracer, *Stdout) {
 		AgentHost:   agentHost,
 		AgentPort:   6831,
 		ServiceName: "sre-jaeger-test",
-		Tags:        "tag1=value1,tag2=value2",
+		Tags:        "tag1=value1,,tag3=${key3:value3}",
 		Debug:       true,
 	}, nil, stdout)
 
@@ -74,6 +75,29 @@ func TestJaeger(t *testing.T) {
 	}
 	defer followSpan.Finish()
 	followSpan.SetName("some-follow-span")
+
+	nilChildSpan := jaeger.StartChildSpan(t)
+	if nilChildSpan != nil {
+		t.Fatal("Invalid nil child span")
+	}
+
+	nilFollowSpan := jaeger.StartFollowSpan(t)
+	if nilFollowSpan != nil {
+		t.Fatal("Invalid nil follow span")
+	}
+
+	headers := make(http.Header)
+
+	nilHeaderSpan := jaeger.StartFollowSpan(t)
+	if nilHeaderSpan != nil {
+		t.Fatal("Invalid nil header span")
+	}
+
+	span.SetCarrier(headers)
+	headerSpan := jaeger.StartChildSpan(headers)
+	if headerSpan == nil {
+		t.Fatal("Invalid nil header span")
+	}
 }
 
 func TestJaegerWrongAgentHost(t *testing.T) {
@@ -82,4 +106,19 @@ func TestJaegerWrongAgentHost(t *testing.T) {
 	if jaeger != nil {
 		t.Fatal("Valid jaeger")
 	}
+}
+
+func TestJaegerInternalLogger(t *testing.T) {
+
+	_, stdout := jaegerNew("localhost")
+	if stdout == nil {
+		t.Fatal("Valid stdout")
+	}
+
+	internalLogger := JaegerInternalLogger{
+		logger: stdout,
+	}
+
+	internalLogger.Error("Some internal message")
+	internalLogger.Infof("")
 }

@@ -22,7 +22,7 @@ func TestPrometheus(t *testing.T) {
 		TimestampFormat: time.RFC3339Nano,
 	})
 	if stdout == nil {
-		t.Error("Invalid stdout")
+		t.Fatal("Invalid stdout")
 	}
 	stdout.SetCallerOffset(1)
 
@@ -42,7 +42,7 @@ func TestPrometheus(t *testing.T) {
 		Prefix: firstPrefix,
 	}, nil, stdout)
 	if prometheus == nil {
-		t.Error("Invalid prometheus")
+		t.Fatal("Invalid prometheus")
 	}
 	prometheus.SetCallerOffset(1)
 
@@ -52,7 +52,7 @@ func TestPrometheus(t *testing.T) {
 
 	counter := prometheus.Counter(metricName, "description", []string{"one", "two", "three"}, secondPrefix)
 	if counter == nil {
-		t.Error("Invalid prometheus")
+		t.Fatal("Invalid prometheus")
 	}
 
 	maxCounter := 5
@@ -64,21 +64,21 @@ func TestPrometheus(t *testing.T) {
 
 	r, err := http.Get(fmt.Sprintf("http://localhost:%d%s", port, URL))
 	if err != nil {
-		t.Error(err)
+		t.Fatal(err)
 	}
 
 	if r.StatusCode != 200 {
-		t.Errorf("None 200 response: %d", r.StatusCode)
+		t.Fatalf("None 200 response: %d", r.StatusCode)
 	}
 
 	content, err := ioutil.ReadAll(r.Body)
 	if err != nil {
-		t.Error(err)
+		t.Fatal(err)
 	}
 
 	lines := strings.Split(string(content), "\n")
 	if len(lines) == 0 {
-		t.Error("No lines in output")
+		t.Fatal("No lines in output")
 	}
 
 	m := make(map[string]string)
@@ -96,11 +96,11 @@ func TestPrometheus(t *testing.T) {
 
 	value := m[fmt.Sprintf("%s_%s_%s", firstPrefix, secondPrefix, metricName)]
 	if value == "" {
-		t.Error("No metric or value in output")
+		t.Fatal("No metric or value in output")
 	}
 
 	if value != strconv.Itoa(maxCounter) {
-		t.Errorf("Invalid metric value %s, expected %d", value, maxCounter)
+		t.Fatalf("Invalid metric value %s, expected %d", value, maxCounter)
 	}
 }
 
@@ -113,7 +113,7 @@ func TestPrometheusWrongListen(t *testing.T) {
 		TimestampFormat: time.RFC3339Nano,
 	})
 	if stdout == nil {
-		t.Error("Invalid stdout")
+		t.Fatal("Invalid stdout")
 	}
 	stdout.SetCallerOffset(1)
 
@@ -127,11 +127,11 @@ func TestPrometheusWrongListen(t *testing.T) {
 		Prefix: "test",
 	}, nil, stdout)
 	if prometheus == nil {
-		t.Error("Invalid prometheus")
+		t.Fatal("Invalid prometheus")
 	}
 	prometheus.SetCallerOffset(1)
 
 	if prometheus.Start() {
-		t.Error("Invalid startup option")
+		t.Fatal("Invalid startup option")
 	}
 }
