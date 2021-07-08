@@ -13,7 +13,7 @@ import (
 	"github.com/devopsext/sre/common"
 )
 
-func outputSpan(t *testing.T, stdout *Stdout, level string, span common.TracerSpan, args ...interface{}) string {
+func stdoutTestSpan(t *testing.T, stdout *Stdout, level string, span common.TracerSpan, args ...interface{}) string {
 
 	ctx := span.GetContext()
 	if ctx == nil {
@@ -42,7 +42,7 @@ func outputSpan(t *testing.T, stdout *Stdout, level string, span common.TracerSp
 	return fmt.Sprintf("%s %s", msg, sTraceID)
 }
 
-func output(stdout *Stdout, level string, args ...interface{}) string {
+func stdoutstdoutTest(stdout *Stdout, level string, args ...interface{}) string {
 
 	msg := fmt.Sprintf("Some %s message...", level)
 	switch level {
@@ -62,7 +62,7 @@ func output(stdout *Stdout, level string, args ...interface{}) string {
 	return msg
 }
 
-func test(t *testing.T, format, level, template string, span common.TracerSpan, args ...interface{}) {
+func stdoutTest(t *testing.T, format, level, template string, span common.TracerSpan, args ...interface{}) {
 
 	oldStdout := os.Stdout
 	r, w, _ := os.Pipe()
@@ -83,9 +83,9 @@ func test(t *testing.T, format, level, template string, span common.TracerSpan, 
 
 	var msg string
 	if span != nil {
-		msg = outputSpan(t, stdout, level, span)
+		msg = stdoutTestSpan(t, stdout, level, span)
 	} else {
-		msg = output(stdout, level)
+		msg = stdoutstdoutTest(stdout, level)
 	}
 
 	w.Close()
@@ -110,12 +110,12 @@ func test(t *testing.T, format, level, template string, span common.TracerSpan, 
 	}
 }
 
-func testTemplate(t *testing.T, level string, span common.TracerSpan) {
+func stdoutTestTemplate(t *testing.T, level string, span common.TracerSpan) {
 
-	test(t, "template", level, "{{.msg}}", nil)
+	stdoutTest(t, "template", level, "{{.msg}}", nil)
 }
 
-func testTemplateSpan(t *testing.T, level string) {
+func stdoutTestTemplateSpan(t *testing.T, level string) {
 
 	tracer := common.NewTraces()
 	if tracer == nil {
@@ -132,26 +132,26 @@ func testTemplateSpan(t *testing.T, level string) {
 		t.Error("Invalid span")
 	}
 
-	test(t, "template", level, "{{.msg}} {{.trace_id}}", span)
+	stdoutTest(t, "template", level, "{{.msg}} {{.trace_id}}", span)
 }
 
 func TestStdoutNormal(t *testing.T) {
 
-	testTemplate(t, "", nil)
-	testTemplate(t, "info", nil)
-	testTemplate(t, "error", nil)
-	testTemplate(t, "warn", nil)
-	testTemplate(t, "debug", nil)
+	stdoutTestTemplate(t, "", nil)
+	stdoutTestTemplate(t, "info", nil)
+	stdoutTestTemplate(t, "error", nil)
+	stdoutTestTemplate(t, "warn", nil)
+	stdoutTestTemplate(t, "debug", nil)
 
-	testTemplateSpan(t, "")
-	testTemplateSpan(t, "info")
-	testTemplateSpan(t, "error")
-	testTemplateSpan(t, "warn")
-	testTemplateSpan(t, "debug")
+	stdoutTestTemplateSpan(t, "")
+	stdoutTestTemplateSpan(t, "info")
+	stdoutTestTemplateSpan(t, "error")
+	stdoutTestTemplateSpan(t, "warn")
+	stdoutTestTemplateSpan(t, "debug")
 
-	test(t, "text", "", "", nil)
-	test(t, "json", "", "", nil)
-	test(t, "", "", "", nil)
+	stdoutTest(t, "text", "", "", nil)
+	stdoutTest(t, "json", "", "", nil)
+	stdoutTest(t, "", "", "", nil)
 }
 
 func TestStdoutPanic(t *testing.T) {
@@ -162,7 +162,7 @@ func TestStdoutPanic(t *testing.T) {
 		}
 	}()
 
-	test(t, "", "panic", "", nil)
+	stdoutTest(t, "", "panic", "", nil)
 }
 
 func TestStdoutPanicSpan(t *testing.T) {
@@ -173,7 +173,7 @@ func TestStdoutPanicSpan(t *testing.T) {
 		}
 	}()
 
-	testTemplateSpan(t, "panic")
+	stdoutTestTemplateSpan(t, "panic")
 }
 
 func TestStdoutWrongTemplate(t *testing.T) {
@@ -184,10 +184,10 @@ func TestStdoutWrongTemplate(t *testing.T) {
 		}
 	}()
 
-	test(t, "template", "info", "{{.msg {{.trace2_id}}", nil)
+	stdoutTest(t, "template", "info", "{{.msg {{.trace2_id}}", nil)
 }
 
 func TestStdoutWrongArgs(t *testing.T) {
 
-	test(t, "template", "info", "{{.msg}}", nil, nil)
+	stdoutTest(t, "template", "info", "{{.msg}}", nil, nil)
 }
