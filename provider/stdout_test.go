@@ -17,7 +17,7 @@ func stdoutTestSpan(t *testing.T, stdout *Stdout, level string, span common.Trac
 
 	ctx := span.GetContext()
 	if ctx == nil {
-		t.Error("Invalid span context")
+		t.Fatal("Invalid span context")
 	}
 	traceID := ctx.GetTraceID()
 	sTraceID := strconv.Itoa(int(traceID))
@@ -76,7 +76,7 @@ func stdoutTest(t *testing.T, format, level, template string, span common.Tracer
 		TextColors:      true,
 	})
 	if stdout == nil {
-		t.Error("Invalid stdout")
+		t.Fatal("Invalid stdout")
 	}
 	stdout.SetCallerOffset(2)
 	stdout.Stack(-1).Stack(1)
@@ -101,11 +101,11 @@ func stdoutTest(t *testing.T, format, level, template string, span common.Tracer
 	switch format {
 	case "template":
 		if strings.Compare(output, msg) != 0 {
-			t.Error("Stdout template message is wrong")
+			t.Fatal("Stdout template message is wrong")
 		}
 	case "text", "json":
 		if !strings.Contains(output, msg) {
-			t.Error("Stdout text/json message is wrong")
+			t.Fatal("Stdout text/json message is wrong")
 		}
 	}
 }
@@ -119,17 +119,17 @@ func stdoutTestTemplateSpan(t *testing.T, level string) {
 
 	tracer := common.NewTraces()
 	if tracer == nil {
-		t.Error("Invalid tracer")
+		t.Fatal("Invalid tracer")
 	}
 
 	traceID := tracer.NewTraceID()
 	if traceID == 0 {
-		t.Error("Invalid trace ID")
+		t.Fatal("Invalid trace ID")
 	}
 
 	span := tracer.StartSpanWithTraceID(traceID)
 	if span == nil {
-		t.Error("Invalid span")
+		t.Fatal("Invalid span")
 	}
 
 	stdoutTest(t, "template", level, "{{.msg}} {{.trace_id}}", span)
@@ -158,7 +158,7 @@ func TestStdoutPanic(t *testing.T) {
 
 	defer func() {
 		if r := recover(); r == nil {
-			t.Error("It should be paniced")
+			t.Fatal("It should be paniced")
 		}
 	}()
 
@@ -169,7 +169,7 @@ func TestStdoutPanicSpan(t *testing.T) {
 
 	defer func() {
 		if r := recover(); r == nil {
-			t.Error("It should be paniced")
+			t.Fatal("It should be paniced")
 		}
 	}()
 
@@ -180,7 +180,7 @@ func TestStdoutWrongTemplate(t *testing.T) {
 
 	defer func() {
 		if r := recover(); r == nil {
-			t.Error("It should be paniced")
+			t.Fatal("It should be paniced")
 		}
 	}()
 
