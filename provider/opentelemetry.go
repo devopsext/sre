@@ -482,6 +482,10 @@ func startOpentelemtryTracer(options OpentelemetryTracerOptions, logger common.L
 
 func NewOpentelemetryTracer(options OpentelemetryTracerOptions, logger common.Logger, stdout *Stdout) *OpentelemetryTracer {
 
+	if logger == nil {
+		logger = stdout
+	}
+
 	tracer, provider := startOpentelemtryTracer(options, logger, stdout)
 	if tracer == nil {
 		stdout.Debug("Opentelemetry tracer is disabled.")
@@ -630,6 +634,10 @@ func startOpentelemetryMeter(options OpentelemetryMeterOptions, stdout *Stdout) 
 }
 
 func NewOpentelemetryMeter(options OpentelemetryMeterOptions, logger common.Logger, stdout *Stdout) *OpentelemetryMeter {
+
+	if logger == nil {
+		logger = stdout
+	}
 
 	meter, controller, exporter := startOpentelemetryMeter(options, stdout)
 	if meter == nil {
