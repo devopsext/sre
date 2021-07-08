@@ -91,20 +91,20 @@ type DataDogMeter struct {
 	client       *statsd.Client
 }
 
-func (ddsc DataDogTracerSpanContext) GetTraceID() uint64 {
+func (ddsc DataDogTracerSpanContext) GetTraceID() string {
 
 	if ddsc.context == nil {
-		return 0
+		return ""
 	}
-	return ddsc.context.TraceID()
+	return fmt.Sprintf("%d", ddsc.context.TraceID())
 }
 
-func (ddsc DataDogTracerSpanContext) GetSpanID() uint64 {
+func (ddsc DataDogTracerSpanContext) GetSpanID() string {
 
 	if ddsc.context == nil {
-		return 0
+		return ""
 	}
-	return ddsc.context.SpanID()
+	return fmt.Sprintf("%d", ddsc.context.SpanID())
 }
 
 func (dds DataDogTracerSpan) GetContext() common.TracerSpanContext {
@@ -221,10 +221,16 @@ func (dd *DataDogTracer) StartSpan() common.TracerSpan {
 	}
 }
 
-func (dd *DataDogTracer) StartSpanWithTraceID(traceID uint64) common.TracerSpan {
+func (dd *DataDogTracer) StartSpanWithTraceID(traceID string) common.TracerSpan {
+
+	iTraceID, err := strconv.ParseInt(traceID, 10, 64)
+	if err != nil {
+		dd.logger.Error(err)
+		return nil
+	}
 
 	s, ctx := dd.startSpanFromContext(context.Background(), dd.callerOffset+4,
-		tracer.WithSpanID(traceID),
+		tracer.WithSpanID(uint64(iTraceID)),
 	)
 	return DataDogTracerSpan{
 		span:    s,
@@ -350,7 +356,7 @@ func (dd *DataDogLogger) addSpanFields(span common.TracerSpan, fields logrus.Fie
 		return fields
 	}
 
-	fields["dd.trace_id"] = strconv.FormatUint(ctx.GetTraceID(), 10)
+	fields["dd.trace_id"] = ctx.GetTraceID()
 	return fields
 }
 

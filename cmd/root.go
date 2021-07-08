@@ -251,7 +251,7 @@ func Execute() {
 				os.Exit(0)
 			}
 			traceID := ctx.GetTraceID()
-			req.Header.Set("X-Trace-ID", strconv.Itoa(int(traceID)))
+			req.Header.Set("X-Trace-ID", traceID)
 
 			client := common.MakeHttpClient(5000)
 

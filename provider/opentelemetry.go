@@ -2,11 +2,11 @@ package provider
 
 import (
 	"context"
+	"encoding/hex"
 	"errors"
 	"fmt"
 	"net/http"
 	"reflect"
-	"strconv"
 	"strings"
 	"time"
 
@@ -92,36 +92,46 @@ type OpentelemetryMeter struct {
 	callerOffset int
 }
 
-func (ottsc OpentelemetryTracerSpanContext) GetTraceID() uint64 {
+func (ottsc OpentelemetryTracerSpanContext) decodeHex(h string, b []byte) error {
+
+	for _, r := range h {
+		switch {
+		case 'a' <= r && r <= 'f':
+			continue
+		case '0' <= r && r <= '9':
+			continue
+		default:
+			return errors.New("nvalid hex")
+		}
+	}
+
+	decoded, err := hex.DecodeString(h)
+	if err != nil {
+		return err
+	}
+
+	copy(b, decoded)
+	return nil
+}
+
+func (ottsc OpentelemetryTracerSpanContext) GetTraceID() string {
 
 	if ottsc.context == nil || !ottsc.context.HasTraceID() {
-		return 0
+		return ""
 	}
 
 	traceID := ottsc.context.TraceID()
-	sTraceID := traceID.String()
-	dec, err := strconv.ParseInt(sTraceID, 16, 32)
-	if err != nil {
-		ottsc.tracerSpan.tracer.logger.Error(err)
-		return 0
-	}
-	return uint64(dec)
+	return traceID.String()
 }
 
-func (ottsc OpentelemetryTracerSpanContext) GetSpanID() uint64 {
+func (ottsc OpentelemetryTracerSpanContext) GetSpanID() string {
 
 	if ottsc.context == nil || !ottsc.context.HasSpanID() {
-		return 0
+		return ""
 	}
 
 	spanID := ottsc.context.SpanID()
-	sSpanID := spanID.String()
-	dec, err := strconv.ParseInt(sSpanID, 16, 32)
-	if err != nil {
-		ottsc.tracerSpan.tracer.logger.Error(err)
-		return 0
-	}
-	return uint64(dec)
+	return spanID.String()
 }
 
 func (otts OpentelemetryTracerSpan) GetContext() common.TracerSpanContext {
@@ -180,21 +190,17 @@ func (otts OpentelemetryTracerSpan) SetTag(key string, value interface{}) common
 
 	attr := attribute.Key(key)
 	var v attribute.KeyValue
-	switch value.(type) {
+	switch value := value.(type) {
 	case bool:
-		v = attr.Bool(value.(bool))
+		v = attr.Bool(value)
 	case int:
-		v = attr.Int(value.(int))
+		v = attr.Int(value)
 	case int64:
-		v = attr.Int64(value.(int64))
+		v = attr.Int64(value)
 	case string:
-		v = attr.String(value.(string))
-	case float32:
-		v = attr.Float64(value.(float64))
+		v = attr.String(value)
 	case float64:
-		v = attr.Float64(value.(float64))
-	default:
-		v = attr.String(value.(string))
+		v = attr.Float64(value)
 	}
 
 	otts.span.SetAttributes(v)
@@ -271,7 +277,7 @@ func (ott *OpentelemetryTracer) StartSpan() common.TracerSpan {
 	}
 }
 
-func (ott *OpentelemetryTracer) getSpanTraceID(spanID, traceID uint64) (*trace.SpanID, *trace.TraceID) {
+func (ott *OpentelemetryTracer) getSpanTraceID(spanID, traceID string) (*trace.SpanID, *trace.TraceID) {
 
 	sSpanID := fmt.Sprintf("%016x", spanID)
 	traceSpanID, err := trace.SpanIDFromHex(sSpanID)
@@ -290,7 +296,7 @@ func (ott *OpentelemetryTracer) getSpanTraceID(spanID, traceID uint64) (*trace.S
 	return &traceSpanID, &traceTraceID
 }
 
-func (ott *OpentelemetryTracer) StartSpanWithTraceID(traceID uint64) common.TracerSpan {
+func (ott *OpentelemetryTracer) StartSpanWithTraceID(traceID string) common.TracerSpan {
 
 	parentCtx := context.Background()
 
@@ -336,15 +342,9 @@ func (ott *OpentelemetryTracer) getSpanContext(object interface{}) (context.Cont
 			return nil, nil
 		}
 
-		traceID, err := strconv.ParseInt(s, 10, 64)
-		if err != nil {
-			ott.logger.Error(err)
-			return nil, nil
-		}
-
-		traceSpanID, traceTraceID := ott.getSpanTraceID(uint64(traceID), uint64(traceID))
+		traceSpanID, traceTraceID := ott.getSpanTraceID(s, s)
 		if traceSpanID != nil && traceTraceID != nil {
-			ott.logger.Error(err)
+			ott.logger.Error("Wrong traceID or spanID")
 			return nil, nil
 		}
 

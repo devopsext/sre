@@ -1,11 +1,13 @@
 package common
 
 import (
+	"fmt"
 	"math/rand"
 	"sync"
 	"time"
 
-	"github.com/uber/jaeger-client-go/utils"
+	utils "github.com/devopsext/utils"
+	genUtils "github.com/uber/jaeger-client-go/utils"
 )
 
 type TracesSpanContext struct {
@@ -15,8 +17,8 @@ type TracesSpanContext struct {
 
 type TracesSpan struct {
 	spans       map[Tracer]TracerSpan
-	traceID     uint64
-	spanID      uint64
+	traceID     string
+	spanID      string
 	spanContext *TracesSpanContext
 	traces      *Traces
 }
@@ -26,18 +28,18 @@ type Traces struct {
 	tracers      []Tracer
 }
 
-func (tssc TracesSpanContext) GetTraceID() uint64 {
+func (tssc TracesSpanContext) GetTraceID() string {
 
 	if tssc.span == nil {
-		return 0
+		return ""
 	}
 	return tssc.span.traceID
 }
 
-func (tssc TracesSpanContext) GetSpanID() uint64 {
+func (tssc TracesSpanContext) GetSpanID() string {
 
 	if tssc.span == nil {
-		return 0
+		return ""
 	}
 	return tssc.span.spanID
 }
@@ -124,8 +126,8 @@ func (ts *Traces) StartSpan() TracerSpan {
 	span := TracesSpan{
 		traces:  ts,
 		spans:   make(map[Tracer]TracerSpan),
-		traceID: traceID,
-		spanID:  spanID,
+		traceID: fmt.Sprintf("%d", traceID),
+		spanID:  fmt.Sprintf("%d", spanID),
 	}
 
 	for _, t := range ts.tracers {
@@ -138,13 +140,13 @@ func (ts *Traces) StartSpan() TracerSpan {
 	return &span
 }
 
-func (ts *Traces) StartSpanWithTraceID(traceID uint64) TracerSpan {
+func (ts *Traces) StartSpanWithTraceID(traceID string) TracerSpan {
 
 	span := TracesSpan{
 		traces:  ts,
 		spans:   make(map[Tracer]TracerSpan),
 		traceID: traceID,
-		spanID:  ts.randomNumber(),
+		spanID:  fmt.Sprintf("%d", ts.randomNumber()),
 	}
 
 	for _, t := range ts.tracers {
@@ -159,8 +161,8 @@ func (ts *Traces) StartSpanWithTraceID(traceID uint64) TracerSpan {
 
 func (ts *Traces) StartChildSpan(object interface{}) TracerSpan {
 
-	var traceID uint64
-	var spanID uint64
+	var traceID string
+	var spanID string
 
 	spanCtx, spanCtxOk := object.(*TracesSpanContext)
 	if spanCtxOk {
@@ -190,11 +192,11 @@ func (ts *Traces) StartChildSpan(object interface{}) TracerSpan {
 			if sCtx != nil {
 
 				// find first traceID if there is no one
-				if span.traceID == 0 {
+				if utils.IsEmpty(span.traceID) {
 					span.traceID = sCtx.GetTraceID()
 				}
 				// find first spanID if there is no one
-				if span.spanID == 0 {
+				if utils.IsEmpty(span.spanID) {
 					span.spanID = sCtx.GetSpanID()
 				}
 			}
@@ -205,9 +207,8 @@ func (ts *Traces) StartChildSpan(object interface{}) TracerSpan {
 
 func (ts *Traces) StartFollowSpan(object interface{}) TracerSpan {
 
-	var traceID uint64
-
-	var spanID uint64
+	var traceID string
+	var spanID string
 
 	spanCtx, spanCtxOk := object.(*TracesSpanContext)
 	if spanCtxOk {
@@ -237,11 +238,11 @@ func (ts *Traces) StartFollowSpan(object interface{}) TracerSpan {
 			if sCtx != nil {
 
 				// find first traceID if there is no one
-				if span.traceID == 0 {
+				if utils.IsEmpty(span.traceID) {
 					span.traceID = sCtx.GetTraceID()
 				}
 				// find first spanID if there is no one
-				if span.spanID == 0 {
+				if utils.IsEmpty(span.spanID) {
 					span.spanID = sCtx.GetSpanID()
 				}
 			}
@@ -257,15 +258,15 @@ func (ts *Traces) Stop() {
 	}
 }
 
-func (ts *Traces) NewTraceID() uint64 {
-	return ts.randomNumber()
+func (ts *Traces) NewTraceID() string {
+	return fmt.Sprintf("%d", ts.randomNumber())
 }
 
 func NewTraces() *Traces {
 
 	ts := Traces{}
 
-	generator := utils.NewRand(time.Now().UnixNano())
+	generator := genUtils.NewRand(time.Now().UnixNano())
 	pool := sync.Pool{
 		New: func() interface{} {
 			return rand.NewSource(generator.Int63())
