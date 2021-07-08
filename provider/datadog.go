@@ -320,6 +320,10 @@ func startDataDogTracer(options DataDogTracerOptions, logger common.Logger) bool
 
 func NewDataDogTracer(options DataDogTracerOptions, logger common.Logger, stdout *Stdout) *DataDogTracer {
 
+	if logger == nil {
+		logger = stdout
+	}
+
 	enabled := startDataDogTracer(options, logger)
 	if !enabled {
 		stdout.Debug("DataDog tracer is disabled.")
@@ -500,6 +504,10 @@ func setDataDogTracerTags(opts []tracer.StartOption, sTags string) []tracer.Star
 
 func NewDataDogLogger(options DataDogLoggerOptions, logger common.Logger, stdout *Stdout) *DataDogLogger {
 
+	if logger == nil {
+		logger = stdout
+	}
+
 	if utils.IsEmpty(options.AgentHost) {
 		stdout.Debug("DataDog logger is disabled.")
 		return nil
@@ -631,6 +639,10 @@ func (ddm *DataDogMeter) Stop() {
 }
 
 func NewDataDogMeter(options DataDogMeterOptions, logger common.Logger, stdout *Stdout) *DataDogMeter {
+
+	if logger == nil {
+		logger = stdout
+	}
 
 	if utils.IsEmpty(options.AgentHost) {
 		stdout.Debug("DataDog meter is disabled.")

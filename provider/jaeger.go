@@ -435,6 +435,10 @@ func newJaegerTracer(options JaegerOptions, logger common.Logger, stdout *Stdout
 
 func NewJaegerTracer(options JaegerOptions, logger common.Logger, stdout *Stdout) *JaegerTracer {
 
+	if logger == nil {
+		logger = stdout
+	}
+
 	tracer := newJaegerTracer(options, logger, stdout)
 	if tracer == nil {
 		stdout.Debug("Jaeger tracer is disabled.")
