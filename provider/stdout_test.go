@@ -5,12 +5,12 @@ import (
 	"fmt"
 	"io/ioutil"
 	"os"
-	"strconv"
 	"strings"
 	"testing"
 	"time"
 
 	"github.com/devopsext/sre/common"
+	"github.com/devopsext/utils"
 )
 
 func stdoutTestSpan(t *testing.T, stdout *Stdout, level string, span common.TracerSpan, args ...interface{}) string {
@@ -20,7 +20,6 @@ func stdoutTestSpan(t *testing.T, stdout *Stdout, level string, span common.Trac
 		t.Fatal("Invalid span context")
 	}
 	traceID := ctx.GetTraceID()
-	sTraceID := strconv.Itoa(int(traceID))
 
 	msg := fmt.Sprintf("Some %s message...", level)
 	switch level {
@@ -36,10 +35,10 @@ func stdoutTestSpan(t *testing.T, stdout *Stdout, level string, span common.Trac
 		stdout.SpanDebug(span, msg, args...)
 	default:
 		stdout.SpanInfo(nil, msg, args...)
-		sTraceID = "<no value>"
+		traceID = "<no value>"
 	}
 
-	return fmt.Sprintf("%s %s", msg, sTraceID)
+	return fmt.Sprintf("%s %s", msg, traceID)
 }
 
 func stdoutstdoutTest(stdout *Stdout, level string, args ...interface{}) string {
@@ -123,7 +122,7 @@ func stdoutTestTemplateSpan(t *testing.T, level string) {
 	}
 
 	traceID := tracer.NewTraceID()
-	if traceID == 0 {
+	if utils.IsEmpty(traceID) {
 		t.Fatal("Invalid trace ID")
 	}
 

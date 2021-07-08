@@ -4,7 +4,6 @@ import (
 	"bytes"
 	"fmt"
 	"os"
-	"strconv"
 	"text/template"
 
 	"github.com/devopsext/sre/common"
@@ -75,7 +74,7 @@ func (so *Stdout) addSpanFields(span common.TracerSpan, fields logrus.Fields) lo
 		return fields
 	}
 
-	fields["trace_id"] = strconv.FormatUint(ctx.GetTraceID(), 10)
+	fields["trace_id"] = ctx.GetTraceID()
 	return fields
 }
 

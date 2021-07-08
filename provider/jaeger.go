@@ -6,6 +6,7 @@ import (
 	"fmt"
 	"net/http"
 	"reflect"
+	"strconv"
 	"strings"
 	"time"
 
@@ -54,30 +55,30 @@ type JaegerInternalLogger struct {
 	logger common.Logger
 }
 
-func (jsc JaegerSpanContext) GetTraceID() uint64 {
+func (jsc JaegerSpanContext) GetTraceID() string {
 
 	if jsc.context == nil {
-		return 0
+		return ""
 	}
 
 	jaegerSpanCtx, ok := jsc.context.(jaeger.SpanContext)
 	if !ok {
-		return 0
+		return ""
 	}
-	return jaegerSpanCtx.TraceID().Low
+	return fmt.Sprintf("%d", jaegerSpanCtx.TraceID().Low)
 }
 
-func (jsc JaegerSpanContext) GetSpanID() uint64 {
+func (jsc JaegerSpanContext) GetSpanID() string {
 
 	if jsc.context == nil {
-		return 0
+		return ""
 	}
 
 	jaegerSpanCtx, ok := jsc.context.(jaeger.SpanContext)
 	if !ok {
-		return 0
+		return ""
 	}
-	return uint64(jaegerSpanCtx.SpanID())
+	return fmt.Sprintf("%d", jaegerSpanCtx.SpanID())
 }
 
 func (js JaegerSpan) GetContext() common.TracerSpanContext {
@@ -256,13 +257,19 @@ func (j *JaegerTracer) StartSpan() common.TracerSpan {
 	}
 }
 
-func (j *JaegerTracer) StartSpanWithTraceID(traceID uint64) common.TracerSpan {
+func (j *JaegerTracer) StartSpanWithTraceID(traceID string) common.TracerSpan {
+
+	iTraceID, err := strconv.ParseInt(traceID, 10, 64)
+	if err != nil {
+		j.logger.Error(err)
+		return nil
+	}
 
 	newTraceID := jaeger.TraceID{
-		Low:  traceID, // set your own trace ID
+		Low:  uint64(iTraceID), // set your own trace ID
 		High: 0,
 	}
-	var newSpanID jaeger.SpanID = jaeger.SpanID(traceID)
+	var newSpanID jaeger.SpanID = jaeger.SpanID(uint64(iTraceID))
 	parentID := jaeger.SpanID(0)
 	sampled := true
 
