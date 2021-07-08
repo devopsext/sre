@@ -6,7 +6,7 @@ import (
 	"time"
 )
 
-func TestJaeger(t *testing.T) {
+func jaegerNew(agentHost string) (*JaegerTracer, *Stdout) {
 
 	stdout := NewStdout(StdoutOptions{
 		Format:          "template",
@@ -15,23 +15,32 @@ func TestJaeger(t *testing.T) {
 		TimestampFormat: time.RFC3339Nano,
 	})
 	if stdout == nil {
-		t.Error("Invalid stdout")
+		return nil, nil
 	}
 	stdout.SetCallerOffset(1)
 
 	jaeger := NewJaegerTracer(JaegerOptions{
-		AgentHost:   "localhost",
+		AgentHost:   agentHost,
 		AgentPort:   6831,
 		ServiceName: "sre-jaeger-test",
+		Tags:        "tag1=value1,tag2=value2",
+		Debug:       true,
 	}, nil, stdout)
+
+	return jaeger, stdout
+}
+
+func TestJaeger(t *testing.T) {
+
+	jaeger, _ := jaegerNew("localhost")
 	if jaeger == nil {
-		t.Error("Invalid jaeger")
+		t.Fatal("Invalid jaeger")
 	}
 	jaeger.SetCallerOffset(1)
 
 	span := jaeger.StartSpan()
 	if span == nil {
-		t.Error("Invalid span")
+		t.Fatal("Invalid span")
 	}
 	defer span.Finish()
 	span.SetName("some-span")
@@ -40,12 +49,12 @@ func TestJaeger(t *testing.T) {
 
 	ctx := span.GetContext()
 	if ctx == nil {
-		t.Error("Invalid span context")
+		t.Fatal("Invalid span context")
 	}
 
 	traceSpan := jaeger.StartSpanWithTraceID(ctx.GetTraceID())
 	if traceSpan == nil {
-		t.Error("Invalid trace span")
+		t.Fatal("Invalid trace span")
 	}
 	defer traceSpan.Finish()
 	traceSpan.SetName("some-trace-span")
@@ -54,16 +63,23 @@ func TestJaeger(t *testing.T) {
 
 	childSpan := jaeger.StartChildSpan(ctx)
 	if childSpan == nil {
-		t.Error("Invalid child span")
+		t.Fatal("Invalid child span")
 	}
 	defer childSpan.Finish()
 	childSpan.SetName("some-child-span")
 
 	followSpan := jaeger.StartFollowSpan(ctx)
 	if followSpan == nil {
-		t.Error("Invalid child span")
+		t.Fatal("Invalid child span")
 	}
 	defer followSpan.Finish()
 	followSpan.SetName("some-follow-span")
+}
 
+func TestJaegerWrongAgentHost(t *testing.T) {
+
+	jaeger, _ := jaegerNew("")
+	if jaeger != nil {
+		t.Fatal("Valid jaeger")
+	}
 }
