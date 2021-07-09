@@ -126,7 +126,7 @@ func stdoutTestTemplateSpan(t *testing.T, level string) {
 		t.Fatal("Invalid trace ID")
 	}
 
-	span := tracer.StartSpanWithTraceID(traceID)
+	span := tracer.StartSpanWithTraceID(traceID, "")
 	if span == nil {
 		t.Fatal("Invalid span")
 	}
