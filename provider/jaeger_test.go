@@ -153,6 +153,38 @@ func TestJaegerWrongSpan(t *testing.T) {
 		t.Fatal("Valid span context")
 	}
 
+	s := span.SetCarrier(t)
+	if s != nil {
+		t.Fatal("Valid span")
+	}
+
+	s = span.SetName("some-name")
+	if s != nil {
+		t.Fatal("Valid span")
+	}
+
+	s = span.SetTag("some-tag", "some-value")
+	if s != nil {
+		t.Fatal("Valid span")
+	}
+
+	var fields map[string]interface{}
+
+	s = span.LogFields(fields)
+	if s != nil {
+		t.Fatal("Valid span")
+	}
+
+	s = span.Error(errors.New("some-error"))
+	if s != nil {
+		t.Fatal("Valid span")
+	}
+
+	s = span.SetBaggageItem("key", "value")
+	if s != nil {
+		t.Fatal("Valid span")
+	}
+
 	tracer := opentracing.NoopTracer{}
 	span.span = tracer.StartSpan("some-noop-span")
 
@@ -162,6 +194,9 @@ func TestJaegerWrongSpan(t *testing.T) {
 	if ctx == nil {
 		t.Fatal("Invalid span context")
 	}
+
+	span.span = nil
+	span.Finish()
 }
 
 func TestJaegerWrongSpanContext(t *testing.T) {
