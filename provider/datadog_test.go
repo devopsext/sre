@@ -6,6 +6,7 @@ import (
 	"testing"
 	"time"
 
+	"github.com/devopsext/sre/common"
 	"github.com/devopsext/utils"
 )
 
@@ -62,7 +63,7 @@ func datadogNewMeter(agentHost string) (*DataDogMeter, *Stdout) {
 	return datadog, stdout
 }
 
-func datadogNewLogger(agentHost string) (*DataDogLogger, *Stdout) {
+func datadogNewLogger(agentHost, level string) (*DataDogLogger, *Stdout) {
 
 	stdout := NewStdout(StdoutOptions{
 		Format:          "template",
@@ -78,7 +79,7 @@ func datadogNewLogger(agentHost string) (*DataDogLogger, *Stdout) {
 	datadog := NewDataDogLogger(DataDogLoggerOptions{
 		AgentHost: agentHost,
 		AgentPort: 8126,
-		Level:     "debug",
+		Level:     level,
 		DataDogOptions: DataDogOptions{
 			ServiceName: "sre-datadog-tracer-test",
 			Tags:        "tag1=value1,,tag3=${key3:value3}",
@@ -286,19 +287,62 @@ func TestDataDogMeterWrongAgentHost(t *testing.T) {
 	}
 }
 
-func TestDataDogLogger(t *testing.T) {
+func testDataDogLogger(t *testing.T, level string) (*DataDogLogger, common.TracerSpan) {
 
-	datadog, _ := datadogNewLogger("localhost")
+	datadog, _ := datadogNewLogger("localhost", level)
 	if datadog == nil {
 		t.Fatal("Invalid datadog")
 	}
+	datadog.Stack(-1).Stack(1)
+
+	tracer := common.NewTraces()
+	if tracer == nil {
+		t.Fatal("Invalid tracer")
+	}
+
+	traceID := tracer.NewTraceID()
+	if utils.IsEmpty(traceID) {
+		t.Fatal("Invalid trace ID")
+	}
+
+	span := tracer.StartSpanWithTraceID(traceID, "")
+	if span == nil {
+		t.Fatal("Invalid span")
+	}
+
+	return datadog, span
+}
+
+func TestDataDogLoggerInfo(t *testing.T) {
+
+	datadog, span := testDataDogLogger(t, "")
 	datadog.Info(nil)
 	datadog.Info("info")
-	datadog.Warn("warn")
-	datadog.Debug("debug")
+	datadog.SpanInfo(span, "info")
+}
 
+func TestDataDogLoggerWarn(t *testing.T) {
+
+	datadog, span := testDataDogLogger(t, "")
+	datadog.Warn(nil)
+	datadog.Warn("warn")
+	datadog.SpanWarn(span, "warn")
+}
+
+func TestDataDogLoggerDebug(t *testing.T) {
+
+	datadog, span := testDataDogLogger(t, "")
+	datadog.Debug(nil)
+	datadog.Debug("debug")
+	datadog.SpanDebug(span, "debug")
+}
+
+func TestDataDogLoggerError(t *testing.T) {
+
+	datadog, span := testDataDogLogger(t, "")
+	datadog.Error(nil)
 	datadog.Error("error")
 	datadog.Error(errors.New("some error"))
 	datadog.Error("error => %s", "message")
-
+	datadog.SpanError(span, "error")
 }
