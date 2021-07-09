@@ -115,6 +115,11 @@ func TestDataDogTracer(t *testing.T) {
 	if headerSpan == nil {
 		t.Fatal("Invalid nil header span")
 	}
+
+	nilSpan := datadog.StartSpanWithTraceID("", "")
+	if nilSpan != nil {
+		t.Fatal("Valid nil span")
+	}
 }
 
 func TestDataDogTracerWrongAgentHost(t *testing.T) {

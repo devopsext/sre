@@ -113,6 +113,11 @@ func TestJaeger(t *testing.T) {
 	if headerSpan == nil {
 		t.Fatal("Invalid nil header span")
 	}
+
+	nilSpan := jaeger.StartSpanWithTraceID("", "")
+	if nilSpan != nil {
+		t.Fatal("Valid nil span")
+	}
 }
 
 func TestJaegerWrongAgentHost(t *testing.T) {
