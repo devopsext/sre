@@ -7,6 +7,7 @@ import (
 	"time"
 
 	"github.com/devopsext/utils"
+	"github.com/opentracing/opentracing-go"
 )
 
 func jaegerNew(agentHost string) (*JaegerTracer, *Stdout) {
@@ -141,4 +142,54 @@ func TestJaegerInternalLogger(t *testing.T) {
 
 	internalLogger.Error("Some internal message")
 	internalLogger.Infof("")
+}
+
+func TestJaegerWrongSpan(t *testing.T) {
+
+	span := JaegerSpan{}
+
+	ctx := span.GetContext()
+	if ctx != nil {
+		t.Fatal("Valid span context")
+	}
+
+	tracer := opentracing.NoopTracer{}
+	span.span = tracer.StartSpan("some-noop-span")
+
+	span.spanContext = &JaegerSpanContext{}
+
+	ctx = span.GetContext()
+	if ctx == nil {
+		t.Fatal("Invalid span context")
+	}
+}
+
+func TestJaegerWrongSpanContext(t *testing.T) {
+
+	ctx := JaegerSpanContext{}
+
+	traceID := ctx.GetTraceID()
+	if !utils.IsEmpty(traceID) {
+		t.Fatal("Valid trace ID")
+	}
+
+	spanID := ctx.GetSpanID()
+	if !utils.IsEmpty(spanID) {
+		t.Fatal("Valid span ID")
+	}
+
+	tracer := opentracing.NoopTracer{}
+	span := tracer.StartSpan("some-noop-span")
+
+	ctx.context = span.Context()
+
+	traceID = ctx.GetTraceID()
+	if !utils.IsEmpty(traceID) {
+		t.Fatal("Valid trace ID")
+	}
+
+	spanID = ctx.GetSpanID()
+	if !utils.IsEmpty(spanID) {
+		t.Fatal("Valid span ID")
+	}
 }
