@@ -8,6 +8,7 @@ import (
 
 	"github.com/devopsext/sre/common"
 	"github.com/devopsext/utils"
+	"github.com/sirupsen/logrus"
 )
 
 func datadogNewTracer(agentHost string) (*DataDogTracer, *Stdout) {
@@ -310,6 +311,18 @@ func testDataDogLogger(t *testing.T, level string) (*DataDogLogger, common.Trace
 		t.Fatal("Invalid span")
 	}
 
+	fields := datadog.addSpanFields(nil, nil)
+	if fields != nil {
+		t.Fatal("Invalid fields")
+	}
+
+	fields = logrus.Fields{}
+	span = &DataDogTracerSpan{}
+	fields = datadog.addSpanFields(span, fields)
+	if fields == nil {
+		t.Fatal("Invalid fields")
+	}
+
 	return datadog, span
 }
 
@@ -381,7 +394,7 @@ func TestDataDogLoggerEmptyAgentHost(t *testing.T) {
 
 func TestDataDogLoggerWrongAgentHost(t *testing.T) {
 
-	datadog, _ := datadogNewLogger("ewqdWDEW", "how")
+	datadog, _ := datadogNewLogger("ewqdWDEW1111ss", "how")
 	if datadog != nil {
 		t.Fatal("Valid datadog")
 	}
