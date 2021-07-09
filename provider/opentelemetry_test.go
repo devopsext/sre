@@ -118,6 +118,11 @@ func TestOpentelemetryTracer(t *testing.T) {
 	if headerSpan == nil {
 		t.Fatal("Invalid nil header span")
 	}
+
+	nilSpan := opentelemetry.StartSpanWithTraceID("", "")
+	if nilSpan != nil {
+		t.Fatal("Valid nil span")
+	}
 }
 
 func TestOpentelemetryTracerWrongAgentHost(t *testing.T) {

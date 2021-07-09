@@ -262,29 +262,26 @@ func (ott *OpentelemetryTracer) getSpanTraceID(traceID, spanID string) (*trace.T
 
 func (ott *OpentelemetryTracer) StartSpanWithTraceID(traceID, spanID string) common.TracerSpan {
 
-	parentCtx := context.Background()
-
 	var opts []trace.SpanStartOption
 	opts = append(opts, trace.WithAttributes(ott.attributes...))
 	opts = append(opts, trace.WithNewRoot())
 
 	tID, sID := ott.getSpanTraceID(traceID, spanID)
-	if tID != nil {
-
-		if sID == nil {
-			arr := &trace.SpanID{}
-			copy(arr[:], tID[0:8])
-			sID = arr
-		}
-
-		spanCtx := trace.NewSpanContext(trace.SpanContextConfig{
-			SpanID:  *sID,
-			TraceID: *tID,
-		})
-		parentCtx = trace.ContextWithSpanContext(context.Background(), spanCtx)
-	} else {
-		opts = append(opts, trace.WithNewRoot())
+	if tID == nil {
+		return nil
 	}
+
+	if sID == nil {
+		arr := &trace.SpanID{}
+		copy(arr[:], tID[0:8])
+		sID = arr
+	}
+
+	spanCtx := trace.NewSpanContext(trace.SpanContextConfig{
+		SpanID:  *sID,
+		TraceID: *tID,
+	})
+	parentCtx := trace.ContextWithSpanContext(context.Background(), spanCtx)
 
 	s, ctx := ott.startSpanFromContext(parentCtx, ott.callerOffset+4, opts...)
 	return OpentelemetryTracerSpan{
