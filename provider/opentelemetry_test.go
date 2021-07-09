@@ -35,6 +35,33 @@ func opentelemetryNewTracer(agentHost string) (*OpentelemetryTracer, *Stdout) {
 	return opentelemetry, stdout
 }
 
+func opentelemetryNewMeter(agentHost string) (*OpentelemetryMeter, *Stdout) {
+
+	stdout := NewStdout(StdoutOptions{
+		Format:          "template",
+		Level:           "debug",
+		Template:        "{{.msg}}",
+		TimestampFormat: time.RFC3339Nano,
+	})
+	if stdout == nil {
+		return nil, nil
+	}
+	stdout.SetCallerOffset(1)
+
+	opentelemetry := NewOpentelemetryMeter(OpentelemetryMeterOptions{
+		AgentHost:     agentHost,
+		AgentPort:     8126,
+		Prefix:        "test",
+		CollectPeriod: 1000,
+		OpentelemetryOptions: OpentelemetryOptions{
+			ServiceName: "sre-opentelemetry-meter-test",
+			Attributes:  "tag1=value1,,tag3=${key3:value3}",
+		},
+	}, nil, stdout)
+
+	return opentelemetry, stdout
+}
+
 func TestOpentelemetryTracer(t *testing.T) {
 
 	opentelemetry, _ := opentelemetryNewTracer("localhost")
@@ -198,5 +225,37 @@ func TestOpentelemetryWrongSpanContext(t *testing.T) {
 	spanID = ctx.GetSpanID()
 	if !utils.IsEmpty(spanID) {
 		t.Fatal("Valid span ID")
+	}
+}
+
+func TestOpentelemetryMeter(t *testing.T) {
+
+	opentelemetry, _ := opentelemetryNewMeter("localhost")
+	if opentelemetry == nil {
+		t.Fatal("Invalid opentelemetry")
+	}
+	opentelemetry.SetCallerOffset(1)
+
+	secondPrefix := "counter"
+	metricName := "some"
+
+	counter := opentelemetry.Counter(metricName, "description", []string{"one", "two", "three"}, secondPrefix)
+	if counter == nil {
+		t.Fatal("Invalid prometheus")
+	}
+
+	maxCounter := 5
+	for i := 0; i < maxCounter; i++ {
+		counter.Inc("value1", "value2", "value3")
+	}
+
+	opentelemetry.Stop()
+}
+
+func TestOpentelemetryMeterWrongAgentHost(t *testing.T) {
+
+	opentelemetry, _ := opentelemetryNewMeter("")
+	if opentelemetry != nil {
+		t.Fatal("Valid opentelemetry")
 	}
 }
