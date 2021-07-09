@@ -1,7 +1,6 @@
 package common
 
 import (
-	"fmt"
 	"math/rand"
 	"sync"
 	"time"
@@ -120,19 +119,19 @@ func (ts *Traces) Register(t Tracer) {
 
 func (ts *Traces) StartSpan() TracerSpan {
 
-	traceID := ts.randomNumber()
-	spanID := ts.randomNumber()
+	traceID := ts.NewTraceID()
+	spanID := ts.NewTraceID()
 
 	span := TracesSpan{
 		traces:  ts,
 		spans:   make(map[Tracer]TracerSpan),
-		traceID: fmt.Sprintf("%d", traceID),
-		spanID:  fmt.Sprintf("%d", spanID),
+		traceID: traceID,
+		spanID:  spanID,
 	}
 
 	for _, t := range ts.tracers {
 
-		s := t.StartSpanWithTraceID(span.traceID)
+		s := t.StartSpanWithTraceID(span.traceID, span.spanID)
 		if s != nil {
 			span.spans[t] = s
 		}
@@ -140,18 +139,26 @@ func (ts *Traces) StartSpan() TracerSpan {
 	return &span
 }
 
-func (ts *Traces) StartSpanWithTraceID(traceID string) TracerSpan {
+func (ts *Traces) StartSpanWithTraceID(traceID, spanID string) TracerSpan {
+
+	if utils.IsEmpty(traceID) {
+		traceID = ts.NewTraceID()
+	}
+
+	if utils.IsEmpty(spanID) {
+		spanID = ts.NewSpanID()
+	}
 
 	span := TracesSpan{
 		traces:  ts,
 		spans:   make(map[Tracer]TracerSpan),
 		traceID: traceID,
-		spanID:  fmt.Sprintf("%d", ts.randomNumber()),
+		spanID:  spanID,
 	}
 
 	for _, t := range ts.tracers {
 
-		s := t.StartSpanWithTraceID(span.traceID)
+		s := t.StartSpanWithTraceID(span.traceID, span.spanID)
 		if s != nil {
 			span.spans[t] = s
 		}
@@ -259,7 +266,11 @@ func (ts *Traces) Stop() {
 }
 
 func (ts *Traces) NewTraceID() string {
-	return fmt.Sprintf("%d", ts.randomNumber())
+	return TraceIDUint64ToHex(ts.randomNumber())
+}
+
+func (ts *Traces) NewSpanID() string {
+	return SpanIDUint64ToHex(ts.randomNumber())
 }
 
 func NewTraces() *Traces {

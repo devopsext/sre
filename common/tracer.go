@@ -17,7 +17,7 @@ type TracerSpan interface {
 
 type Tracer interface {
 	StartSpan() TracerSpan
-	StartSpanWithTraceID(traceID string) TracerSpan
+	StartSpanWithTraceID(traceID, spanID string) TracerSpan
 	StartChildSpan(object interface{}) TracerSpan
 	StartFollowSpan(object interface{}) TracerSpan
 	Stop()

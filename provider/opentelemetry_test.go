@@ -5,6 +5,8 @@ import (
 	"net/http"
 	"testing"
 	"time"
+
+	"github.com/devopsext/utils"
 )
 
 func opentelemetryNewTracer(agentHost string) (*OpentelemetryTracer, *Stdout) {
@@ -58,14 +60,26 @@ func TestOpentelemetryTracer(t *testing.T) {
 		t.Fatal("Invalid span context")
 	}
 
-	traceSpan := opentelemetry.StartSpanWithTraceID(ctx.GetTraceID())
+	traceID := ctx.GetTraceID()
+	if utils.IsEmpty(traceID) {
+		t.Fatal("Invalid trace ID")
+	}
+	t.Logf("Trace ID is %s", traceID)
+
+	spanID := ctx.GetSpanID()
+	if utils.IsEmpty(spanID) {
+		t.Fatal("Invalid span ID")
+	}
+	t.Logf("Span ID is %s", spanID)
+
+	traceSpan := opentelemetry.StartSpanWithTraceID(traceID, "")
 	if traceSpan == nil {
 		t.Fatal("Invalid trace span")
 	}
 	defer traceSpan.Finish()
 	traceSpan.SetName("some-trace-span")
 	traceSpan.SetBaggageItem("key", "value")
-	traceSpan.SetTag("parent-span-ID", ctx.GetSpanID())
+	traceSpan.SetTag("parent-span-ID", spanID)
 
 	childSpan := opentelemetry.StartChildSpan(ctx)
 	if childSpan == nil {
@@ -96,14 +110,14 @@ func TestOpentelemetryTracer(t *testing.T) {
 	span.SetCarrier(t)
 	nilHeaderSpan := opentelemetry.StartFollowSpan(headers)
 	if nilHeaderSpan != nil {
-		t.Fatal("Invalid nil header span")
+		t.Fatal("Valid nil header span")
 	}
 
-	/*	span.SetCarrier(headers)
-		headerSpan := opentelemetry.StartChildSpan(headers)
-		if headerSpan == nil {
-			t.Fatal("Invalid nil header span")
-		}*/
+	span.SetCarrier(headers)
+	headerSpan := opentelemetry.StartChildSpan(headers)
+	if headerSpan == nil {
+		t.Fatal("Invalid nil header span")
+	}
 }
 
 func TestOpentelemetryTracerWrongAgentHost(t *testing.T) {

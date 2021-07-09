@@ -6,14 +6,13 @@ import (
 	"fmt"
 	"net"
 	"net/http"
-	"reflect"
 	"strconv"
 	"strings"
 	"time"
 
 	"github.com/DataDog/datadog-go/statsd"
 	"github.com/devopsext/sre/common"
-	"github.com/devopsext/utils"
+	utils "github.com/devopsext/utils"
 	"github.com/sirupsen/logrus"
 	"gopkg.in/DataDog/dd-trace-go.v1/ddtrace"
 	"gopkg.in/DataDog/dd-trace-go.v1/ddtrace/tracer"
@@ -96,7 +95,7 @@ func (ddsc DataDogTracerSpanContext) GetTraceID() string {
 	if ddsc.context == nil {
 		return ""
 	}
-	return fmt.Sprintf("%d", ddsc.context.TraceID())
+	return common.TraceIDUint64ToHex(ddsc.context.TraceID())
 }
 
 func (ddsc DataDogTracerSpanContext) GetSpanID() string {
@@ -104,7 +103,7 @@ func (ddsc DataDogTracerSpanContext) GetSpanID() string {
 	if ddsc.context == nil {
 		return ""
 	}
-	return fmt.Sprintf("%d", ddsc.context.SpanID())
+	return common.SpanIDUint64ToHex(ddsc.context.SpanID())
 }
 
 func (dds DataDogTracerSpan) GetContext() common.TracerSpanContext {
@@ -128,15 +127,12 @@ func (dds DataDogTracerSpan) SetCarrier(object interface{}) common.TracerSpan {
 		return nil
 	}
 
-	if reflect.TypeOf(object) != reflect.TypeOf(http.Header{}) {
-		dds.tracer.logger.Error(errors.New("other than http.Header is not supported yet"))
-		return dds
-	}
-
-	var h http.Header = object.(http.Header)
-	err := tracer.Inject(dds.span.Context(), tracer.HTTPHeadersCarrier(h))
-	if err != nil {
-		dds.tracer.logger.Error(err)
+	h, ok := object.(http.Header)
+	if ok {
+		err := tracer.Inject(dds.span.Context(), tracer.HTTPHeadersCarrier(h))
+		if err != nil {
+			dds.tracer.logger.Error(err)
+		}
 	}
 	return dds
 }
@@ -221,16 +217,21 @@ func (dd *DataDogTracer) StartSpan() common.TracerSpan {
 	}
 }
 
-func (dd *DataDogTracer) StartSpanWithTraceID(traceID string) common.TracerSpan {
+func (dd *DataDogTracer) StartSpanWithTraceID(traceID, spanID string) common.TracerSpan {
 
-	iTraceID, err := strconv.ParseInt(traceID, 10, 64)
-	if err != nil {
-		dd.logger.Error(err)
+	tID := common.TraceIDHexToUint64(traceID)
+	if tID == 0 {
+		dd.logger.Error(errors.New("invalid trace ID"))
 		return nil
 	}
 
+	sID := common.SpanIDHexToUint64(traceID)
+	if sID == 0 {
+		sID = tID
+	}
+
 	s, ctx := dd.startSpanFromContext(context.Background(), dd.callerOffset+4,
-		tracer.WithSpanID(uint64(iTraceID)),
+		tracer.WithSpanID(sID),
 	)
 	return DataDogTracerSpan{
 		span:    s,

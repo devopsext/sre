@@ -5,8 +5,6 @@ import (
 	"errors"
 	"fmt"
 	"net/http"
-	"reflect"
-	"strconv"
 	"strings"
 	"time"
 
@@ -65,7 +63,7 @@ func (jsc JaegerSpanContext) GetTraceID() string {
 	if !ok {
 		return ""
 	}
-	return fmt.Sprintf("%d", jaegerSpanCtx.TraceID().Low)
+	return common.TraceIDUint64ToHex(jaegerSpanCtx.TraceID().Low)
 }
 
 func (jsc JaegerSpanContext) GetSpanID() string {
@@ -78,7 +76,7 @@ func (jsc JaegerSpanContext) GetSpanID() string {
 	if !ok {
 		return ""
 	}
-	return fmt.Sprintf("%d", jaegerSpanCtx.SpanID())
+	return common.SpanIDUint64ToHex(uint64(jaegerSpanCtx.SpanID()))
 }
 
 func (js JaegerSpan) GetContext() common.TracerSpanContext {
@@ -102,15 +100,12 @@ func (js JaegerSpan) SetCarrier(object interface{}) common.TracerSpan {
 		return nil
 	}
 
-	if reflect.TypeOf(object) != reflect.TypeOf(http.Header{}) {
-		js.tracer.logger.Error(errors.New("other than http.Header is not supported yet"))
-		return js
-	}
-
-	var h http.Header = object.(http.Header)
-	err := js.tracer.tracer.Inject(js.span.Context(), opentracing.HTTPHeaders, opentracing.HTTPHeadersCarrier(h))
-	if err != nil {
-		js.tracer.logger.Error(err)
+	h, ok := object.(http.Header)
+	if ok {
+		err := js.tracer.tracer.Inject(js.span.Context(), opentracing.HTTPHeaders, opentracing.HTTPHeadersCarrier(h))
+		if err != nil {
+			js.tracer.logger.Error(err)
+		}
 	}
 	return js
 }
@@ -257,19 +252,24 @@ func (j *JaegerTracer) StartSpan() common.TracerSpan {
 	}
 }
 
-func (j *JaegerTracer) StartSpanWithTraceID(traceID string) common.TracerSpan {
+func (j *JaegerTracer) StartSpanWithTraceID(traceID, spanID string) common.TracerSpan {
 
-	iTraceID, err := strconv.ParseInt(traceID, 10, 64)
-	if err != nil {
-		j.logger.Error(err)
+	tID := common.TraceIDHexToUint64(traceID)
+	if tID == 0 {
+		j.logger.Error(errors.New("invalid trace ID"))
 		return nil
 	}
 
+	sID := common.SpanIDHexToUint64(traceID)
+	if sID == 0 {
+		sID = tID
+	}
+
 	newTraceID := jaeger.TraceID{
-		Low:  uint64(iTraceID), // set your own trace ID
+		Low:  tID, // set your own trace ID
 		High: 0,
 	}
-	var newSpanID jaeger.SpanID = jaeger.SpanID(uint64(iTraceID))
+	var newSpanID jaeger.SpanID = jaeger.SpanID(sID)
 	parentID := jaeger.SpanID(0)
 	sampled := true
 

@@ -5,6 +5,8 @@ import (
 	"net/http"
 	"testing"
 	"time"
+
+	"github.com/devopsext/utils"
 )
 
 func jaegerNew(agentHost string) (*JaegerTracer, *Stdout) {
@@ -53,14 +55,26 @@ func TestJaeger(t *testing.T) {
 		t.Fatal("Invalid span context")
 	}
 
-	traceSpan := jaeger.StartSpanWithTraceID(ctx.GetTraceID())
+	traceID := ctx.GetTraceID()
+	if utils.IsEmpty(traceID) {
+		t.Fatal("Invalid trace ID")
+	}
+	t.Logf("Trace ID is %s", traceID)
+
+	spanID := ctx.GetSpanID()
+	if utils.IsEmpty(spanID) {
+		t.Fatal("Invalid span ID")
+	}
+	t.Logf("Span ID is %s", spanID)
+
+	traceSpan := jaeger.StartSpanWithTraceID(traceID, "")
 	if traceSpan == nil {
 		t.Fatal("Invalid trace span")
 	}
 	defer traceSpan.Finish()
 	traceSpan.SetName("some-trace-span")
 	traceSpan.SetBaggageItem("key", "value")
-	traceSpan.SetTag("parent-span-ID", ctx.GetSpanID())
+	traceSpan.SetTag("parent-span-ID", spanID)
 
 	childSpan := jaeger.StartChildSpan(ctx)
 	if childSpan == nil {
@@ -91,7 +105,7 @@ func TestJaeger(t *testing.T) {
 	span.SetCarrier(t)
 	nilHeaderSpan := jaeger.StartFollowSpan(headers)
 	if nilHeaderSpan != nil {
-		t.Fatal("Invalid nil header span")
+		t.Fatal("Valid nil header span")
 	}
 
 	span.SetCarrier(headers)
