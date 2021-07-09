@@ -315,7 +315,7 @@ func testDataDogLogger(t *testing.T, level string) (*DataDogLogger, common.Trace
 
 func TestDataDogLoggerInfo(t *testing.T) {
 
-	datadog, span := testDataDogLogger(t, "")
+	datadog, span := testDataDogLogger(t, "info")
 	datadog.Info(nil)
 	datadog.Info("info")
 	datadog.SpanInfo(span, "info")
@@ -323,7 +323,7 @@ func TestDataDogLoggerInfo(t *testing.T) {
 
 func TestDataDogLoggerWarn(t *testing.T) {
 
-	datadog, span := testDataDogLogger(t, "")
+	datadog, span := testDataDogLogger(t, "warn")
 	datadog.Warn(nil)
 	datadog.Warn("warn")
 	datadog.SpanWarn(span, "warn")
@@ -331,7 +331,7 @@ func TestDataDogLoggerWarn(t *testing.T) {
 
 func TestDataDogLoggerDebug(t *testing.T) {
 
-	datadog, span := testDataDogLogger(t, "")
+	datadog, span := testDataDogLogger(t, "debug")
 	datadog.Debug(nil)
 	datadog.Debug("debug")
 	datadog.SpanDebug(span, "debug")
@@ -339,10 +339,42 @@ func TestDataDogLoggerDebug(t *testing.T) {
 
 func TestDataDogLoggerError(t *testing.T) {
 
-	datadog, span := testDataDogLogger(t, "")
+	datadog, span := testDataDogLogger(t, "error")
 	datadog.Error(nil)
 	datadog.Error("error")
 	datadog.Error(errors.New("some error"))
 	datadog.Error("error => %s", "message")
 	datadog.SpanError(span, "error")
+}
+
+func TestDataDogLoggerPanic(t *testing.T) {
+
+	defer func() {
+		if r := recover(); r == nil {
+			t.Fatal("It should be paniced")
+		}
+	}()
+
+	datadog, _ := testDataDogLogger(t, "panic")
+	datadog.Panic("panic")
+}
+
+func TestDataDogLoggerSpanPanic(t *testing.T) {
+
+	defer func() {
+		if r := recover(); r == nil {
+			t.Fatal("It should be paniced")
+		}
+	}()
+
+	datadog, span := testDataDogLogger(t, "panic")
+	datadog.SpanPanic(span, "panic")
+}
+
+func TestDataDogLoggerWrongAgentHost(t *testing.T) {
+
+	datadog, _ := datadogNewLogger("", "")
+	if datadog != nil {
+		t.Fatal("Valid datadog")
+	}
 }
