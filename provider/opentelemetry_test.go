@@ -7,6 +7,7 @@ import (
 	"time"
 
 	"github.com/devopsext/utils"
+	"go.opentelemetry.io/otel/trace"
 )
 
 func opentelemetryNewTracer(agentHost string) (*OpentelemetryTracer, *Stdout) {
@@ -123,6 +124,8 @@ func TestOpentelemetryTracer(t *testing.T) {
 	if nilSpan != nil {
 		t.Fatal("Valid nil span")
 	}
+
+	opentelemetry.Stop()
 }
 
 func TestOpentelemetryTracerWrongAgentHost(t *testing.T) {
@@ -130,5 +133,70 @@ func TestOpentelemetryTracerWrongAgentHost(t *testing.T) {
 	opentelemetry, _ := opentelemetryNewTracer("")
 	if opentelemetry != nil {
 		t.Fatal("Valid opentelemetry")
+	}
+}
+
+func TestOpentelemetryWrongSpan(t *testing.T) {
+
+	span := OpentelemetryTracerSpan{}
+
+	ctx := span.GetContext()
+	if ctx != nil {
+		t.Fatal("Valid span context")
+	}
+
+	s := span.SetCarrier(t)
+	if s != nil {
+		t.Fatal("Valid span")
+	}
+
+	s = span.SetName("some-name")
+	if s != nil {
+		t.Fatal("Valid span")
+	}
+
+	s = span.SetTag("some-tag", "some-value")
+	if s != nil {
+		t.Fatal("Valid span")
+	}
+
+	s = span.Error(errors.New("some-error"))
+	if s != nil {
+		t.Fatal("Valid span")
+	}
+
+	s = span.SetBaggageItem("key", "value")
+	if s != nil {
+		t.Fatal("Valid span")
+	}
+
+	span.span = nil
+	span.Finish()
+}
+
+func TestOpentelemetryWrongSpanContext(t *testing.T) {
+
+	ctx := OpentelemetryTracerSpanContext{}
+
+	traceID := ctx.GetTraceID()
+	if !utils.IsEmpty(traceID) {
+		t.Fatal("Valid trace ID")
+	}
+
+	spanID := ctx.GetSpanID()
+	if !utils.IsEmpty(spanID) {
+		t.Fatal("Valid span ID")
+	}
+
+	ctx.context = &trace.SpanContext{}
+
+	traceID = ctx.GetTraceID()
+	if !utils.IsEmpty(traceID) {
+		t.Fatal("Valid trace ID")
+	}
+
+	spanID = ctx.GetSpanID()
+	if !utils.IsEmpty(spanID) {
+		t.Fatal("Valid span ID")
 	}
 }
