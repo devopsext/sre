@@ -52,7 +52,7 @@ func opentelemetryNewMeter(agentHost string) (*OpentelemetryMeter, *Stdout) {
 		AgentHost:     agentHost,
 		AgentPort:     8126,
 		Prefix:        "test",
-		CollectPeriod: 1000,
+		CollectPeriod: 0,
 		OpentelemetryOptions: OpentelemetryOptions{
 			ServiceName: "sre-opentelemetry-meter-test",
 			Attributes:  "tag1=value1,,tag3=${key3:value3}",
@@ -241,7 +241,7 @@ func TestOpentelemetryMeter(t *testing.T) {
 
 	counter := opentelemetry.Counter(metricName, "description", []string{"one", "two", "three"}, secondPrefix)
 	if counter == nil {
-		t.Fatal("Invalid prometheus")
+		t.Fatal("Invalid opentelemetry")
 	}
 
 	maxCounter := 5

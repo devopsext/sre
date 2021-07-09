@@ -35,6 +35,33 @@ func datadogNewTracer(agentHost string) (*DataDogTracer, *Stdout) {
 	return datadog, stdout
 }
 
+func datadogNewMeter(agentHost string) (*DataDogMeter, *Stdout) {
+
+	stdout := NewStdout(StdoutOptions{
+		Format:          "template",
+		Level:           "debug",
+		Template:        "{{.msg}}",
+		TimestampFormat: time.RFC3339Nano,
+	})
+	if stdout == nil {
+		return nil, nil
+	}
+	stdout.SetCallerOffset(1)
+
+	datadog := NewDataDogMeter(DataDogMeterOptions{
+		AgentHost: agentHost,
+		AgentPort: 8126,
+		Prefix:    "test",
+		DataDogOptions: DataDogOptions{
+			ServiceName: "sre-datadog-tracer-test",
+			Tags:        "tag1=value1,,tag3=${key3:value3}",
+			Debug:       true,
+		},
+	}, nil, stdout)
+
+	return datadog, stdout
+}
+
 func TestDataDogTracer(t *testing.T) {
 
 	datadog, _ := datadogNewTracer("localhost")
@@ -142,4 +169,36 @@ func TestDataDogTracerInternalLogger(t *testing.T) {
 	}
 
 	internalLogger.Log("Some message")
+}
+
+func TestDatadsogMeter(t *testing.T) {
+
+	datadog, _ := datadogNewMeter("localhost")
+	if datadog == nil {
+		t.Fatal("Invalid datadog")
+	}
+	datadog.SetCallerOffset(1)
+
+	secondPrefix := "counter"
+	metricName := "some"
+
+	counter := datadog.Counter(metricName, "description", []string{"one", "two", "three"}, secondPrefix)
+	if counter == nil {
+		t.Fatal("Invalid datadog")
+	}
+
+	maxCounter := 5
+	for i := 0; i < maxCounter; i++ {
+		counter.Inc("value1", "value2", "value3")
+	}
+
+	datadog.Stop()
+}
+
+func TestDataDogMeterWrongAgentHost(t *testing.T) {
+
+	datadog, _ := datadogNewMeter("")
+	if datadog != nil {
+		t.Fatal("Valid datadog")
+	}
 }
