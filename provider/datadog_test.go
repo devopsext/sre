@@ -371,9 +371,17 @@ func TestDataDogLoggerSpanPanic(t *testing.T) {
 	datadog.SpanPanic(span, "panic")
 }
 
-func TestDataDogLoggerWrongAgentHost(t *testing.T) {
+func TestDataDogLoggerEmptyAgentHost(t *testing.T) {
 
 	datadog, _ := datadogNewLogger("", "")
+	if datadog != nil {
+		t.Fatal("Valid datadog")
+	}
+}
+
+func TestDataDogLoggerWrongAgentHost(t *testing.T) {
+
+	datadog, _ := datadogNewLogger("ewqdWDEW", "how")
 	if datadog != nil {
 		t.Fatal("Valid datadog")
 	}
