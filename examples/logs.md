@@ -1,0 +1,13 @@
+# Logs example 
+
+## Run logs example
+
+```sh
+go run logs.go
+```
+```log
+go/sre/logs.go:13 Info message to every log provider...
+go/sre/logs.go:14 Debug message to every log provider...
+go/sre/logs.go:15 Warn message to every log provider...
+...
+```
