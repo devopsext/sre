@@ -1,6 +1,6 @@
 # Metrics example
 
-## Run metrcis example
+## Run example
 
 ```sh
 go run metrics.go
@@ -11,7 +11,7 @@ sre@v0.0.6/provider/prometheus.go:93 Prometheus is up. Listening...
 sre@v0.0.6/provider/datadog.go:648 DataDog meter is up...
 ```
 
-## Check Prometheus metrics
+## Check Prometheus endpoint
 
 ```sh
 curl -sk http://127.0.0.1:8080/metrics | grep sre_

@@ -1,9 +1,12 @@
 # Traces example
 
-## Run traces example
+## Run example
+
 ```sh
 go run traces.go
 ```
+
+Output should be:
 ```log
 ...
 sre@v0.0.6/provider/jaeger.go:444 Jaeger tracer is up...
