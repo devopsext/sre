@@ -163,7 +163,7 @@ func TestOpentelemetryTracerWrongAgentHost(t *testing.T) {
 	}
 }
 
-func TestOpentelemetryWrongSpan(t *testing.T) {
+func TestOpentelemetryTracerWrongSpan(t *testing.T) {
 
 	span := OpentelemetryTracerSpan{}
 
@@ -201,7 +201,7 @@ func TestOpentelemetryWrongSpan(t *testing.T) {
 	span.Finish()
 }
 
-func TestOpentelemetryWrongSpanContext(t *testing.T) {
+func TestOpentelemetryTracerWrongSpanContext(t *testing.T) {
 
 	ctx := OpentelemetryTracerSpanContext{}
 

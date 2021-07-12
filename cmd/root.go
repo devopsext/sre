@@ -15,6 +15,7 @@ import (
 
 	"github.com/devopsext/sre/common"
 	"github.com/devopsext/sre/provider"
+	"github.com/devopsext/utils"
 	"github.com/spf13/cobra"
 )
 
@@ -129,7 +130,7 @@ func Execute() {
 			stdoutOptions.Version = VERSION
 			stdout = provider.NewStdout(stdoutOptions)
 			stdout.SetCallerOffset(2)
-			if common.HasElem(rootOptions.Logs, "stdout") {
+			if utils.Contains(rootOptions.Logs, "stdout") {
 				logs.Register(stdout)
 			}
 
@@ -138,7 +139,7 @@ func Execute() {
 			datadogLoggerOptions.Environment = datadogOptions.Environment
 			datadogLoggerOptions.Tags = datadogOptions.Tags
 			datadogLogger := provider.NewDataDogLogger(datadogLoggerOptions, logs, stdout)
-			if common.HasElem(rootOptions.Logs, "datadog") && datadogLogger != nil {
+			if utils.Contains(rootOptions.Logs, "datadog") && datadogLogger != nil {
 				logs.Register(datadogLogger)
 			}
 
@@ -148,7 +149,7 @@ func Execute() {
 
 			prometheusOptions.Version = VERSION
 			prometheus := provider.NewPrometheusMeter(prometheusOptions, logs, stdout)
-			if common.HasElem(rootOptions.Metrics, "prometheus") && prometheus != nil {
+			if utils.Contains(rootOptions.Metrics, "prometheus") && prometheus != nil {
 				prometheus.StartInWaitGroup(&mainWG)
 				metrics.Register(prometheus)
 			}
@@ -158,7 +159,7 @@ func Execute() {
 			datadogMeterOptions.Environment = datadogOptions.Environment
 			datadogMeterOptions.Tags = datadogOptions.Tags
 			datadogMeter := provider.NewDataDogMeter(datadogMeterOptions, logs, stdout)
-			if common.HasElem(rootOptions.Metrics, "datadog") && datadogMeter != nil {
+			if utils.Contains(rootOptions.Metrics, "datadog") && datadogMeter != nil {
 				metrics.Register(datadogMeter)
 			}
 
@@ -167,7 +168,7 @@ func Execute() {
 			opentelemetryMeterOptions.Environment = opentelemetryOptions.Environment
 			opentelemetryMeterOptions.Attributes = opentelemetryOptions.Attributes
 			opentelemetryMeter := provider.NewOpentelemetryMeter(opentelemetryMeterOptions, logs, stdout)
-			if common.HasElem(rootOptions.Metrics, "opentelemetry") && opentelemetryMeter != nil {
+			if utils.Contains(rootOptions.Metrics, "opentelemetry") && opentelemetryMeter != nil {
 				metrics.Register(opentelemetryMeter)
 			}
 
@@ -175,7 +176,7 @@ func Execute() {
 
 			jaegerOptions.Version = VERSION
 			jaeger := provider.NewJaegerTracer(jaegerOptions, logs, stdout)
-			if common.HasElem(rootOptions.Traces, "jaeger") && jaeger != nil {
+			if utils.Contains(rootOptions.Traces, "jaeger") && jaeger != nil {
 				traces.Register(jaeger)
 			}
 
@@ -185,7 +186,7 @@ func Execute() {
 			datadogTracerOptions.Tags = datadogOptions.Tags
 			datadogLoggerOptions.Debug = datadogOptions.Debug
 			datadogTracer := provider.NewDataDogTracer(datadogTracerOptions, logs, stdout)
-			if common.HasElem(rootOptions.Traces, "datadog") && datadogTracer != nil {
+			if utils.Contains(rootOptions.Traces, "datadog") && datadogTracer != nil {
 				traces.Register(datadogTracer)
 			}
 
@@ -194,7 +195,7 @@ func Execute() {
 			opentelemetryTracerOptions.Environment = opentelemetryOptions.Environment
 			opentelemetryTracerOptions.Attributes = opentelemetryOptions.Attributes
 			opentelemtryTracer := provider.NewOpentelemetryTracer(opentelemetryTracerOptions, logs, stdout)
-			if common.HasElem(rootOptions.Traces, "opentelemetry") && opentelemtryTracer != nil {
+			if utils.Contains(rootOptions.Traces, "opentelemetry") && opentelemtryTracer != nil {
 				traces.Register(opentelemtryTracer)
 			}
 
@@ -236,7 +237,7 @@ func Execute() {
 			}
 			reader := bytes.NewReader(content)
 
-			req, err := http.NewRequest("POST", "http://127.0.0.1:18081/k8s", reader)
+			req, err := http.NewRequest("POST", "http://127.0.0.1:8081/k8s", reader)
 			if err != nil {
 				logs.SpanError(span, err)
 			}

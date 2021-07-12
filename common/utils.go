@@ -8,18 +8,12 @@ import (
 	"net"
 	"net/http"
 	"path"
-	"reflect"
 	"runtime"
-	"strings"
 	"time"
 
+	"github.com/devopsext/utils"
 	"github.com/rs/xid"
 )
-
-func IsEmpty(s string) bool {
-	s1 := strings.TrimSpace(s)
-	return len(s1) == 0
-}
 
 func MakeHttpClient(timeout int) *http.Client {
 
@@ -43,7 +37,7 @@ func getLastPath(s string, limit int) string {
 	dir := s
 	var arr []string
 
-	for !IsEmpty(dir) {
+	for !utils.IsEmpty(dir) {
 		if index >= limit {
 			break
 		}
@@ -68,23 +62,6 @@ func GetCallerInfo(offset int) (string, string, int) {
 	return function, file, line
 }
 
-func HasElem(s interface{}, elem interface{}) bool {
-
-	arrV := reflect.ValueOf(s)
-
-	if arrV.Kind() == reflect.Slice {
-		for i := 0; i < arrV.Len(); i++ {
-
-			// XXX - panics if slice element points to an unexported struct field
-			// see https://golang.org/pkg/reflect/#Value.Interface
-			if arrV.Index(i).Interface() == elem {
-				return true
-			}
-		}
-	}
-	return false
-}
-
 func GetGuid() string {
 	guid := xid.New()
 	return guid.String()
@@ -102,7 +79,7 @@ func SpanIDHexToUint64(hex string) uint64 {
 
 func SpanIDUint64ToHex(n uint64) string {
 
-	return fmt.Sprintf("%x016", n)
+	return fmt.Sprintf("%016x", n)
 }
 
 func SpanIDBytesToHex(bytes [8]byte) string {
@@ -122,7 +99,7 @@ func TraceIDHexToUint64(hex string) uint64 {
 
 func TraceIDUint64ToHex(n uint64) string {
 
-	return fmt.Sprintf("%x016", n)
+	return fmt.Sprintf("%032x", n)
 }
 
 func TraceIDBytesToHex(bytes [16]byte) string {

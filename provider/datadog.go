@@ -225,7 +225,7 @@ func (dd *DataDogTracer) StartSpanWithTraceID(traceID, spanID string) common.Tra
 		return nil
 	}
 
-	sID := common.SpanIDHexToUint64(traceID)
+	sID := common.SpanIDHexToUint64(spanID)
 	if sID == 0 {
 		sID = tID
 	}

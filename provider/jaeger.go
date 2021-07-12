@@ -260,7 +260,7 @@ func (j *JaegerTracer) StartSpanWithTraceID(traceID, spanID string) common.Trace
 		return nil
 	}
 
-	sID := common.SpanIDHexToUint64(traceID)
+	sID := common.SpanIDHexToUint64(spanID)
 	if sID == 0 {
 		sID = tID
 	}
