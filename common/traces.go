@@ -120,7 +120,7 @@ func (ts *Traces) Register(t Tracer) {
 func (ts *Traces) StartSpan() TracerSpan {
 
 	traceID := ts.NewTraceID()
-	spanID := ts.NewTraceID()
+	spanID := ts.NewSpanID()
 
 	span := TracesSpan{
 		traces:  ts,
