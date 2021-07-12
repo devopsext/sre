@@ -6,7 +6,10 @@ go:
 go_import_path: github.com/devopsext/sre
 
 before_install:
-  - env GO111MODULE=on go get -t -v ./ ./cmd ./common ./provider
+  - env GO111MODULE=on
+
+install:
+  - go get -t -v ./ ./cmd ./common ./provider
 
 script:
   - go test -v -race -coverprofile=coverage.txt -covermode=atomic ./ ./cmd ./common ./provider
