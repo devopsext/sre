@@ -53,7 +53,7 @@ type JaegerInternalLogger struct {
 	logger common.Logger
 }
 
-func (jsc JaegerSpanContext) GetTraceID() string {
+func (jsc *JaegerSpanContext) GetTraceID() string {
 
 	if jsc.context == nil {
 		return ""
@@ -66,7 +66,7 @@ func (jsc JaegerSpanContext) GetTraceID() string {
 	return common.TraceIDUint64ToHex(jaegerSpanCtx.TraceID().Low)
 }
 
-func (jsc JaegerSpanContext) GetSpanID() string {
+func (jsc *JaegerSpanContext) GetSpanID() string {
 
 	if jsc.context == nil {
 		return ""
@@ -79,7 +79,7 @@ func (jsc JaegerSpanContext) GetSpanID() string {
 	return common.SpanIDUint64ToHex(uint64(jaegerSpanCtx.SpanID()))
 }
 
-func (js JaegerSpan) GetContext() common.TracerSpanContext {
+func (js *JaegerSpan) GetContext() common.TracerSpanContext {
 	if js.span == nil {
 		return nil
 	}
@@ -94,7 +94,7 @@ func (js JaegerSpan) GetContext() common.TracerSpanContext {
 	return js.spanContext
 }
 
-func (js JaegerSpan) SetCarrier(object interface{}) common.TracerSpan {
+func (js *JaegerSpan) SetCarrier(object interface{}) common.TracerSpan {
 
 	if js.span == nil {
 		return nil
@@ -110,7 +110,7 @@ func (js JaegerSpan) SetCarrier(object interface{}) common.TracerSpan {
 	return js
 }
 
-func (js JaegerSpan) SetName(name string) common.TracerSpan {
+func (js *JaegerSpan) SetName(name string) common.TracerSpan {
 
 	if js.span == nil {
 		return nil
@@ -120,7 +120,7 @@ func (js JaegerSpan) SetName(name string) common.TracerSpan {
 	return js
 }
 
-func (js JaegerSpan) SetTag(key string, value interface{}) common.TracerSpan {
+func (js *JaegerSpan) SetTag(key string, value interface{}) common.TracerSpan {
 
 	if js.span == nil {
 		return nil
@@ -130,7 +130,7 @@ func (js JaegerSpan) SetTag(key string, value interface{}) common.TracerSpan {
 	return js
 }
 
-func (js JaegerSpan) LogFields(fields map[string]interface{}) common.TracerSpan {
+func (js *JaegerSpan) LogFields(fields map[string]interface{}) common.TracerSpan {
 
 	if js.span == nil {
 		return nil
@@ -176,7 +176,7 @@ func (js JaegerSpan) LogFields(fields map[string]interface{}) common.TracerSpan 
 	return js
 }
 
-func (js JaegerSpan) Error(err error) common.TracerSpan {
+func (js *JaegerSpan) Error(err error) common.TracerSpan {
 
 	if js.span == nil {
 		return nil
@@ -189,7 +189,7 @@ func (js JaegerSpan) Error(err error) common.TracerSpan {
 	return js
 }
 
-func (js JaegerSpan) SetBaggageItem(restrictedKey, value string) common.TracerSpan {
+func (js *JaegerSpan) SetBaggageItem(restrictedKey, value string) common.TracerSpan {
 
 	if js.span == nil {
 		return nil
@@ -244,7 +244,7 @@ func (j *JaegerTracer) startFollowsFromSpan(ctx context.Context, spanContext ope
 func (j *JaegerTracer) StartSpan() common.TracerSpan {
 
 	s, ctx := j.startSpanFromContext(context.Background(), j.callerOffset+4)
-	return JaegerSpan{
+	return &JaegerSpan{
 		span:         s,
 		context:      ctx,
 		tracer:       j,
@@ -279,7 +279,7 @@ func (j *JaegerTracer) StartSpanWithTraceID(traceID, spanID string) common.Trace
 
 	s, ctx := j.startSpanFromContext(context.Background(), j.callerOffset+4, jaeger.SelfRef(newJaegerSpanCtx))
 
-	return JaegerSpan{
+	return &JaegerSpan{
 		span:         s,
 		context:      ctx,
 		tracer:       j,
@@ -314,7 +314,7 @@ func (j *JaegerTracer) StartChildSpan(object interface{}) common.TracerSpan {
 	}
 
 	s, ctx := j.startChildOfSpan(context.Background(), spanContext)
-	return JaegerSpan{
+	return &JaegerSpan{
 		span:    s,
 		context: ctx,
 		tracer:  j,
@@ -329,7 +329,7 @@ func (j *JaegerTracer) StartFollowSpan(object interface{}) common.TracerSpan {
 	}
 
 	s, ctx := j.startFollowsFromSpan(context.Background(), spanContext)
-	return JaegerSpan{
+	return &JaegerSpan{
 		span:    s,
 		context: ctx,
 		tracer:  j,

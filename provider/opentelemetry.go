@@ -36,6 +36,7 @@ type OpentelemetryOptions struct {
 }
 
 const headerTraceID string = "X-Trace-ID"
+const headerSpanID string = "X-Span-ID"
 
 type OpentelemetryTracerOptions struct {
 	OpentelemetryOptions
@@ -53,7 +54,7 @@ type OpentelemetryMeterOptions struct {
 }
 
 type OpentelemetryTracerSpanContext struct {
-	tracerSpan OpentelemetryTracerSpan
+	tracerSpan *OpentelemetryTracerSpan
 	context    *trace.SpanContext
 }
 
@@ -89,7 +90,7 @@ type OpentelemetryMeter struct {
 	callerOffset int
 }
 
-func (ottsc OpentelemetryTracerSpanContext) GetTraceID() string {
+func (ottsc *OpentelemetryTracerSpanContext) GetTraceID() string {
 
 	if ottsc.context == nil || !ottsc.context.HasTraceID() {
 		return ""
@@ -99,7 +100,7 @@ func (ottsc OpentelemetryTracerSpanContext) GetTraceID() string {
 	return common.TraceIDBytesToHex(traceID)
 }
 
-func (ottsc OpentelemetryTracerSpanContext) GetSpanID() string {
+func (ottsc *OpentelemetryTracerSpanContext) GetSpanID() string {
 
 	if ottsc.context == nil || !ottsc.context.HasSpanID() {
 		return ""
@@ -109,7 +110,7 @@ func (ottsc OpentelemetryTracerSpanContext) GetSpanID() string {
 	return common.SpanIDBytesToHex(spanID)
 }
 
-func (otts OpentelemetryTracerSpan) GetContext() common.TracerSpanContext {
+func (otts *OpentelemetryTracerSpan) GetContext() common.TracerSpanContext {
 	if otts.span == nil {
 		return nil
 	}
@@ -126,7 +127,7 @@ func (otts OpentelemetryTracerSpan) GetContext() common.TracerSpanContext {
 	return otts.tracerSpanContext
 }
 
-func (otts OpentelemetryTracerSpan) SetCarrier(object interface{}) common.TracerSpan {
+func (otts *OpentelemetryTracerSpan) SetCarrier(object interface{}) common.TracerSpan {
 
 	if otts.span == nil {
 		return nil
@@ -134,12 +135,28 @@ func (otts OpentelemetryTracerSpan) SetCarrier(object interface{}) common.Tracer
 
 	h, ok := object.(http.Header)
 	if ok {
-		otel.GetTextMapPropagator().Inject(otts.context, propagation.HeaderCarrier(h))
+
+		ctx := otts.GetContext()
+		if ctx != nil {
+			name := http.CanonicalHeaderKey(headerTraceID)
+			if len(h[name]) == 0 {
+				h[name] = append(h[name], ctx.GetTraceID())
+			}
+		}
+		if ctx != nil {
+			name := http.CanonicalHeaderKey(headerSpanID)
+			if len(h[name]) == 0 {
+				h[name] = append(h[name], ctx.GetTraceID())
+			}
+		}
+
+		// something wrong with it, need to find a proper context
+		//otel.GetTextMapPropagator().Inject(context.Background(), propagation.HeaderCarrier(h))
 	}
 	return otts
 }
 
-func (otts OpentelemetryTracerSpan) SetName(name string) common.TracerSpan {
+func (otts *OpentelemetryTracerSpan) SetName(name string) common.TracerSpan {
 
 	if otts.span == nil {
 		return nil
@@ -148,7 +165,7 @@ func (otts OpentelemetryTracerSpan) SetName(name string) common.TracerSpan {
 	return otts
 }
 
-func (otts OpentelemetryTracerSpan) SetTag(key string, value interface{}) common.TracerSpan {
+func (otts *OpentelemetryTracerSpan) SetTag(key string, value interface{}) common.TracerSpan {
 
 	if otts.span == nil || value == nil {
 		return nil
@@ -173,7 +190,7 @@ func (otts OpentelemetryTracerSpan) SetTag(key string, value interface{}) common
 	return otts
 }
 
-func (otts OpentelemetryTracerSpan) SetBaggageItem(restrictedKey, value string) common.TracerSpan {
+func (otts *OpentelemetryTracerSpan) SetBaggageItem(restrictedKey, value string) common.TracerSpan {
 	if otts.span == nil {
 		return nil
 	}
@@ -186,7 +203,7 @@ func (otts OpentelemetryTracerSpan) SetBaggageItem(restrictedKey, value string) 
 	return otts
 }
 
-func (otts OpentelemetryTracerSpan) Error(err error) common.TracerSpan {
+func (otts *OpentelemetryTracerSpan) Error(err error) common.TracerSpan {
 	if otts.span == nil {
 		return nil
 	}
@@ -197,7 +214,7 @@ func (otts OpentelemetryTracerSpan) Error(err error) common.TracerSpan {
 	return otts
 }
 
-func (otts OpentelemetryTracerSpan) Finish() {
+func (otts *OpentelemetryTracerSpan) Finish() {
 	if otts.span == nil {
 		return
 	}
@@ -236,7 +253,7 @@ func (ott *OpentelemetryTracer) StartSpan() common.TracerSpan {
 		trace.WithNewRoot(),
 	)
 
-	return OpentelemetryTracerSpan{
+	return &OpentelemetryTracerSpan{
 		span:    s,
 		context: ctx,
 		tracer:  ott,
@@ -284,7 +301,7 @@ func (ott *OpentelemetryTracer) StartSpanWithTraceID(traceID, spanID string) com
 	parentCtx := trace.ContextWithSpanContext(context.Background(), spanCtx)
 
 	s, ctx := ott.startSpanFromContext(parentCtx, ott.callerOffset+4, opts...)
-	return OpentelemetryTracerSpan{
+	return &OpentelemetryTracerSpan{
 		span:    s,
 		context: ctx,
 		tracer:  ott,
@@ -296,7 +313,38 @@ func (ott *OpentelemetryTracer) getSpanContext(object interface{}) (context.Cont
 	h, ok := object.(http.Header)
 	if ok {
 
-		var spanCtx *trace.SpanContext
+		traceID := ""
+		spanID := ""
+
+		arr := h[http.CanonicalHeaderKey(headerTraceID)]
+		if len(arr) > 0 {
+			traceID = arr[len(arr)-1]
+		}
+
+		arr = h[http.CanonicalHeaderKey(headerSpanID)]
+		if len(arr) > 0 {
+			spanID = arr[len(arr)-1]
+		}
+
+		tID, sID := ott.getSpanTraceID(traceID, spanID)
+		if tID == nil {
+			return nil, nil
+		}
+
+		if sID == nil {
+			arr := &trace.SpanID{}
+			copy(arr[:], tID[0:8])
+			sID = arr
+		}
+
+		spanCtx := trace.NewSpanContext(trace.SpanContextConfig{
+			SpanID:  *sID,
+			TraceID: *tID,
+		})
+		ctx := trace.ContextWithSpanContext(context.Background(), spanCtx)
+
+		// something wrong with this code, need to find a proper implementation
+		/*var spanCtx *trace.SpanContext
 		ctx := otel.GetTextMapPropagator().Extract(context.Background(), propagation.HeaderCarrier(h))
 
 		if ctx != nil {
@@ -305,9 +353,9 @@ func (ott *OpentelemetryTracer) getSpanContext(object interface{}) (context.Cont
 			if !c.HasTraceID() {
 				spanCtx = nil
 			}
-		}
+		}*/
 
-		return ctx, spanCtx
+		return ctx, &spanCtx
 	}
 
 	ottsc, ok := object.(*OpentelemetryTracerSpanContext)
@@ -325,7 +373,7 @@ func (ott *OpentelemetryTracer) StartChildSpan(object interface{}) common.Tracer
 	}
 
 	s, ctx := ott.startChildOfSpan(parentCtx, spanContext)
-	return OpentelemetryTracerSpan{
+	return &OpentelemetryTracerSpan{
 		span:    s,
 		context: ctx,
 		tracer:  ott,
@@ -340,7 +388,7 @@ func (ott *OpentelemetryTracer) StartFollowSpan(object interface{}) common.Trace
 	}
 
 	s, ctx := ott.startChildOfSpan(parentCtx, spanContext)
-	return OpentelemetryTracerSpan{
+	return &OpentelemetryTracerSpan{
 		span:    s,
 		context: ctx,
 		tracer:  ott,

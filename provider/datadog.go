@@ -90,7 +90,7 @@ type DataDogMeter struct {
 	client       *statsd.Client
 }
 
-func (ddsc DataDogTracerSpanContext) GetTraceID() string {
+func (ddsc *DataDogTracerSpanContext) GetTraceID() string {
 
 	if ddsc.context == nil {
 		return ""
@@ -98,7 +98,7 @@ func (ddsc DataDogTracerSpanContext) GetTraceID() string {
 	return common.TraceIDUint64ToHex(ddsc.context.TraceID())
 }
 
-func (ddsc DataDogTracerSpanContext) GetSpanID() string {
+func (ddsc *DataDogTracerSpanContext) GetSpanID() string {
 
 	if ddsc.context == nil {
 		return ""
@@ -106,7 +106,7 @@ func (ddsc DataDogTracerSpanContext) GetSpanID() string {
 	return common.SpanIDUint64ToHex(ddsc.context.SpanID())
 }
 
-func (dds DataDogTracerSpan) GetContext() common.TracerSpanContext {
+func (dds *DataDogTracerSpan) GetContext() common.TracerSpanContext {
 	if dds.span == nil {
 		return nil
 	}
@@ -121,7 +121,7 @@ func (dds DataDogTracerSpan) GetContext() common.TracerSpanContext {
 	return dds.spanContext
 }
 
-func (dds DataDogTracerSpan) SetCarrier(object interface{}) common.TracerSpan {
+func (dds *DataDogTracerSpan) SetCarrier(object interface{}) common.TracerSpan {
 
 	if dds.span == nil {
 		return nil
@@ -137,7 +137,7 @@ func (dds DataDogTracerSpan) SetCarrier(object interface{}) common.TracerSpan {
 	return dds
 }
 
-func (dds DataDogTracerSpan) SetName(name string) common.TracerSpan {
+func (dds *DataDogTracerSpan) SetName(name string) common.TracerSpan {
 
 	if dds.span == nil {
 		return nil
@@ -146,7 +146,7 @@ func (dds DataDogTracerSpan) SetName(name string) common.TracerSpan {
 	return dds
 }
 
-func (dds DataDogTracerSpan) SetTag(key string, value interface{}) common.TracerSpan {
+func (dds *DataDogTracerSpan) SetTag(key string, value interface{}) common.TracerSpan {
 
 	if dds.span == nil {
 		return nil
@@ -155,7 +155,7 @@ func (dds DataDogTracerSpan) SetTag(key string, value interface{}) common.Tracer
 	return dds
 }
 
-func (dds DataDogTracerSpan) SetBaggageItem(restrictedKey, value string) common.TracerSpan {
+func (dds *DataDogTracerSpan) SetBaggageItem(restrictedKey, value string) common.TracerSpan {
 	if dds.span == nil {
 		return nil
 	}
@@ -163,7 +163,7 @@ func (dds DataDogTracerSpan) SetBaggageItem(restrictedKey, value string) common.
 	return dds
 }
 
-func (dds DataDogTracerSpan) Error(err error) common.TracerSpan {
+func (dds *DataDogTracerSpan) Error(err error) common.TracerSpan {
 
 	if dds.span == nil {
 		return nil
@@ -173,7 +173,7 @@ func (dds DataDogTracerSpan) Error(err error) common.TracerSpan {
 	return dds
 }
 
-func (dds DataDogTracerSpan) Finish() {
+func (dds *DataDogTracerSpan) Finish() {
 	if dds.span == nil {
 		return
 	}
@@ -210,7 +210,7 @@ func (dd *DataDogTracer) startChildOfSpan(ctx context.Context, spanContext ddtra
 func (dd *DataDogTracer) StartSpan() common.TracerSpan {
 
 	s, ctx := dd.startSpanFromContext(context.Background(), dd.callerOffset+4)
-	return DataDogTracerSpan{
+	return &DataDogTracerSpan{
 		span:    s,
 		context: ctx,
 		tracer:  dd,
@@ -233,7 +233,7 @@ func (dd *DataDogTracer) StartSpanWithTraceID(traceID, spanID string) common.Tra
 	s, ctx := dd.startSpanFromContext(context.Background(), dd.callerOffset+4,
 		tracer.WithSpanID(sID),
 	)
-	return DataDogTracerSpan{
+	return &DataDogTracerSpan{
 		span:    s,
 		context: ctx,
 		tracer:  dd,
@@ -267,7 +267,7 @@ func (dd *DataDogTracer) StartChildSpan(object interface{}) common.TracerSpan {
 	}
 
 	s, ctx := dd.startChildOfSpan(context.Background(), spanContext)
-	return DataDogTracerSpan{
+	return &DataDogTracerSpan{
 		span:    s,
 		context: ctx,
 		tracer:  dd,
@@ -282,7 +282,7 @@ func (dd *DataDogTracer) StartFollowSpan(object interface{}) common.TracerSpan {
 	}
 
 	s, ctx := dd.startChildOfSpan(context.Background(), spanContext)
-	return DataDogTracerSpan{
+	return &DataDogTracerSpan{
 		span:    s,
 		context: ctx,
 		tracer:  dd,

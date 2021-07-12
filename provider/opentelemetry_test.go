@@ -109,6 +109,13 @@ func TestOpentelemetryTracer(t *testing.T) {
 	traceSpan.SetBaggageItem("key", "value")
 	traceSpan.SetTag("parent-span-ID", spanID)
 
+	traceCtx := traceSpan.GetContext()
+	if traceCtx == nil {
+		t.Fatal("Invalid trace span context")
+	}
+	traceID = traceCtx.GetTraceID()
+	t.Logf("Trace ID is %s", traceID)
+
 	childSpan := opentelemetry.StartChildSpan(ctx)
 	if childSpan == nil {
 		t.Fatal("Invalid child span")
@@ -141,11 +148,19 @@ func TestOpentelemetryTracer(t *testing.T) {
 		t.Fatal("Valid nil header span")
 	}
 
-	span.SetCarrier(headers)
+	traceSpan.SetCarrier(headers)
 	headerSpan := opentelemetry.StartChildSpan(headers)
 	if headerSpan == nil {
-		t.Fatal("Invalid nil header span")
+		t.Fatal("Invalid header span")
 	}
+	headerCtx := headerSpan.GetContext()
+	if headerCtx == nil {
+		t.Fatal("Invalid header span context")
+	}
+	traceID = headerCtx.GetTraceID()
+	t.Logf("Header trace ID is %s", traceID)
+	spanID = headerCtx.GetSpanID()
+	t.Logf("Header span ID is %s", spanID)
 
 	nilSpan := opentelemetry.StartSpanWithTraceID("", "")
 	if nilSpan != nil {
