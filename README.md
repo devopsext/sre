@@ -32,7 +32,7 @@ Framework for golang applications which helps to send metrics, logs and traces i
 - DataDog uses [DataDog agent](https://docs.datadoghq.com/agent/) for logs, metrics and traces
 - Opentelemetry communicates with its [Opentelemetry agent](https://github.com/open-telemetry/opentelemetry-collector)
 
-### Envs
+### Set envs
 
 Set proper GOROOT and PATH variables
 ```sh
@@ -40,7 +40,7 @@ export GOROOT="$HOME/go/root/1.16.4"
 export PATH="$PATH:$GOROOT/bin"
 ```
 
-### Go modules
+### Get Go modules
 
 Set go.mod manually
 ```plain
@@ -62,58 +62,13 @@ go: found github.com/devopsext/sre/common in github.com/devopsext/sre v0.0.6
 go: found github.com/devopsext/sre/provider in github.com/devopsext/sre v0.0.6
 ```
 
+### Examples
 
-### Logs usage
+Run one of example below: 
+- [Logs](examples/logs.md)
+- [Metrics](examples/metrics.md)
+- [Traces](examples/traces.md)
 
-Create logs.go file to test logging functionality
-```golang
-package main
-
-import (
-  "time"
-
-  "github.com/devopsext/sre/common"
-  "github.com/devopsext/sre/provider"
-)
-
-var logs = common.NewLogs()
-
-func test() {
-  logs.Info("Info message to every log provider...")
-  logs.Debug("Debug message to every log provider...")
-  logs.Warn("Warn message to every log provider...")
-}
-
-func main() {
-
-  // initialize Stdout logger
-  stdout := provider.NewStdout(provider.StdoutOptions{
-    Format:          "template",
-    Level:           "info",
-    Template:        "{{.file}} {{.msg}}",
-    TimestampFormat: time.RFC3339Nano,
-    TextColors:      true,
-  })
-  // set caller offset for file:line proper usage 
-  stdout.SetCallerOffset(2)
-
-  // initialize DataDog logger
-  datadog := provider.NewDataDogLogger(provider.DataDogLoggerOptions{
-    DataDogOptions: provider.DataDogOptions{
-      ServiceName: "sre-datadog",
-      Environment: "stage",
-    },
-    AgentHost:  "localhost", // set DataDog agent UDP logs host
-    AgentPort:  10518, // set DataDog agent UDP logs port
-    Level: "info",
-  }, logs, stdout)
-
-  // add loggers
-  logs.Register(stdout)
-  logs.Register(datadog)
-
-  test()
-}
 ```
 
 Run logs example
@@ -328,7 +283,12 @@ func main() {
 }
 ```
 
-@[golang](/examples/traces.go)
+-[golang](examples/traces.go)
+```golang
+# examples/traces.go
+```
+
+<%@include file="examples/traces.go"%>
 
 Run traces example
 ```sh
