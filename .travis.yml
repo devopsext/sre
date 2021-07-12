@@ -10,7 +10,7 @@ before_install:
 
 script:
   - go test -v -race -coverprofile=coverage.txt -covermode=atomic ./ ./cmd ./common ./provider
-  - go build
+  - go build ./ ./cmd ./common ./provider
 
 after_success:
   - bash <(curl -s https://codecov.io/bash)
