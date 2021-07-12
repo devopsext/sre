@@ -51,7 +51,7 @@ go 1.16
 require github.com/devopsext/sre v0.0.6
 ```
 
-Collect go modules
+### Collect go modules
 ```sh
 go get
 ```
@@ -62,9 +62,8 @@ go: found github.com/devopsext/sre/common in github.com/devopsext/sre v0.0.6
 go: found github.com/devopsext/sre/provider in github.com/devopsext/sre v0.0.6
 ```
 
-### Examples
-
-Run one of example below: 
+### Run one of example
+ 
 - [Logs](examples/logs.md)
 - [Metrics](examples/metrics.md)
 - [Traces](examples/traces.md)
