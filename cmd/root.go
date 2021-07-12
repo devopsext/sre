@@ -210,6 +210,10 @@ func Execute() {
 			rootSpan := traces.StartSpan()
 			rootSpan.SetBaggageItem("some-restriction", "enabled")
 			spanCtx := rootSpan.GetContext()
+			if spanCtx != nil {
+				logs.Info("Trace ID is %s", spanCtx.GetTraceID())
+				logs.Info("Span ID is %s", spanCtx.GetSpanID())
+			}
 
 			logs.SpanInfo(rootSpan, "This message has correlation with span...")
 
