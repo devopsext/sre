@@ -328,6 +328,8 @@ func main() {
 }
 ```
 
+@[golang](/examples/traces.go)
+
 Run traces example
 ```sh
 go run traces.go
