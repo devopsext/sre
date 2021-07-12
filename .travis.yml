@@ -9,7 +9,7 @@ before_install:
   - env GO111MODULE=on go get -t -v ./ ./cmd ./common ./provider
 
 script:
-  - go test -v -race -coverprofile=coverage.txt -covermode=atomic ./...
+  - go test -v -race -coverprofile=coverage.txt -covermode=atomic ./ ./cmd ./common ./provider
   - go build
 
 after_success:
