@@ -202,7 +202,7 @@ func TestDataDogTracerInternalLogger(t *testing.T) {
 	internalLogger.Log("Some message")
 }
 
-func TestDataDogWrongSpan(t *testing.T) {
+func TestDataDogTracerWrongSpan(t *testing.T) {
 
 	span := DataDogTracerSpan{}
 
@@ -240,7 +240,7 @@ func TestDataDogWrongSpan(t *testing.T) {
 	span.Finish()
 }
 
-func TestDataDogWrongSpanContext(t *testing.T) {
+func TestDataDogTracerWrongSpanContext(t *testing.T) {
 
 	ctx := DataDogTracerSpanContext{}
 
