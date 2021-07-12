@@ -48,7 +48,7 @@ module sre
 
 go 1.16
 
-require github.com/devopsext/sre v0.0.6
+require github.com/devopsext/sre vX.Y.Z
 ```
 
 ### Collect go modules
@@ -58,9 +58,10 @@ go get
 ```log
 go: finding module for package github.com/devopsext/sre/provider
 go: finding module for package github.com/devopsext/sre/common
-go: found github.com/devopsext/sre/common in github.com/devopsext/sre v0.0.6
-go: found github.com/devopsext/sre/provider in github.com/devopsext/sre v0.0.6
+go: found github.com/devopsext/sre/common in github.com/devopsext/sre vX.Y.Z
+go: found github.com/devopsext/sre/provider in github.com/devopsext/sre vX.Y.Z
 ```
+*vX.Y.Z - tag (version) of the framework, for instance => v0.0.7
 
 ### Run one of example
  
