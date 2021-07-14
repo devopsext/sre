@@ -87,7 +87,7 @@ var datadogLoggerOptions = provider.DataDogLoggerOptions{
 
 var datadogMeterOptions = provider.DataDogMeterOptions{
 	AgentHost: "",
-	AgentPort: 10518,
+	AgentPort: 8125,
 	Prefix:    "sre",
 }
 

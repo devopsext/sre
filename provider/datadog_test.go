@@ -296,17 +296,12 @@ func testDataDogLogger(t *testing.T, level string) (*DataDogLogger, common.Trace
 	}
 	datadog.Stack(-1).Stack(1)
 
-	tracer := common.NewTraces()
+	tracer, _ := datadogNewTracer("localhost")
 	if tracer == nil {
 		t.Fatal("Invalid tracer")
 	}
 
-	traceID := tracer.NewTraceID()
-	if utils.IsEmpty(traceID) {
-		t.Fatal("Invalid trace ID")
-	}
-
-	span := tracer.StartSpanWithTraceID(traceID, "")
+	span := tracer.StartSpan()
 	if span == nil {
 		t.Fatal("Invalid span")
 	}
@@ -317,8 +312,8 @@ func testDataDogLogger(t *testing.T, level string) (*DataDogLogger, common.Trace
 	}
 
 	fields = logrus.Fields{}
-	span = &DataDogTracerSpan{}
-	fields = datadog.addSpanFields(span, fields)
+	spanEmpty := &DataDogTracerSpan{}
+	fields = datadog.addSpanFields(spanEmpty, fields)
 	if fields == nil {
 		t.Fatal("Invalid fields")
 	}
