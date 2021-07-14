@@ -359,11 +359,8 @@ func (dd *DataDogLogger) addSpanFields(span common.TracerSpan, fields logrus.Fie
 
 	// we need to put int64 string for DataDog to have it properly correlated with traces
 
-	datadogSpanCtx, ok := ctx.(*DataDogTracerSpanContext)
-	if ok {
-		fields["dd.trace_id"] = fmt.Sprintf("%d", datadogSpanCtx.context.TraceID())
-		fields["dd.span_id"] = fmt.Sprintf("%d", datadogSpanCtx.context.SpanID())
-	}
+	fields["dd.trace_id"] = fmt.Sprintf("%d", common.TraceIDHexToUint64(ctx.GetTraceID()))
+	fields["dd.span_id"] = fmt.Sprintf("%d", common.SpanIDHexToUint64(ctx.GetSpanID()))
 
 	return fields
 }
