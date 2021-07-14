@@ -73,6 +73,7 @@ func stdoutTest(t *testing.T, format, level, template string, span common.Tracer
 		Template:        template,
 		TimestampFormat: time.RFC3339Nano,
 		TextColors:      true,
+		Debug:           true,
 	})
 	if stdout == nil {
 		t.Fatal("Invalid stdout")
