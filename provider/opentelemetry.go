@@ -33,6 +33,7 @@ type OpentelemetryOptions struct {
 	Version     string
 	Environment string
 	Attributes  string
+	Debug       bool
 }
 
 const headerTraceID string = "X-Trace-ID"

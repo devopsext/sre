@@ -17,6 +17,7 @@ type StdoutOptions struct {
 	TimestampFormat string
 	Version         string
 	TextColors      bool
+	Debug           bool
 }
 
 type Stdout struct {
@@ -74,7 +75,10 @@ func (so *Stdout) addSpanFields(span common.TracerSpan, fields logrus.Fields) lo
 		return fields
 	}
 
-	fields["trace_id"] = ctx.GetTraceID()
+	if so.options.Debug {
+		fields["trace_id"] = ctx.GetTraceID()
+		fields["span_id"] = ctx.GetSpanID()
+	}
 	return fields
 }
 
