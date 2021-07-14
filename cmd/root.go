@@ -47,6 +47,7 @@ var stdoutOptions = provider.StdoutOptions{
 	Template:        "{{.file}} {{.msg}}",
 	TimestampFormat: time.RFC3339Nano,
 	TextColors:      true,
+	Debug:           false,
 }
 
 var prometheusOptions = provider.PrometheusOptions{
@@ -66,12 +67,14 @@ var jaegerOptions = provider.JaegerOptions{
 	BufferFlushInterval: 0,
 	QueueSize:           0,
 	Tags:                "",
+	Debug:               false,
 }
 
 var datadogOptions = provider.DataDogOptions{
 	ServiceName: "",
 	Environment: "none",
 	Tags:        "",
+	Debug:       false,
 }
 
 var datadogTracerOptions = provider.DataDogTracerOptions{
@@ -95,6 +98,7 @@ var opentelemetryOptions = provider.OpentelemetryOptions{
 	ServiceName: "",
 	Environment: "",
 	Attributes:  "",
+	Debug:       false,
 }
 
 var opentelemetryTracerOptions = provider.OpentelemetryTracerOptions{
@@ -252,7 +256,7 @@ func Execute() {
 				logs.SpanError(span, "no span context found")
 				span.Finish()
 				rootSpan.Finish()
-				time.Sleep(time.Duration(1000) * time.Millisecond)
+				traces.Stop()
 				os.Exit(0)
 			}
 			traceID := ctx.GetTraceID()
@@ -265,7 +269,7 @@ func Execute() {
 				logs.SpanError(span, err)
 				span.Finish()
 				rootSpan.Finish()
-				time.Sleep(time.Duration(1000) * time.Millisecond)
+				traces.Stop()
 				os.Exit(0)
 			}
 
@@ -281,22 +285,23 @@ func Execute() {
 			logs.Info("Wait until it will be interrupted...")
 
 			rootSpan.Finish()
-			time.Sleep(time.Duration(1000) * time.Millisecond)
 			mainWG.Wait()
+			traces.Stop()
 		},
 	}
 
 	flags := rootCmd.PersistentFlags()
 
 	flags.StringSliceVar(&rootOptions.Logs, "logs", rootOptions.Logs, "Log providers: stdout, datadog")
-	flags.StringSliceVar(&rootOptions.Metrics, "metrics", rootOptions.Metrics, "Metric providers: prometheus, datadog")
-	flags.StringSliceVar(&rootOptions.Traces, "traces", rootOptions.Traces, "Trace providers: jaeger, datadog")
+	flags.StringSliceVar(&rootOptions.Metrics, "metrics", rootOptions.Metrics, "Metric providers: prometheus, datadog, opentelemetry")
+	flags.StringSliceVar(&rootOptions.Traces, "traces", rootOptions.Traces, "Trace providers: jaeger, datadog, opentelemetry")
 
 	flags.StringVar(&stdoutOptions.Format, "stdout-format", stdoutOptions.Format, "Stdout format: json, text, template")
 	flags.StringVar(&stdoutOptions.Level, "stdout-level", stdoutOptions.Level, "Stdout level: info, warn, error, debug, panic")
 	flags.StringVar(&stdoutOptions.Template, "stdout-template", stdoutOptions.Template, "Stdout template")
 	flags.StringVar(&stdoutOptions.TimestampFormat, "stdout-timestamp-format", stdoutOptions.TimestampFormat, "Stdout timestamp format")
 	flags.BoolVar(&stdoutOptions.TextColors, "stdout-text-colors", stdoutOptions.TextColors, "Stdout text colors")
+	flags.BoolVar(&stdoutOptions.Debug, "stdout-debug", stdoutOptions.Debug, "Stdout debug")
 
 	flags.StringVar(&prometheusOptions.URL, "prometheus-url", prometheusOptions.URL, "Prometheus endpoint url")
 	flags.StringVar(&prometheusOptions.Listen, "prometheus-listen", prometheusOptions.Listen, "Prometheus listen")

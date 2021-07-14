@@ -20,7 +20,6 @@ require (
 	go.opentelemetry.io/otel/exporters/otlp/otlpmetric v0.21.0
 	go.opentelemetry.io/otel/exporters/otlp/otlpmetric/otlpmetricgrpc v0.21.0
 	go.opentelemetry.io/otel/exporters/otlp/otlptrace/otlptracegrpc v1.0.0-RC1
-	go.opentelemetry.io/otel/exporters/stdout/stdoutmetric v0.21.0
 	go.opentelemetry.io/otel/metric v0.21.0
 	go.opentelemetry.io/otel/sdk v1.0.0-RC1
 	go.opentelemetry.io/otel/sdk/metric v0.21.0
@@ -29,3 +28,5 @@ require (
 	golang.org/x/time v0.0.0-20210608053304-ed9ce3a009e4 // indirect
 	gopkg.in/DataDog/dd-trace-go.v1 v1.31.1
 )
+
+replace gopkg.in/DataDog/dd-trace-go.v1 => github.com/devopsext/dd-trace-go v1.31.2

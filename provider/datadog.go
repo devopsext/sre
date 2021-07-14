@@ -232,6 +232,7 @@ func (dd *DataDogTracer) StartSpanWithTraceID(traceID, spanID string) common.Tra
 
 	s, ctx := dd.startSpanFromContext(context.Background(), dd.callerOffset+4,
 		tracer.WithSpanID(sID),
+		tracer.WithTraceID(tID),
 	)
 	return &DataDogTracerSpan{
 		span:    s,
@@ -357,10 +358,13 @@ func (dd *DataDogLogger) addSpanFields(span common.TracerSpan, fields logrus.Fie
 		return fields
 	}
 
-	// we need to put int64 string for DataDog to have it properly correlated with traces
+	// we need to put int64 for DataDog to have it properly correlated with traces
 
-	fields["dd.trace_id"] = fmt.Sprintf("%d", common.TraceIDHexToUint64(ctx.GetTraceID()))
-	fields["dd.span_id"] = fmt.Sprintf("%d", common.SpanIDHexToUint64(ctx.GetSpanID()))
+	//fields["dd.trace_id"] = fmt.Sprintf("%d", common.TraceIDHexToUint64(ctx.GetTraceID()))
+	//fields["dd.span_id"] = fmt.Sprintf("%d", common.SpanIDHexToUint64(ctx.GetSpanID()))
+
+	fields["dd.trace_id"] = common.TraceIDHexToUint64(ctx.GetTraceID())
+	fields["dd.span_id"] = common.SpanIDHexToUint64(ctx.GetSpanID())
 
 	return fields
 }
