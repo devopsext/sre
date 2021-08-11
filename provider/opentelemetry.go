@@ -408,34 +408,6 @@ func (ott *OpentelemetryTracer) Stop() {
 	}
 }
 
-func parseOpentelemetryAttrributes(sAttributes string) []attribute.KeyValue {
-
-	env := utils.GetEnvironment()
-	pairs := strings.Split(sAttributes, ",")
-	attributes := make([]attribute.KeyValue, 0)
-	for _, p := range pairs {
-
-		if utils.IsEmpty(p) {
-			continue
-		}
-		kv := strings.SplitN(p, "=", 2)
-		k, v := strings.TrimSpace(kv[0]), strings.TrimSpace(kv[1])
-
-		if strings.HasPrefix(v, "${") && strings.HasSuffix(v, "}") {
-			ed := strings.SplitN(v[2:len(v)-1], ":", 2)
-			e, d := ed[0], ed[1]
-			v = env.Get(e, "").(string)
-			if v == "" && d != "" {
-				v = d
-			}
-		}
-
-		attribute := attribute.String(k, v)
-		attributes = append(attributes, attribute)
-	}
-	return attributes
-}
-
 func startOpentelemtryTracer(options OpentelemetryTracerOptions, logger common.Logger, stdout *Stdout) (trace.Tracer, *sdktrace.TracerProvider) {
 
 	disabled := utils.IsEmpty(options.AgentHost)
@@ -494,7 +466,12 @@ func NewOpentelemetryTracer(options OpentelemetryTracerOptions, logger common.Lo
 		return nil
 	}
 
-	attributes := parseOpentelemetryAttrributes(options.Attributes)
+	attributes := make([]attribute.KeyValue, 0)
+	m := common.GetKeyValues(options.Attributes)
+	for k, v := range m {
+		attribute := attribute.String(k, v)
+		attributes = append(attributes, attribute)
+	}
 
 	logger.Info("Opentelemetry tracer is up...")
 
@@ -647,7 +624,12 @@ func NewOpentelemetryMeter(options OpentelemetryMeterOptions, logger common.Logg
 		return nil
 	}
 
-	attributes := parseOpentelemetryAttrributes(options.Attributes)
+	attributes := make([]attribute.KeyValue, 0)
+	m := common.GetKeyValues(options.Attributes)
+	for k, v := range m {
+		attribute := attribute.String(k, v)
+		attributes = append(attributes, attribute)
+	}
 
 	return &OpentelemetryMeter{
 		options:      options,

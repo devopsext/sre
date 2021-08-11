@@ -8,6 +8,7 @@ require (
 	github.com/Microsoft/go-winio v0.5.0 // indirect
 	github.com/devopsext/utils v0.0.3
 	github.com/google/uuid v1.2.0 // indirect
+	github.com/newrelic/go-agent v3.14.1+incompatible
 	github.com/opentracing/opentracing-go v1.2.0
 	github.com/philhofer/fwd v1.1.1 // indirect
 	github.com/prometheus/client_golang v1.11.0

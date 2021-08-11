@@ -320,7 +320,11 @@ func startDataDogTracer(options DataDogTracerOptions, logger common.Logger) bool
 		opts = append(opts, tracer.WithLogger(&DataDogInternalLogger{logger: logger}))
 	}
 
-	opts = setDataDogTracerTags(opts, options.Tags)
+	m := common.GetKeyValues(options.Tags)
+	for k, v := range m {
+		tag := tracer.WithGlobalTag(k, v)
+		opts = append(opts, tag)
+	}
 
 	tracer.Start(opts...)
 	return true
@@ -359,10 +363,6 @@ func (dd *DataDogLogger) addSpanFields(span common.TracerSpan, fields logrus.Fie
 	}
 
 	// we need to put int64 for DataDog to have it properly correlated with traces
-
-	//fields["dd.trace_id"] = fmt.Sprintf("%d", common.TraceIDHexToUint64(ctx.GetTraceID()))
-	//fields["dd.span_id"] = fmt.Sprintf("%d", common.SpanIDHexToUint64(ctx.GetSpanID()))
-
 	fields["dd.trace_id"] = common.TraceIDHexToUint64(ctx.GetTraceID())
 	fields["dd.span_id"] = common.SpanIDHexToUint64(ctx.GetSpanID())
 
@@ -486,35 +486,13 @@ func (dd *DataDogLogger) exists(level logrus.Level, obj interface{}, args ...int
 		"version": dd.options.Version,
 		"env":     dd.options.Environment,
 	}
-	return true, fields, message
-}
 
-func setDataDogTracerTags(opts []tracer.StartOption, sTags string) []tracer.StartOption {
-
-	env := utils.GetEnvironment()
-	pairs := strings.Split(sTags, ",")
-
-	for _, p := range pairs {
-
-		if utils.IsEmpty(p) {
-			continue
-		}
-		kv := strings.SplitN(p, "=", 2)
-		k, v := strings.TrimSpace(kv[0]), strings.TrimSpace(kv[1])
-
-		if strings.HasPrefix(v, "${") && strings.HasSuffix(v, "}") {
-			ed := strings.SplitN(v[2:len(v)-1], ":", 2)
-			e, d := ed[0], ed[1]
-			v = env.Get(e, "").(string)
-			if v == "" && d != "" {
-				v = d
-			}
-		}
-
-		tag := tracer.WithGlobalTag(k, v)
-		opts = append(opts, tag)
+	m := common.GetKeyValues(dd.options.Tags)
+	for k, v := range m {
+		fields[k] = v
 	}
-	return opts
+
+	return true, fields, message
 }
 
 func NewDataDogLogger(options DataDogLoggerOptions, logger common.Logger, stdout *Stdout) *DataDogLogger {

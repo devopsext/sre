@@ -113,6 +113,19 @@ var opentelemetryMeterOptions = provider.OpentelemetryMeterOptions{
 	CollectPeriod: 1000,
 }
 
+var newrelicOptions = provider.NewRelicOptions{
+	ServiceName: "",
+	Environment: "",
+	Tags:        "",
+	Debug:       false,
+}
+
+var newrelicLoggerOptions = provider.NewRelicLoggerOptions{
+	AgentHost: "",
+	AgentPort: 5171,
+	Level:     "info",
+}
+
 func interceptSyscall() {
 
 	c := make(chan os.Signal)
@@ -145,6 +158,15 @@ func Execute() {
 			datadogLogger := provider.NewDataDogLogger(datadogLoggerOptions, logs, stdout)
 			if utils.Contains(rootOptions.Logs, "datadog") && datadogLogger != nil {
 				logs.Register(datadogLogger)
+			}
+
+			newrelicLoggerOptions.Version = VERSION
+			newrelicLoggerOptions.ServiceName = newrelicOptions.ServiceName
+			newrelicLoggerOptions.Environment = newrelicOptions.Environment
+			newrelicLoggerOptions.Tags = newrelicOptions.Tags
+			newrelicLogger := provider.NewNewRelicLogger(newrelicLoggerOptions, logs, stdout)
+			if utils.Contains(rootOptions.Logs, "newrelic") && newrelicLogger != nil {
+				logs.Register(newrelicLogger)
 			}
 
 			logs.Info("Booting...")
@@ -292,7 +314,7 @@ func Execute() {
 
 	flags := rootCmd.PersistentFlags()
 
-	flags.StringSliceVar(&rootOptions.Logs, "logs", rootOptions.Logs, "Log providers: stdout, datadog")
+	flags.StringSliceVar(&rootOptions.Logs, "logs", rootOptions.Logs, "Log providers: stdout, datadog, newrelic")
 	flags.StringSliceVar(&rootOptions.Metrics, "metrics", rootOptions.Metrics, "Metric providers: prometheus, datadog, opentelemetry")
 	flags.StringSliceVar(&rootOptions.Traces, "traces", rootOptions.Traces, "Trace providers: jaeger, datadog, opentelemetry")
 
@@ -339,6 +361,13 @@ func Execute() {
 	flags.StringVar(&opentelemetryMeterOptions.AgentHost, "opentelemetry-meter-agent-host", opentelemetryMeterOptions.AgentHost, "Opentelemetry meter agent host")
 	flags.IntVar(&opentelemetryMeterOptions.AgentPort, "opentelemetry-meter-agent-port", opentelemetryMeterOptions.AgentPort, "Opentelemetry meter agent port")
 	flags.StringVar(&opentelemetryMeterOptions.Prefix, "opentelemetry-meter-prefix", opentelemetryMeterOptions.Prefix, "Opentelemetry meter prefix")
+
+	flags.StringVar(&newrelicOptions.ServiceName, "newrelic-service-name", newrelicOptions.ServiceName, "NewRelic service name")
+	flags.StringVar(&newrelicOptions.Environment, "newrelic-environment", newrelicOptions.Environment, "NewRelic environment")
+	flags.StringVar(&newrelicOptions.Tags, "newrelic-tags", newrelicOptions.Tags, "NewRelic tags")
+	flags.StringVar(&newrelicLoggerOptions.AgentHost, "newrelic-logger-agent-host", newrelicLoggerOptions.AgentHost, "NewRelic logger agent host")
+	flags.IntVar(&newrelicLoggerOptions.AgentPort, "newrelic-logger-agent-port", newrelicLoggerOptions.AgentPort, "NewRelic logger agent port")
+	flags.StringVar(&newrelicLoggerOptions.Level, "newrelic-logger-level", newrelicLoggerOptions.Level, "NewRelic logger level: info, warn, error, debug, panic")
 
 	interceptSyscall()
 

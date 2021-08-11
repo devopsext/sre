@@ -362,36 +362,6 @@ func (j *JaegerTracer) Stop() {
 	// nothing here
 }
 
-func parseJaegerTags(sTags string) []opentracing.Tag {
-
-	env := utils.GetEnvironment()
-	pairs := strings.Split(sTags, ",")
-	tags := make([]opentracing.Tag, 0)
-	for _, p := range pairs {
-
-		if utils.IsEmpty(p) {
-			continue
-		}
-		kv := strings.SplitN(p, "=", 2)
-		k, v := strings.TrimSpace(kv[0]), strings.TrimSpace(kv[1])
-
-		if strings.HasPrefix(v, "${") && strings.HasSuffix(v, "}") {
-			ed := strings.SplitN(v[2:len(v)-1], ":", 2)
-			if len(ed) > 1 {
-				e, d := ed[0], ed[1]
-				v = env.Get(e, "").(string)
-				if v == "" && d != "" {
-					v = d
-				}
-			}
-		}
-
-		tag := opentracing.Tag{Key: k, Value: v}
-		tags = append(tags, tag)
-	}
-	return tags
-}
-
 func newJaegerTracer(options JaegerOptions, logger common.Logger, stdout *Stdout) opentracing.Tracer {
 
 	disabled := utils.IsEmpty(options.AgentHost) && utils.IsEmpty(options.Endpoint)
@@ -399,7 +369,13 @@ func newJaegerTracer(options JaegerOptions, logger common.Logger, stdout *Stdout
 		return nil
 	}
 
-	tags := parseJaegerTags(options.Tags)
+	tags := make([]opentracing.Tag, 0)
+	m := common.GetKeyValues(options.Tags)
+	for k, v := range m {
+		tag := opentracing.Tag{Key: k, Value: v}
+		tags = append(tags, tag)
+	}
+
 	tags = append(tags, opentracing.Tag{
 		Key:   "version",
 		Value: options.Version,
