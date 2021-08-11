@@ -82,7 +82,7 @@ func datadogNewLogger(agentHost, level string) (*DataDogLogger, *Stdout) {
 		AgentPort: 8126,
 		Level:     level,
 		DataDogOptions: DataDogOptions{
-			ServiceName: "sre-datadog-tracer-test",
+			ServiceName: "sre-datadog-logger-test",
 			Tags:        "tag1=value1,,tag3=${key3:value3}",
 			Debug:       true,
 		},
