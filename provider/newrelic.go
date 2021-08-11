@@ -3,6 +3,7 @@ package provider
 import (
 	"fmt"
 	"net"
+	"strings"
 	"time"
 
 	"github.com/devopsext/sre/common"
@@ -25,12 +26,34 @@ type NewRelicLoggerOptions struct {
 	Level     string
 }
 
+type NewRelicMeterOptions struct {
+	NewRelicOptions
+	AgentHost string
+	AgentPort int
+	Prefix    string
+}
+
 type NewRelicLogger struct {
 	connection   *net.TCPConn
 	stdout       *Stdout
 	log          *logrus.Logger
 	options      NewRelicLoggerOptions
 	callerOffset int
+}
+
+type NewRelicCounter struct {
+	meter       *NewRelicMeter
+	name        string
+	description string
+	labels      []string
+	prefix      string
+}
+
+type NewRelicMeter struct {
+	options      NewRelicMeterOptions
+	logger       common.Logger
+	callerOffset int
+	//	client       *statsd.Client
 }
 
 func (nr *NewRelicLogger) addSpanFields(span common.TracerSpan, fields logrus.Fields) logrus.Fields {
@@ -231,5 +254,79 @@ func NewNewRelicLogger(options NewRelicLoggerOptions, logger common.Logger, stdo
 		log:          log,
 		options:      options,
 		callerOffset: 1,
+	}
+}
+
+func (nrc *NewRelicCounter) Inc(labelValues ...string) common.Counter {
+
+	/*newName := ddmc.name
+	if !utils.IsEmpty(ddmc.prefix) {
+		newName = fmt.Sprintf("%s.%s", ddmc.prefix, newName)
+	}
+
+	newValues := ddmc.getLabelTags(labelValues...)
+	_, file, line := common.GetCallerInfo(ddmc.meter.callerOffset + 3)
+	newValues = append(newValues, fmt.Sprintf("file:%s", fmt.Sprintf("%s:%d", file, line)))
+
+	err := ddmc.meter.client.Incr(newName, newValues, 1)
+	if err != nil {
+		ddmc.meter.logger.Error(err)
+	}*/
+	return nrc
+}
+
+func (nrm *NewRelicMeter) SetCallerOffset(offset int) {
+	nrm.callerOffset = offset
+}
+
+func (nrm *NewRelicMeter) Counter(name, description string, labels []string, prefixes ...string) common.Counter {
+
+	var names []string
+
+	/*	if !utils.IsEmpty(ddm.options.Prefix) {
+			names = append(names, ddm.options.Prefix)
+		}
+
+		if len(prefixes) > 0 {
+			names = append(names, strings.Join(prefixes, "_"))
+		}
+	*/
+	return &NewRelicCounter{
+		meter:       nrm,
+		name:        name,
+		description: description,
+		labels:      labels,
+		prefix:      strings.Join(names, "."),
+	}
+}
+
+func (nrm *NewRelicMeter) Stop() {
+	// nothing here
+}
+
+func NewNewRelicMeter(options NewRelicMeterOptions, logger common.Logger, stdout *Stdout) *NewRelicMeter {
+
+	if logger == nil {
+		logger = stdout
+	}
+
+	if utils.IsEmpty(options.AgentHost) {
+		stdout.Debug("NewRelic meter is disabled.")
+		return nil
+	}
+
+	/*client, err := statsd.New(fmt.Sprintf("%s:%d", options.AgentHost, options.AgentPort))
+	if err != nil {
+		logger.Error(err)
+		return nil
+	}*/
+
+	logger.Info("NewRelic meter is up...")
+
+	return &NewRelicMeter{
+		options:      options,
+		logger:       logger,
+		callerOffset: 1,
+		//	client:       client,
 	}
 }

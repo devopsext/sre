@@ -126,6 +126,12 @@ var newrelicLoggerOptions = provider.NewRelicLoggerOptions{
 	Level:     "info",
 }
 
+var newrelicMeterOptions = provider.NewRelicMeterOptions{
+	AgentHost: "",
+	AgentPort: 5171,
+	Prefix:    "sre",
+}
+
 func interceptSyscall() {
 
 	c := make(chan os.Signal)
@@ -196,6 +202,15 @@ func Execute() {
 			opentelemetryMeter := provider.NewOpentelemetryMeter(opentelemetryMeterOptions, logs, stdout)
 			if utils.Contains(rootOptions.Metrics, "opentelemetry") && opentelemetryMeter != nil {
 				metrics.Register(opentelemetryMeter)
+			}
+
+			newrelicMeterOptions.Version = VERSION
+			newrelicMeterOptions.ServiceName = newrelicOptions.ServiceName
+			newrelicMeterOptions.Environment = newrelicOptions.Environment
+			newrelicMeterOptions.Labels = newrelicOptions.Labels
+			newrelicMeter := provider.NewNewRelicMeter(newrelicMeterOptions, logs, stdout)
+			if utils.Contains(rootOptions.Metrics, "newrelic") && newrelicMeter != nil {
+				metrics.Register(newrelicMeter)
 			}
 
 			// Tracing
@@ -368,6 +383,9 @@ func Execute() {
 	flags.StringVar(&newrelicLoggerOptions.AgentHost, "newrelic-logger-agent-host", newrelicLoggerOptions.AgentHost, "NewRelic logger agent host")
 	flags.IntVar(&newrelicLoggerOptions.AgentPort, "newrelic-logger-agent-port", newrelicLoggerOptions.AgentPort, "NewRelic logger agent port")
 	flags.StringVar(&newrelicLoggerOptions.Level, "newrelic-logger-level", newrelicLoggerOptions.Level, "NewRelic logger level: info, warn, error, debug, panic")
+	flags.StringVar(&newrelicMeterOptions.AgentHost, "newrelic-meter-agent-host", newrelicMeterOptions.AgentHost, "NewRelic meter agent host")
+	flags.IntVar(&newrelicMeterOptions.AgentPort, "newrelic-meter-agent-port", newrelicMeterOptions.AgentPort, "NewRelic meter agent port")
+	flags.StringVar(&newrelicMeterOptions.Prefix, "newrelic-meter-prefix", newrelicMeterOptions.Prefix, "NewRelic meter prefix")
 
 	interceptSyscall()
 
