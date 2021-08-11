@@ -14,6 +14,7 @@ Framework for golang applications which helps to send metrics, logs and traces i
 - Support logging tools (aka logs):
   - Stdout (text, json, template) based on [Logrus](github.com/sirupsen/logrus)
   - DataDog based on [Logrus](github.com/sirupsen/logrus) over UDP
+  - NewRelic based on [Logrus](github.com/sirupsen/logrus) over TCP
 - Support monitoring tools (aka metrics)
   - [Prometheus](github.com/prometheus/client_golang)
   - [DataDog](https://github.com/DataDog/datadog-go)
@@ -31,6 +32,7 @@ Framework for golang applications which helps to send metrics, logs and traces i
 - Jaeger works with its [Jaeger agent](https://www.jaegertracing.io/docs/latest/getting-started/)
 - DataDog uses [DataDog agent](https://docs.datadoghq.com/agent/) for logs, metrics and traces
 - Opentelemetry communicates with its [Opentelemetry agent](https://github.com/open-telemetry/opentelemetry-collector)
+- NewRelic uses [NewRelic standalone infrastructure agent](https://docs.newrelic.com/docs/infrastructure/install-infrastructure-agent/) for logs
 
 ### Set envs
 
