@@ -24,10 +24,10 @@ sre/examples/traces.go:24 Counter increment 7
 sre/examples/traces.go:24 Counter increment 8
 ```
 
-## Go to Jaeger UI and there should be seen
+## Jaeger UI
 
-![Jaeger](/jaeger.png)
+![Jaeger](/examples/jaeger-traces.png)
 
-## For a case of Opentelemetry (Lightstep) screenshoot will be
+## Opentelemetry (Lightstep UI)
 
-![Lightstep](/lightstep.png)
+![Lightstep](/examples/lightstep-traces.png)
