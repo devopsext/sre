@@ -34,14 +34,28 @@ func main() {
 			ServiceName: "sre-datadog",
 			Environment: "stage",
 		},
-		AgentHost: "localhost", // set DataDog agent UDP logs host
-		AgentPort: 10518,       // set DataDog agent UDP logs port
+		AgentHost: "",    // set DataDog agent UDP logs host
+		AgentPort: 10518, // set DataDog agent UDP logs port
+		Level:     "info",
+	}, logs, stdout)
+
+	// initialize NewRelic logger
+	newrelic := provider.NewNewRelicLogger(provider.NewRelicLoggerOptions{
+		NewRelicOptions: provider.NewRelicOptions{
+			ServiceName: "sre-newrelic",
+			Environment: "stage",
+		},
+		AgentHost: "localhost", // set NewRelic agent TCP logs host
+		AgentPort: 5171,        // set NewRelic agent TCP logs port
 		Level:     "info",
 	}, logs, stdout)
 
 	// add loggers
 	logs.Register(stdout)
-	logs.Register(datadog)
+	if datadog != nil {
+		logs.Register(datadog)
+	}
+	logs.Register(newrelic)
 
 	test()
 }
