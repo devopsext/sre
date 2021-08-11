@@ -14,7 +14,7 @@ type NewRelicOptions struct {
 	ServiceName string
 	Environment string
 	Version     string
-	Tags        string
+	Labels      string
 	Debug       bool
 }
 
@@ -168,7 +168,7 @@ func (nr *NewRelicLogger) exists(level logrus.Level, obj interface{}, args ...in
 		"env":     nr.options.Environment,
 	}
 
-	m := common.GetKeyValues(nr.options.Tags)
+	m := common.GetKeyValues(nr.options.Labels)
 	for k, v := range m {
 		fields[k] = v
 	}

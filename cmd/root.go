@@ -116,7 +116,7 @@ var opentelemetryMeterOptions = provider.OpentelemetryMeterOptions{
 var newrelicOptions = provider.NewRelicOptions{
 	ServiceName: "",
 	Environment: "",
-	Tags:        "",
+	Labels:      "",
 	Debug:       false,
 }
 
@@ -163,7 +163,7 @@ func Execute() {
 			newrelicLoggerOptions.Version = VERSION
 			newrelicLoggerOptions.ServiceName = newrelicOptions.ServiceName
 			newrelicLoggerOptions.Environment = newrelicOptions.Environment
-			newrelicLoggerOptions.Tags = newrelicOptions.Tags
+			newrelicLoggerOptions.Labels = newrelicOptions.Labels
 			newrelicLogger := provider.NewNewRelicLogger(newrelicLoggerOptions, logs, stdout)
 			if utils.Contains(rootOptions.Logs, "newrelic") && newrelicLogger != nil {
 				logs.Register(newrelicLogger)
@@ -364,7 +364,7 @@ func Execute() {
 
 	flags.StringVar(&newrelicOptions.ServiceName, "newrelic-service-name", newrelicOptions.ServiceName, "NewRelic service name")
 	flags.StringVar(&newrelicOptions.Environment, "newrelic-environment", newrelicOptions.Environment, "NewRelic environment")
-	flags.StringVar(&newrelicOptions.Tags, "newrelic-tags", newrelicOptions.Tags, "NewRelic tags")
+	flags.StringVar(&newrelicOptions.Labels, "newrelic-labels", newrelicOptions.Labels, "NewRelic labels")
 	flags.StringVar(&newrelicLoggerOptions.AgentHost, "newrelic-logger-agent-host", newrelicLoggerOptions.AgentHost, "NewRelic logger agent host")
 	flags.IntVar(&newrelicLoggerOptions.AgentPort, "newrelic-logger-agent-port", newrelicLoggerOptions.AgentPort, "NewRelic logger agent port")
 	flags.StringVar(&newrelicLoggerOptions.Level, "newrelic-logger-level", newrelicLoggerOptions.Level, "NewRelic logger level: info, warn, error, debug, panic")
