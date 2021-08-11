@@ -9,6 +9,7 @@ import (
 	"net/http"
 	"path"
 	"runtime"
+	"strings"
 	"time"
 
 	"github.com/devopsext/utils"
@@ -105,4 +106,33 @@ func TraceIDUint64ToHex(n uint64) string {
 func TraceIDBytesToHex(bytes [16]byte) string {
 
 	return hex.EncodeToString(bytes[:])
+}
+
+func GetKeyValues(s string) map[string]string {
+
+	env := utils.GetEnvironment()
+	pairs := strings.Split(s, ",")
+
+	var m map[string]string = make(map[string]string)
+
+	for _, p := range pairs {
+
+		if utils.IsEmpty(p) {
+			continue
+		}
+		kv := strings.SplitN(p, "=", 2)
+		k, v := strings.TrimSpace(kv[0]), strings.TrimSpace(kv[1])
+
+		if strings.HasPrefix(v, "${") && strings.HasSuffix(v, "}") {
+			ed := strings.SplitN(v[2:len(v)-1], ":", 2)
+			e, d := ed[0], ed[1]
+			v = env.Get(e, "").(string)
+			if v == "" && d != "" {
+				v = d
+			}
+		}
+
+		m[k] = v
+	}
+	return m
 }
