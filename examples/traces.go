@@ -38,6 +38,9 @@ func test() {
 
 func main() {
 
+	defer logs.Stop()   // finalize logs delivery
+	defer traces.Stop() // finalize traces delivery
+
 	// initialize Stdout logger
 	stdout := provider.NewStdout(provider.StdoutOptions{
 		Format:          "template",
@@ -90,6 +93,4 @@ func main() {
 	traces.Register(opentelemetry)
 
 	test()
-
-	traces.Stop() // finalize traces delivery
 }

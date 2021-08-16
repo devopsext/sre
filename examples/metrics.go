@@ -19,6 +19,9 @@ func test() {
 
 func main() {
 
+	defer logs.Stop()    // finalize logs delivery
+	defer metrics.Stop() // finalize metrics delivery
+
 	// initialize Stdout logger
 	stdout := provider.NewStdout(provider.StdoutOptions{
 		Format:          "template",
@@ -70,5 +73,5 @@ func main() {
 	test()
 
 	mainWG.Wait()
-	metrics.Stop() // finalize metrics delivery
+
 }

@@ -12,4 +12,5 @@ type Logger interface {
 	Panic(obj interface{}, args ...interface{})
 	SpanPanic(span TracerSpan, obj interface{}, args ...interface{})
 	Stack(offset int) Logger
+	Stop()
 }

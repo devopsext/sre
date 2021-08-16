@@ -8,15 +8,19 @@ import (
 
 	"github.com/devopsext/sre/common"
 	utils "github.com/devopsext/utils"
+	newrelicclient "github.com/newrelic/newrelic-client-go/newrelic"
+	newrelicconfig "github.com/newrelic/newrelic-client-go/pkg/config"
 	"github.com/sirupsen/logrus"
 )
 
 type NewRelicOptions struct {
+	License     string
 	ServiceName string
 	Environment string
 	Version     string
 	Labels      string
 	Debug       bool
+	Region      string
 }
 
 type NewRelicLoggerOptions struct {
@@ -33,7 +37,13 @@ type NewRelicMeterOptions struct {
 	Prefix    string
 }
 
+type NewRelicLogWriter struct {
+	client *newrelicclient.NewRelic
+	stdout *Stdout
+}
+
 type NewRelicLogger struct {
+	client       *newrelicclient.NewRelic
 	connection   *net.TCPConn
 	stdout       *Stdout
 	log          *logrus.Logger
@@ -54,6 +64,19 @@ type NewRelicMeter struct {
 	logger       common.Logger
 	callerOffset int
 	//	client       *statsd.Client
+}
+
+func (nrlw NewRelicLogWriter) Write(p []byte) (n int, err error) {
+
+	if nrlw.client != nil {
+		err := nrlw.client.Logs.CreateLogEntry(p)
+		if err != nil {
+			nrlw.stdout.Error(err)
+			return 0, err
+		}
+		return len(p), nil
+	}
+	return 0, nil
 }
 
 func (nr *NewRelicLogger) addSpanFields(span common.TracerSpan, fields logrus.Fields) logrus.Fields {
@@ -199,31 +222,81 @@ func (nr *NewRelicLogger) exists(level logrus.Level, obj interface{}, args ...in
 	return true, fields, message
 }
 
+func (nr *NewRelicLogger) Stop() {
+	if nr.connection != nil {
+		nr.connection.Close()
+	}
+	if nr.client != nil {
+		nr.client.Logs.Flush()
+	}
+}
+
 func NewNewRelicLogger(options NewRelicLoggerOptions, logger common.Logger, stdout *Stdout) *NewRelicLogger {
 
 	if logger == nil {
 		logger = stdout
 	}
 
-	if utils.IsEmpty(options.AgentHost) {
+	if utils.IsEmpty(options.Region) || utils.IsEmpty(options.AgentHost) {
 		stdout.Debug("NewRelic logger is disabled.")
 		return nil
 	}
 
-	address := fmt.Sprintf("%s:%d", options.AgentHost, options.AgentPort)
-	serverAddr, err := net.ResolveTCPAddr("tcp", address)
-	if err != nil {
-		stdout.Error(err)
-		return nil
+	var connection *net.TCPConn = nil
+
+	if utils.IsEmpty(options.Region) && !utils.IsEmpty(options.AgentHost) {
+
+		address := fmt.Sprintf("%s:%d", options.AgentHost, options.AgentPort)
+		serverAddr, err := net.ResolveTCPAddr("tcp", address)
+		if err != nil {
+			stdout.Error(err)
+			return nil
+		}
+
+		connection, err = net.DialTCP("tcp", nil, serverAddr)
+		if err != nil {
+			stdout.Error(err)
+			return nil
+		}
 	}
 
-	connection, err := net.DialTCP("tcp", nil, serverAddr)
-	if err != nil {
-		stdout.Error(err)
-		return nil
+	var client *newrelicclient.NewRelic = nil
+
+	if !utils.IsEmpty(options.Region) {
+
+		configLicense := func(name string) newrelicclient.ConfigOption {
+			return func(cfg *newrelicconfig.Config) error {
+				if name != "" {
+					cfg.LicenseKey = name
+				}
+
+				return nil
+			}
+		}
+
+		c, err := newrelicclient.New(
+			newrelicclient.ConfigRegion(options.Region),
+			newrelicclient.ConfigServiceName(options.ServiceName),
+			newrelicclient.ConfigPersonalAPIKey(options.License), // why we need this? we use license instead
+			newrelicclient.ConfigLogJSON(true),
+			newrelicclient.ConfigLogLevel(options.Level),
+			configLicense(options.License),
+		)
+		if err != nil {
+			stdout.Error(err)
+			return nil
+		}
+		client = c
+
 	}
 
-	formatter := &logrus.JSONFormatter{}
+	formatter := &logrus.JSONFormatter{
+		FieldMap: logrus.FieldMap{
+			logrus.FieldKeyTime:  "timestamp",
+			logrus.FieldKeyLevel: "level",
+			logrus.FieldKeyMsg:   "message",
+		},
+	}
 	formatter.TimestampFormat = time.RFC3339Nano
 
 	log := logrus.New()
@@ -244,11 +317,22 @@ func NewNewRelicLogger(options NewRelicLoggerOptions, logger common.Logger, stdo
 		log.SetLevel(logrus.InfoLevel)
 	}
 
-	log.SetOutput(connection)
+	if connection != nil {
+		log.SetOutput(connection)
+	}
+
+	if client != nil {
+
+		log.SetOutput(NewRelicLogWriter{
+			client: client,
+			stdout: stdout,
+		})
+	}
 
 	logger.Info("NewRelic logger is up...")
 
 	return &NewRelicLogger{
+		client:       client,
 		connection:   connection,
 		stdout:       stdout,
 		log:          log,

@@ -71,6 +71,7 @@ var jaegerOptions = provider.JaegerOptions{
 }
 
 var datadogOptions = provider.DataDogOptions{
+	ApiKey:      "",
 	ServiceName: "",
 	Environment: "none",
 	Tags:        "",
@@ -114,10 +115,12 @@ var opentelemetryMeterOptions = provider.OpentelemetryMeterOptions{
 }
 
 var newrelicOptions = provider.NewRelicOptions{
+	License:     "",
 	ServiceName: "",
 	Environment: "",
 	Labels:      "",
 	Debug:       false,
+	Region:      "",
 }
 
 var newrelicLoggerOptions = provider.NewRelicLoggerOptions{
@@ -158,6 +161,7 @@ func Execute() {
 			}
 
 			datadogLoggerOptions.Version = VERSION
+			datadogLoggerOptions.ApiKey = datadogOptions.ApiKey
 			datadogLoggerOptions.ServiceName = datadogOptions.ServiceName
 			datadogLoggerOptions.Environment = datadogOptions.Environment
 			datadogLoggerOptions.Tags = datadogOptions.Tags
@@ -167,9 +171,11 @@ func Execute() {
 			}
 
 			newrelicLoggerOptions.Version = VERSION
+			newrelicLoggerOptions.License = newrelicOptions.License
 			newrelicLoggerOptions.ServiceName = newrelicOptions.ServiceName
 			newrelicLoggerOptions.Environment = newrelicOptions.Environment
 			newrelicLoggerOptions.Labels = newrelicOptions.Labels
+			newrelicLoggerOptions.Region = newrelicOptions.Region
 			newrelicLogger := provider.NewNewRelicLogger(newrelicLoggerOptions, logs, stdout)
 			if utils.Contains(rootOptions.Logs, "newrelic") && newrelicLogger != nil {
 				logs.Register(newrelicLogger)
@@ -187,6 +193,7 @@ func Execute() {
 			}
 
 			datadogMeterOptions.Version = VERSION
+			datadogMeterOptions.ApiKey = datadogOptions.ApiKey
 			datadogMeterOptions.ServiceName = datadogOptions.ServiceName
 			datadogMeterOptions.Environment = datadogOptions.Environment
 			datadogMeterOptions.Tags = datadogOptions.Tags
@@ -205,6 +212,7 @@ func Execute() {
 			}
 
 			newrelicMeterOptions.Version = VERSION
+			newrelicMeterOptions.License = newrelicOptions.License
 			newrelicMeterOptions.ServiceName = newrelicOptions.ServiceName
 			newrelicMeterOptions.Environment = newrelicOptions.Environment
 			newrelicMeterOptions.Labels = newrelicOptions.Labels
@@ -222,6 +230,7 @@ func Execute() {
 			}
 
 			datadogTracerOptions.Version = VERSION
+			datadogTracerOptions.ApiKey = datadogOptions.ApiKey
 			datadogTracerOptions.ServiceName = datadogOptions.ServiceName
 			datadogTracerOptions.Environment = datadogOptions.Environment
 			datadogTracerOptions.Tags = datadogOptions.Tags
@@ -243,6 +252,7 @@ func Execute() {
 		},
 		Run: func(cmd *cobra.Command, args []string) {
 
+			defer logs.Stop()
 			defer metrics.Stop()
 			defer traces.Stop()
 
@@ -355,6 +365,7 @@ func Execute() {
 	flags.StringVar(&jaegerOptions.Tags, "jaeger-tags", jaegerOptions.Tags, "Jaeger tags, comma separated list of name=value")
 	flags.BoolVar(&jaegerOptions.Debug, "jaeger-debug", jaegerOptions.Debug, "Jaeger debug")
 
+	flags.StringVar(&datadogOptions.ApiKey, "datadog-api-key", datadogOptions.ApiKey, "DataDog API key")
 	flags.StringVar(&datadogOptions.ServiceName, "datadog-service-name", datadogOptions.ServiceName, "DataDog service name")
 	flags.StringVar(&datadogOptions.Environment, "datadog-environment", datadogOptions.Environment, "DataDog environment")
 	flags.StringVar(&datadogOptions.Tags, "datadog-tags", datadogOptions.Tags, "DataDog tags")
@@ -377,9 +388,11 @@ func Execute() {
 	flags.IntVar(&opentelemetryMeterOptions.AgentPort, "opentelemetry-meter-agent-port", opentelemetryMeterOptions.AgentPort, "Opentelemetry meter agent port")
 	flags.StringVar(&opentelemetryMeterOptions.Prefix, "opentelemetry-meter-prefix", opentelemetryMeterOptions.Prefix, "Opentelemetry meter prefix")
 
+	flags.StringVar(&newrelicOptions.License, "newrelic-license", newrelicOptions.License, "NewRelic license")
 	flags.StringVar(&newrelicOptions.ServiceName, "newrelic-service-name", newrelicOptions.ServiceName, "NewRelic service name")
 	flags.StringVar(&newrelicOptions.Environment, "newrelic-environment", newrelicOptions.Environment, "NewRelic environment")
 	flags.StringVar(&newrelicOptions.Labels, "newrelic-labels", newrelicOptions.Labels, "NewRelic labels")
+	flags.StringVar(&newrelicOptions.Region, "newrelic-region", newrelicOptions.Region, "NewRelic region")
 	flags.StringVar(&newrelicLoggerOptions.AgentHost, "newrelic-logger-agent-host", newrelicLoggerOptions.AgentHost, "NewRelic logger agent host")
 	flags.IntVar(&newrelicLoggerOptions.AgentPort, "newrelic-logger-agent-port", newrelicLoggerOptions.AgentPort, "NewRelic logger agent port")
 	flags.StringVar(&newrelicLoggerOptions.Level, "newrelic-logger-level", newrelicLoggerOptions.Level, "NewRelic logger level: info, warn, error, debug, panic")

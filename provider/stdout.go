@@ -212,6 +212,10 @@ func (so *Stdout) Stack(offset int) common.Logger {
 	return so
 }
 
+func (so *Stdout) Stop() {
+	//
+}
+
 func newLog(options StdoutOptions) *logrus.Logger {
 
 	log := logrus.New()

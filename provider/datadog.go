@@ -19,6 +19,7 @@ import (
 )
 
 type DataDogOptions struct {
+	ApiKey      string
 	ServiceName string
 	Environment string
 	Version     string
@@ -493,6 +494,12 @@ func (dd *DataDogLogger) exists(level logrus.Level, obj interface{}, args ...int
 	}
 
 	return true, fields, message
+}
+
+func (dd *DataDogLogger) Stop() {
+	if dd.connection != nil {
+		dd.connection.Close()
+	}
 }
 
 func NewDataDogLogger(options DataDogLoggerOptions, logger common.Logger, stdout *Stdout) *DataDogLogger {

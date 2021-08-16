@@ -17,6 +17,8 @@ func test() {
 
 func main() {
 
+	defer logs.Stop()
+
 	// initialize Stdout logger
 	stdout := provider.NewStdout(provider.StdoutOptions{
 		Format:          "template",
