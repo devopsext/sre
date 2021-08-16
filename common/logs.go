@@ -101,6 +101,12 @@ func (ls *Logs) Stack(offset int) Logger {
 	return ls
 }
 
+func (ls *Logs) Stop() {
+	for _, l := range ls.loggers {
+		l.Stop()
+	}
+}
+
 func (ls *Logs) Register(l Logger) {
 	if l != nil {
 		ls.loggers = append(ls.loggers, l)
