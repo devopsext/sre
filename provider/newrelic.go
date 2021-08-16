@@ -237,7 +237,7 @@ func NewNewRelicLogger(options NewRelicLoggerOptions, logger common.Logger, stdo
 		logger = stdout
 	}
 
-	if utils.IsEmpty(options.Region) || utils.IsEmpty(options.AgentHost) {
+	if utils.IsEmpty(options.Region) && utils.IsEmpty(options.AgentHost) {
 		stdout.Debug("NewRelic logger is disabled.")
 		return nil
 	}
