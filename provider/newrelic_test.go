@@ -2,13 +2,21 @@ package provider
 
 import (
 	"errors"
+	"net"
+	"strconv"
 	"testing"
 	"time"
 
 	"github.com/devopsext/sre/common"
 )
 
-func newrelicNewLogger(agentHost, level string) (*NewRelicLogger, *Stdout) {
+func newrelicNewLogger(agentHost, level string) (*NewRelicLogger, *Stdout, net.Listener) {
+
+	agentPort := 51710
+	listener, err := net.Listen("tcp", agentHost+":"+strconv.Itoa(agentPort))
+	if err != nil {
+		return nil, nil, nil
+	}
 
 	stdout := NewStdout(StdoutOptions{
 		Format:          "template",
@@ -17,13 +25,13 @@ func newrelicNewLogger(agentHost, level string) (*NewRelicLogger, *Stdout) {
 		TimestampFormat: time.RFC3339Nano,
 	})
 	if stdout == nil {
-		return nil, nil
+		return nil, nil, listener
 	}
 	stdout.SetCallerOffset(1)
 
 	newrelic := NewNewRelicLogger(NewRelicLoggerOptions{
 		AgentHost: agentHost,
-		AgentPort: 5171,
+		AgentPort: agentPort,
 		Level:     level,
 		NewRelicOptions: NewRelicOptions{
 			ServiceName: "sre-newrelic-tracer-test",
@@ -32,12 +40,12 @@ func newrelicNewLogger(agentHost, level string) (*NewRelicLogger, *Stdout) {
 		},
 	}, nil, stdout)
 
-	return newrelic, stdout
+	return newrelic, stdout, listener
 }
 
-func testNewRelicLogger(t *testing.T, level string) (*NewRelicLogger, common.TracerSpan) {
+func testNewRelicLogger(t *testing.T, level string) (*NewRelicLogger, common.TracerSpan, net.Listener) {
 
-	NewRelic, _ := newrelicNewLogger("localhost", level)
+	NewRelic, _, listener := newrelicNewLogger("localhost", level)
 	if NewRelic == nil {
 		t.Fatal("Invalid NewRelic")
 	}
@@ -65,12 +73,13 @@ func testNewRelicLogger(t *testing.T, level string) (*NewRelicLogger, common.Tra
 		t.Fatal("Invalid fields")
 	}*/
 
-	return NewRelic, nil
+	return NewRelic, nil, listener
 }
 
 func TestNewRelicLoggerInfo(t *testing.T) {
 
-	NewRelic, _ := testNewRelicLogger(t, "info")
+	NewRelic, _, listener := testNewRelicLogger(t, "info")
+	defer listener.Close()
 	NewRelic.Info(nil)
 	NewRelic.Info("info")
 	//NewRelic.SpanInfo(span, "info")
@@ -78,7 +87,8 @@ func TestNewRelicLoggerInfo(t *testing.T) {
 
 func TestNewRelicLoggerWarn(t *testing.T) {
 
-	NewRelic, _ := testNewRelicLogger(t, "warn")
+	NewRelic, _, listener := testNewRelicLogger(t, "warn")
+	defer listener.Close()
 	NewRelic.Warn(nil)
 	NewRelic.Warn("warn")
 	//NewRelic.SpanWarn(span, "warn")
@@ -86,7 +96,8 @@ func TestNewRelicLoggerWarn(t *testing.T) {
 
 func TestNewRelicLoggerDebug(t *testing.T) {
 
-	NewRelic, _ := testNewRelicLogger(t, "debug")
+	NewRelic, _, listener := testNewRelicLogger(t, "debug")
+	defer listener.Close()
 	NewRelic.Debug(nil)
 	NewRelic.Debug("debug")
 	//NewRelic.SpanDebug(span, "debug")
@@ -94,7 +105,8 @@ func TestNewRelicLoggerDebug(t *testing.T) {
 
 func TestNewRelicLoggerError(t *testing.T) {
 
-	NewRelic, _ := testNewRelicLogger(t, "error")
+	NewRelic, _, listener := testNewRelicLogger(t, "error")
+	defer listener.Close()
 	NewRelic.Error(nil)
 	NewRelic.Error("error")
 	NewRelic.Error(errors.New("some error"))
@@ -110,7 +122,8 @@ func TestNewRelicLoggerPanic(t *testing.T) {
 		}
 	}()
 
-	NewRelic, _ := testNewRelicLogger(t, "panic")
+	NewRelic, _, listener := testNewRelicLogger(t, "panic")
+	defer listener.Close()
 	NewRelic.Panic("panic")
 }
 
@@ -128,7 +141,8 @@ func TestNewRelicLoggerPanic(t *testing.T) {
 
 func TestNewRelicLoggerEmptyAgentHost(t *testing.T) {
 
-	NewRelic, _ := newrelicNewLogger("", "")
+	NewRelic, _, listener := newrelicNewLogger("", "")
+	defer listener.Close()
 	if NewRelic != nil {
 		t.Fatal("Valid NewRelic")
 	}
@@ -136,7 +150,7 @@ func TestNewRelicLoggerEmptyAgentHost(t *testing.T) {
 
 func TestNewRelicLoggerWrongAgentHost(t *testing.T) {
 
-	NewRelic, _ := newrelicNewLogger("ewqdWDEW1111ss", "how")
+	NewRelic, _, _ := newrelicNewLogger("ewqdWDEW1111ss", "how")
 	if NewRelic != nil {
 		t.Fatal("Valid NewRelic")
 	}
