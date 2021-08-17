@@ -81,7 +81,6 @@ type DataDogCounter struct {
 	name        string
 	description string
 	labels      []string
-	prefix      string
 }
 
 type DataDogMeter struct {
@@ -593,16 +592,11 @@ func (ddmc *DataDogCounter) getLabelTags(labelValues ...string) []string {
 
 func (ddmc *DataDogCounter) Inc(labelValues ...string) common.Counter {
 
-	newName := ddmc.name
-	if !utils.IsEmpty(ddmc.prefix) {
-		newName = fmt.Sprintf("%s.%s", ddmc.prefix, newName)
-	}
-
 	newValues := ddmc.getLabelTags(labelValues...)
 	_, file, line := common.GetCallerInfo(ddmc.meter.callerOffset + 3)
 	newValues = append(newValues, fmt.Sprintf("file:%s", fmt.Sprintf("%s:%d", file, line)))
 
-	err := ddmc.meter.client.Incr(newName, newValues, 1)
+	err := ddmc.meter.client.Incr(ddmc.name, newValues, 1)
 	if err != nil {
 		ddmc.meter.logger.Error(err)
 	}
@@ -625,12 +619,16 @@ func (ddm *DataDogMeter) Counter(name, description string, labels []string, pref
 		names = append(names, strings.Join(prefixes, "_"))
 	}
 
+	newName := name
+	if len(names) > 0 {
+		newName = fmt.Sprintf("%s.%s", strings.Join(names, "."), newName)
+	}
+
 	return &DataDogCounter{
 		meter:       ddm,
-		name:        name,
+		name:        newName,
 		description: description,
 		labels:      labels,
-		prefix:      strings.Join(names, "."),
 	}
 }
 

@@ -35,7 +35,7 @@ func newrelicNewLogger(agentHost, level string) (*NewRelicLogger, *Stdout, net.L
 		Level:     level,
 		NewRelicOptions: NewRelicOptions{
 			ServiceName: "sre-newrelic-tracer-test",
-			Labels:      "tag1=value1,,tag3=${key3:value3}",
+			Attributes:  "tag1=value1,,tag3=${key3:value3}",
 			Debug:       true,
 		},
 	}, nil, stdout)
