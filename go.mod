@@ -8,8 +8,8 @@ require (
 	github.com/Microsoft/go-winio v0.5.0 // indirect
 	github.com/devopsext/utils v0.0.3
 	github.com/google/uuid v1.2.0 // indirect
-	github.com/newrelic/go-agent/v3 v3.14.1
 	github.com/newrelic/newrelic-client-go v0.62.1
+	github.com/newrelic/newrelic-telemetry-sdk-go v0.8.1
 	github.com/opentracing/opentracing-go v1.2.0
 	github.com/philhofer/fwd v1.1.1 // indirect
 	github.com/prometheus/client_golang v1.11.0
@@ -32,3 +32,4 @@ require (
 )
 
 replace gopkg.in/DataDog/dd-trace-go.v1 => github.com/devopsext/dd-trace-go v1.31.2
+replace	github.com/newrelic/newrelic-telemetry-sdk-go => github.com/devopsext/newrelic-telemetry-sdk-go v0.8.2

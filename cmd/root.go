@@ -118,7 +118,7 @@ var newrelicOptions = provider.NewRelicOptions{
 	License:     "",
 	ServiceName: "",
 	Environment: "",
-	Labels:      "",
+	Attributes:  "",
 	Debug:       false,
 	Region:      "",
 }
@@ -130,9 +130,8 @@ var newrelicLoggerOptions = provider.NewRelicLoggerOptions{
 }
 
 var newrelicMeterOptions = provider.NewRelicMeterOptions{
-	AgentHost: "",
-	AgentPort: 5171,
-	Prefix:    "sre",
+	Endpoint: "",
+	Prefix:   "sre",
 }
 
 func interceptSyscall() {
@@ -174,8 +173,9 @@ func Execute() {
 			newrelicLoggerOptions.License = newrelicOptions.License
 			newrelicLoggerOptions.ServiceName = newrelicOptions.ServiceName
 			newrelicLoggerOptions.Environment = newrelicOptions.Environment
-			newrelicLoggerOptions.Labels = newrelicOptions.Labels
+			newrelicLoggerOptions.Attributes = newrelicOptions.Attributes
 			newrelicLoggerOptions.Region = newrelicOptions.Region
+			newrelicLoggerOptions.Debug = newrelicOptions.Debug
 			newrelicLogger := provider.NewNewRelicLogger(newrelicLoggerOptions, logs, stdout)
 			if utils.Contains(rootOptions.Logs, "newrelic") && newrelicLogger != nil {
 				logs.Register(newrelicLogger)
@@ -215,7 +215,9 @@ func Execute() {
 			newrelicMeterOptions.License = newrelicOptions.License
 			newrelicMeterOptions.ServiceName = newrelicOptions.ServiceName
 			newrelicMeterOptions.Environment = newrelicOptions.Environment
-			newrelicMeterOptions.Labels = newrelicOptions.Labels
+			newrelicMeterOptions.Attributes = newrelicOptions.Attributes
+			newrelicMeterOptions.Region = newrelicOptions.Region
+			newrelicMeterOptions.Debug = newrelicOptions.Debug
 			newrelicMeter := provider.NewNewRelicMeter(newrelicMeterOptions, logs, stdout)
 			if utils.Contains(rootOptions.Metrics, "newrelic") && newrelicMeter != nil {
 				metrics.Register(newrelicMeter)
@@ -234,7 +236,7 @@ func Execute() {
 			datadogTracerOptions.ServiceName = datadogOptions.ServiceName
 			datadogTracerOptions.Environment = datadogOptions.Environment
 			datadogTracerOptions.Tags = datadogOptions.Tags
-			datadogLoggerOptions.Debug = datadogOptions.Debug
+			datadogTracerOptions.Debug = datadogOptions.Debug
 			datadogTracer := provider.NewDataDogTracer(datadogTracerOptions, logs, stdout)
 			if utils.Contains(rootOptions.Traces, "datadog") && datadogTracer != nil {
 				traces.Register(datadogTracer)
@@ -304,6 +306,7 @@ func Execute() {
 				span.Finish()
 				rootSpan.Finish()
 				traces.Stop()
+				metrics.Stop()
 				os.Exit(0)
 			}
 			traceID := ctx.GetTraceID()
@@ -317,6 +320,7 @@ func Execute() {
 				span.Finish()
 				rootSpan.Finish()
 				traces.Stop()
+				metrics.Stop()
 				os.Exit(0)
 			}
 
@@ -334,6 +338,8 @@ func Execute() {
 			rootSpan.Finish()
 			mainWG.Wait()
 			traces.Stop()
+			metrics.Stop()
+			logs.Stop()
 		},
 	}
 
@@ -391,13 +397,13 @@ func Execute() {
 	flags.StringVar(&newrelicOptions.License, "newrelic-license", newrelicOptions.License, "NewRelic license")
 	flags.StringVar(&newrelicOptions.ServiceName, "newrelic-service-name", newrelicOptions.ServiceName, "NewRelic service name")
 	flags.StringVar(&newrelicOptions.Environment, "newrelic-environment", newrelicOptions.Environment, "NewRelic environment")
-	flags.StringVar(&newrelicOptions.Labels, "newrelic-labels", newrelicOptions.Labels, "NewRelic labels")
+	flags.StringVar(&newrelicOptions.Attributes, "newrelic-attributes", newrelicOptions.Attributes, "NewRelic Attributes")
 	flags.StringVar(&newrelicOptions.Region, "newrelic-region", newrelicOptions.Region, "NewRelic region")
+	flags.BoolVar(&newrelicOptions.Debug, "newrelic-debug", newrelicOptions.Debug, "NewRelic debug")
 	flags.StringVar(&newrelicLoggerOptions.AgentHost, "newrelic-logger-agent-host", newrelicLoggerOptions.AgentHost, "NewRelic logger agent host")
 	flags.IntVar(&newrelicLoggerOptions.AgentPort, "newrelic-logger-agent-port", newrelicLoggerOptions.AgentPort, "NewRelic logger agent port")
 	flags.StringVar(&newrelicLoggerOptions.Level, "newrelic-logger-level", newrelicLoggerOptions.Level, "NewRelic logger level: info, warn, error, debug, panic")
-	flags.StringVar(&newrelicMeterOptions.AgentHost, "newrelic-meter-agent-host", newrelicMeterOptions.AgentHost, "NewRelic meter agent host")
-	flags.IntVar(&newrelicMeterOptions.AgentPort, "newrelic-meter-agent-port", newrelicMeterOptions.AgentPort, "NewRelic meter agent port")
+	flags.StringVar(&newrelicMeterOptions.Endpoint, "newrelic-meter-endpoint", newrelicMeterOptions.Endpoint, "NewRelic meter endpoint")
 	flags.StringVar(&newrelicMeterOptions.Prefix, "newrelic-meter-prefix", newrelicMeterOptions.Prefix, "NewRelic meter prefix")
 
 	interceptSyscall()

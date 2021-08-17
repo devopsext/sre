@@ -1,6 +1,7 @@
 package provider
 
 import (
+	"context"
 	"fmt"
 	"net"
 	"strings"
@@ -8,8 +9,9 @@ import (
 
 	"github.com/devopsext/sre/common"
 	utils "github.com/devopsext/utils"
-	newrelicclient "github.com/newrelic/newrelic-client-go/newrelic"
-	newrelicconfig "github.com/newrelic/newrelic-client-go/pkg/config"
+	client "github.com/newrelic/newrelic-client-go/newrelic"
+	config "github.com/newrelic/newrelic-client-go/pkg/config"
+	telemetry "github.com/newrelic/newrelic-telemetry-sdk-go/telemetry"
 	"github.com/sirupsen/logrus"
 )
 
@@ -18,7 +20,7 @@ type NewRelicOptions struct {
 	ServiceName string
 	Environment string
 	Version     string
-	Labels      string
+	Attributes  string
 	Debug       bool
 	Region      string
 }
@@ -32,18 +34,17 @@ type NewRelicLoggerOptions struct {
 
 type NewRelicMeterOptions struct {
 	NewRelicOptions
-	AgentHost string
-	AgentPort int
-	Prefix    string
+	Endpoint string
+	Prefix   string
 }
 
 type NewRelicLogWriter struct {
-	client *newrelicclient.NewRelic
+	client *client.NewRelic
 	stdout *Stdout
 }
 
 type NewRelicLogger struct {
-	client       *newrelicclient.NewRelic
+	client       *client.NewRelic
 	connection   *net.TCPConn
 	stdout       *Stdout
 	log          *logrus.Logger
@@ -56,14 +57,13 @@ type NewRelicCounter struct {
 	name        string
 	description string
 	labels      []string
-	prefix      string
 }
 
 type NewRelicMeter struct {
+	harvester    *telemetry.Harvester
 	options      NewRelicMeterOptions
 	logger       common.Logger
 	callerOffset int
-	//	client       *statsd.Client
 }
 
 func (nrlw NewRelicLogWriter) Write(p []byte) (n int, err error) {
@@ -214,7 +214,7 @@ func (nr *NewRelicLogger) exists(level logrus.Level, obj interface{}, args ...in
 		"env":     nr.options.Environment,
 	}
 
-	m := common.GetKeyValues(nr.options.Labels)
+	m := common.GetKeyValues(nr.options.Attributes)
 	for k, v := range m {
 		fields[k] = v
 	}
@@ -260,12 +260,12 @@ func NewNewRelicLogger(options NewRelicLoggerOptions, logger common.Logger, stdo
 		}
 	}
 
-	var client *newrelicclient.NewRelic = nil
+	var newrelic *client.NewRelic = nil
 
 	if !utils.IsEmpty(options.Region) {
 
-		configLicense := func(name string) newrelicclient.ConfigOption {
-			return func(cfg *newrelicconfig.Config) error {
+		configLicense := func(name string) client.ConfigOption {
+			return func(cfg *config.Config) error {
 				if name != "" {
 					cfg.LicenseKey = name
 				}
@@ -274,19 +274,19 @@ func NewNewRelicLogger(options NewRelicLoggerOptions, logger common.Logger, stdo
 			}
 		}
 
-		c, err := newrelicclient.New(
-			newrelicclient.ConfigRegion(options.Region),
-			newrelicclient.ConfigServiceName(options.ServiceName),
-			newrelicclient.ConfigPersonalAPIKey(options.License), // why we need this? we use license instead
-			newrelicclient.ConfigLogJSON(true),
-			newrelicclient.ConfigLogLevel(options.Level),
+		c, err := client.New(
+			client.ConfigRegion(options.Region),
+			client.ConfigServiceName(options.ServiceName),
+			client.ConfigPersonalAPIKey(options.License), // why we need this? we use license instead
+			client.ConfigLogJSON(true),
+			client.ConfigLogLevel(options.Level),
 			configLicense(options.License),
 		)
 		if err != nil {
 			stdout.Error(err)
 			return nil
 		}
-		client = c
+		newrelic = c
 
 	}
 
@@ -321,10 +321,10 @@ func NewNewRelicLogger(options NewRelicLoggerOptions, logger common.Logger, stdo
 		log.SetOutput(connection)
 	}
 
-	if client != nil {
+	if newrelic != nil {
 
 		log.SetOutput(NewRelicLogWriter{
-			client: client,
+			client: newrelic,
 			stdout: stdout,
 		})
 	}
@@ -332,7 +332,7 @@ func NewNewRelicLogger(options NewRelicLoggerOptions, logger common.Logger, stdo
 	logger.Info("NewRelic logger is up...")
 
 	return &NewRelicLogger{
-		client:       client,
+		client:       newrelic,
 		connection:   connection,
 		stdout:       stdout,
 		log:          log,
@@ -341,51 +341,61 @@ func NewNewRelicLogger(options NewRelicLoggerOptions, logger common.Logger, stdo
 	}
 }
 
-func (nrc *NewRelicCounter) Inc(labelValues ...string) common.Counter {
+func (nrc *NewRelicCounter) getGlobalTags(labelValues ...string) map[string]interface{} {
 
-	/*newName := ddmc.name
-	if !utils.IsEmpty(ddmc.prefix) {
-		newName = fmt.Sprintf("%s.%s", ddmc.prefix, newName)
+	m := make(map[string]interface{})
+	l := len(labelValues)
+
+	for index, name := range nrc.labels {
+		if l > index {
+			m[name] = labelValues[index]
+		}
 	}
-
-	newValues := ddmc.getLabelTags(labelValues...)
-	_, file, line := common.GetCallerInfo(ddmc.meter.callerOffset + 3)
-	newValues = append(newValues, fmt.Sprintf("file:%s", fmt.Sprintf("%s:%d", file, line)))
-
-	err := ddmc.meter.client.Incr(newName, newValues, 1)
-	if err != nil {
-		ddmc.meter.logger.Error(err)
-	}*/
-	return nrc
+	return m
 }
 
-func (nrm *NewRelicMeter) SetCallerOffset(offset int) {
-	nrm.callerOffset = offset
+func (nrc *NewRelicCounter) Inc(labelValues ...string) common.Counter {
+
+	attributes := nrc.getGlobalTags(labelValues...)
+	_, file, line := common.GetCallerInfo(nrc.meter.callerOffset + 3)
+	attributes["file"] = fmt.Sprintf("%s:%d", file, line)
+
+	counter := nrc.meter.harvester.MetricAggregator().Count(nrc.name, attributes)
+	if counter != nil {
+		counter.Increment()
+	}
+
+	return nrc
 }
 
 func (nrm *NewRelicMeter) Counter(name, description string, labels []string, prefixes ...string) common.Counter {
 
 	var names []string
 
-	/*	if !utils.IsEmpty(ddm.options.Prefix) {
-			names = append(names, ddm.options.Prefix)
-		}
+	if !utils.IsEmpty(nrm.options.Prefix) {
+		names = append(names, nrm.options.Prefix)
+	}
 
-		if len(prefixes) > 0 {
-			names = append(names, strings.Join(prefixes, "_"))
-		}
-	*/
+	names = append(names, prefixes...)
+	names = append(names, name)
+	newName := strings.Join(names, ".")
+
 	return &NewRelicCounter{
 		meter:       nrm,
-		name:        name,
+		name:        newName,
 		description: description,
 		labels:      labels,
-		prefix:      strings.Join(names, "."),
 	}
 }
 
+func (nrm *NewRelicMeter) SetCallerOffset(offset int) {
+	nrm.callerOffset = offset
+}
+
 func (nrm *NewRelicMeter) Stop() {
-	// nothing here
+	if nrm.harvester != nil {
+		nrm.harvester.HarvestNow(context.Background())
+	}
 }
 
 func NewNewRelicMeter(options NewRelicMeterOptions, logger common.Logger, stdout *Stdout) *NewRelicMeter {
@@ -394,23 +404,43 @@ func NewNewRelicMeter(options NewRelicMeterOptions, logger common.Logger, stdout
 		logger = stdout
 	}
 
-	if utils.IsEmpty(options.AgentHost) {
+	if utils.IsEmpty(options.Region) {
 		stdout.Debug("NewRelic meter is disabled.")
 		return nil
 	}
 
-	/*client, err := statsd.New(fmt.Sprintf("%s:%d", options.AgentHost, options.AgentPort))
+	attribites := make(map[string]interface{})
+	m := common.GetKeyValues(options.Attributes)
+	for k, v := range m {
+		attribites[k] = v
+	}
+
+	var cfgs []func(*telemetry.Config)
+	cfgs = append(cfgs,
+		telemetry.ConfigAPIKey(options.License),
+		telemetry.ConfigMetricsURLOverride(options.Endpoint),
+		telemetry.ConfigCommonAttributes(attribites),
+	)
+
+	if options.Debug {
+		cfgs = append(cfgs,
+			telemetry.ConfigBasicErrorLogger(stdout.log.Writer()),
+			telemetry.ConfigBasicDebugLogger(stdout.log.Writer()),
+		)
+	}
+
+	harvester, err := telemetry.NewHarvester(cfgs...)
 	if err != nil {
-		logger.Error(err)
+		stdout.Error(err)
 		return nil
-	}*/
+	}
 
 	logger.Info("NewRelic meter is up...")
 
 	return &NewRelicMeter{
+		harvester:    harvester,
 		options:      options,
 		logger:       logger,
 		callerOffset: 1,
-		//	client:       client,
 	}
 }
