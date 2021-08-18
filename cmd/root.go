@@ -115,15 +115,14 @@ var opentelemetryMeterOptions = provider.OpentelemetryMeterOptions{
 }
 
 var newrelicOptions = provider.NewRelicOptions{
-	License:     "",
 	ServiceName: "",
 	Environment: "",
 	Attributes:  "",
 	Debug:       false,
-	Region:      "",
 }
 
 var newrelicLoggerOptions = provider.NewRelicLoggerOptions{
+	Endpoint:  "",
 	AgentHost: "",
 	AgentPort: 5171,
 	Level:     "info",
@@ -143,6 +142,13 @@ func interceptSyscall() {
 		logs.Info("Exiting...")
 		os.Exit(1)
 	}()
+}
+
+func Finish() {
+	traces.Stop()
+	metrics.Stop()
+	logs.Stop()
+	os.Exit(0)
 }
 
 func Execute() {
@@ -170,11 +176,10 @@ func Execute() {
 			}
 
 			newrelicLoggerOptions.Version = VERSION
-			newrelicLoggerOptions.License = newrelicOptions.License
+			newrelicLoggerOptions.ApiKey = newrelicOptions.ApiKey
 			newrelicLoggerOptions.ServiceName = newrelicOptions.ServiceName
 			newrelicLoggerOptions.Environment = newrelicOptions.Environment
 			newrelicLoggerOptions.Attributes = newrelicOptions.Attributes
-			newrelicLoggerOptions.Region = newrelicOptions.Region
 			newrelicLoggerOptions.Debug = newrelicOptions.Debug
 			newrelicLogger := provider.NewNewRelicLogger(newrelicLoggerOptions, logs, stdout)
 			if utils.Contains(rootOptions.Logs, "newrelic") && newrelicLogger != nil {
@@ -212,11 +217,10 @@ func Execute() {
 			}
 
 			newrelicMeterOptions.Version = VERSION
-			newrelicMeterOptions.License = newrelicOptions.License
+			newrelicMeterOptions.ApiKey = newrelicOptions.ApiKey
 			newrelicMeterOptions.ServiceName = newrelicOptions.ServiceName
 			newrelicMeterOptions.Environment = newrelicOptions.Environment
 			newrelicMeterOptions.Attributes = newrelicOptions.Attributes
-			newrelicMeterOptions.Region = newrelicOptions.Region
 			newrelicMeterOptions.Debug = newrelicOptions.Debug
 			newrelicMeter := provider.NewNewRelicMeter(newrelicMeterOptions, logs, stdout)
 			if utils.Contains(rootOptions.Metrics, "newrelic") && newrelicMeter != nil {
@@ -254,9 +258,7 @@ func Execute() {
 		},
 		Run: func(cmd *cobra.Command, args []string) {
 
-			defer logs.Stop()
-			defer metrics.Stop()
-			defer traces.Stop()
+			defer Finish()
 
 			logs.Info("Log message to every log provider...")
 
@@ -305,9 +307,7 @@ func Execute() {
 				logs.SpanError(span, "no span context found")
 				span.Finish()
 				rootSpan.Finish()
-				traces.Stop()
-				metrics.Stop()
-				os.Exit(0)
+				Finish()
 			}
 			traceID := ctx.GetTraceID()
 			req.Header.Set("X-Trace-ID", traceID)
@@ -319,9 +319,7 @@ func Execute() {
 				logs.SpanError(span, err)
 				span.Finish()
 				rootSpan.Finish()
-				traces.Stop()
-				metrics.Stop()
-				os.Exit(0)
+				Finish()
 			}
 
 			defer resp.Body.Close()
@@ -337,9 +335,7 @@ func Execute() {
 
 			rootSpan.Finish()
 			mainWG.Wait()
-			traces.Stop()
-			metrics.Stop()
-			logs.Stop()
+			Finish()
 		},
 	}
 
@@ -394,12 +390,12 @@ func Execute() {
 	flags.IntVar(&opentelemetryMeterOptions.AgentPort, "opentelemetry-meter-agent-port", opentelemetryMeterOptions.AgentPort, "Opentelemetry meter agent port")
 	flags.StringVar(&opentelemetryMeterOptions.Prefix, "opentelemetry-meter-prefix", opentelemetryMeterOptions.Prefix, "Opentelemetry meter prefix")
 
-	flags.StringVar(&newrelicOptions.License, "newrelic-license", newrelicOptions.License, "NewRelic license")
+	flags.StringVar(&newrelicOptions.ApiKey, "newrelic-api-key", newrelicOptions.ApiKey, "NewRelic API key")
 	flags.StringVar(&newrelicOptions.ServiceName, "newrelic-service-name", newrelicOptions.ServiceName, "NewRelic service name")
 	flags.StringVar(&newrelicOptions.Environment, "newrelic-environment", newrelicOptions.Environment, "NewRelic environment")
 	flags.StringVar(&newrelicOptions.Attributes, "newrelic-attributes", newrelicOptions.Attributes, "NewRelic Attributes")
-	flags.StringVar(&newrelicOptions.Region, "newrelic-region", newrelicOptions.Region, "NewRelic region")
 	flags.BoolVar(&newrelicOptions.Debug, "newrelic-debug", newrelicOptions.Debug, "NewRelic debug")
+	flags.StringVar(&newrelicLoggerOptions.Endpoint, "newrelic-logger-endpoint", newrelicLoggerOptions.Endpoint, "NewRelic logger endpoint")
 	flags.StringVar(&newrelicLoggerOptions.AgentHost, "newrelic-logger-agent-host", newrelicLoggerOptions.AgentHost, "NewRelic logger agent host")
 	flags.IntVar(&newrelicLoggerOptions.AgentPort, "newrelic-logger-agent-port", newrelicLoggerOptions.AgentPort, "NewRelic logger agent port")
 	flags.StringVar(&newrelicLoggerOptions.Level, "newrelic-logger-level", newrelicLoggerOptions.Level, "NewRelic logger level: info, warn, error, debug, panic")
