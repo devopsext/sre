@@ -54,6 +54,17 @@ func main() {
 		AgentPort: 10518,       // set DataDog agent UDP metrics port
 	}, logs, stdout)
 
+	// initialize NewRelic meter
+	newrelic := provider.NewNewRelicMeter(provider.NewRelicMeterOptions{
+		NewRelicOptions: provider.NewRelicOptions{
+			ApiKey:      "put here API key",
+			ServiceName: "sre-newrelic",
+			Environment: "stage",
+		},
+		Endpoint: "https://metric-api.eu.newrelic.com/metric/v1", // set NewRelic metrics endpoint
+		Prefix:   "sre",
+	}, logs, stdout)
+
 	// initialize Opentelemetry meter
 	opentelemetry := provider.NewOpentelemetryMeter(provider.OpentelemetryMeterOptions{
 		OpentelemetryOptions: provider.OpentelemetryOptions{
@@ -68,6 +79,7 @@ func main() {
 	// add meters
 	metrics.Register(prometheus)
 	metrics.Register(datadog)
+	metrics.Register(newrelic)
 	metrics.Register(opentelemetry)
 
 	test()
