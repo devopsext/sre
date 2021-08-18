@@ -22,6 +22,12 @@ type NewRelicOptions struct {
 	Debug       bool
 }
 
+type NewRelicTracerOptions struct {
+	NewRelicOptions
+	Endpoint      string
+	HeaderTraceID string
+}
+
 type NewRelicLoggerOptions struct {
 	NewRelicOptions
 	Endpoint  string
@@ -34,6 +40,15 @@ type NewRelicMeterOptions struct {
 	NewRelicOptions
 	Endpoint string
 	Prefix   string
+}
+
+type NewRelicTracer struct {
+	options NewRelicTracerOptions
+	logger  common.Logger
+	//tracer       trace.Tracer
+	//provider     *sdktrace.TracerProvider
+	//attributes   []attribute.KeyValue
+	callerOffset int
 }
 
 type NewRelicLogger struct {
@@ -57,6 +72,37 @@ type NewRelicMeter struct {
 	options      NewRelicMeterOptions
 	logger       common.Logger
 	callerOffset int
+}
+
+func NewNewRelicTracer(options NewRelicTracerOptions, logger common.Logger, stdout *Stdout) *NewRelicTracer {
+
+	if logger == nil {
+		logger = stdout
+	}
+
+	/*tracer, provider := startOpentelemtryTracer(options, logger, stdout)
+	if tracer == nil {
+		stdout.Debug("NewRelic tracer is disabled.")
+		return nil
+	}
+
+	attributes := make([]attribute.KeyValue, 0)
+	m := common.GetKeyValues(options.Attributes)
+	for k, v := range m {
+		attribute := attribute.String(k, v)
+		attributes = append(attributes, attribute)
+	}*/
+
+	logger.Info("NewRelic tracer is up...")
+
+	return &NewRelicTracer{
+		options: options,
+		logger:  logger,
+		//tracer:       tracer,
+		//provider:     provider,
+		//attributes:   attributes,
+		callerOffset: 1,
+	}
 }
 
 func (nr *NewRelicLogger) addSpanFields(span common.TracerSpan, fields logrus.Fields) logrus.Fields {

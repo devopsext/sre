@@ -121,6 +121,10 @@ var newrelicOptions = provider.NewRelicOptions{
 	Debug:       false,
 }
 
+var newrelicTracerOptions = provider.NewRelicTracerOptions{
+	Endpoint: "",
+}
+
 var newrelicLoggerOptions = provider.NewRelicLoggerOptions{
 	Endpoint:  "",
 	AgentHost: "",
@@ -170,6 +174,7 @@ func Execute() {
 			datadogLoggerOptions.ServiceName = datadogOptions.ServiceName
 			datadogLoggerOptions.Environment = datadogOptions.Environment
 			datadogLoggerOptions.Tags = datadogOptions.Tags
+			datadogLoggerOptions.Debug = datadogOptions.Debug
 			datadogLogger := provider.NewDataDogLogger(datadogLoggerOptions, logs, stdout)
 			if utils.Contains(rootOptions.Logs, "datadog") && datadogLogger != nil {
 				logs.Register(datadogLogger)
@@ -202,6 +207,7 @@ func Execute() {
 			datadogMeterOptions.ServiceName = datadogOptions.ServiceName
 			datadogMeterOptions.Environment = datadogOptions.Environment
 			datadogMeterOptions.Tags = datadogOptions.Tags
+			datadogMeterOptions.Debug = datadogOptions.Debug
 			datadogMeter := provider.NewDataDogMeter(datadogMeterOptions, logs, stdout)
 			if utils.Contains(rootOptions.Metrics, "datadog") && datadogMeter != nil {
 				metrics.Register(datadogMeter)
@@ -211,6 +217,7 @@ func Execute() {
 			opentelemetryMeterOptions.ServiceName = opentelemetryOptions.ServiceName
 			opentelemetryMeterOptions.Environment = opentelemetryOptions.Environment
 			opentelemetryMeterOptions.Attributes = opentelemetryOptions.Attributes
+			opentelemetryMeterOptions.Debug = opentelemetryOptions.Debug
 			opentelemetryMeter := provider.NewOpentelemetryMeter(opentelemetryMeterOptions, logs, stdout)
 			if utils.Contains(rootOptions.Metrics, "opentelemetry") && opentelemetryMeter != nil {
 				metrics.Register(opentelemetryMeter)
@@ -250,9 +257,21 @@ func Execute() {
 			opentelemetryTracerOptions.ServiceName = opentelemetryOptions.ServiceName
 			opentelemetryTracerOptions.Environment = opentelemetryOptions.Environment
 			opentelemetryTracerOptions.Attributes = opentelemetryOptions.Attributes
+			opentelemetryTracerOptions.Debug = opentelemetryOptions.Debug
 			opentelemtryTracer := provider.NewOpentelemetryTracer(opentelemetryTracerOptions, logs, stdout)
 			if utils.Contains(rootOptions.Traces, "opentelemetry") && opentelemtryTracer != nil {
 				traces.Register(opentelemtryTracer)
+			}
+
+			newrelicTracerOptions.Version = VERSION
+			newrelicTracerOptions.ApiKey = newrelicOptions.ApiKey
+			newrelicTracerOptions.ServiceName = newrelicOptions.ServiceName
+			newrelicTracerOptions.Environment = newrelicOptions.Environment
+			newrelicTracerOptions.Attributes = newrelicOptions.Attributes
+			newrelicTracerOptions.Debug = newrelicOptions.Debug
+			newrelicTracer := provider.NewNewRelicTracer(newrelicTracerOptions, logs, stdout)
+			if utils.Contains(rootOptions.Metrics, "newrelic") && newrelicTracer != nil {
+				traces.Register(newrelicTracer)
 			}
 
 		},
