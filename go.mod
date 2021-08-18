@@ -32,4 +32,4 @@ require (
 )
 
 replace gopkg.in/DataDog/dd-trace-go.v1 => github.com/devopsext/dd-trace-go v1.31.2
-replace	github.com/newrelic/newrelic-telemetry-sdk-go => github.com/devopsext/newrelic-telemetry-sdk-go v0.8.2
+//replace	github.com/newrelic/newrelic-telemetry-sdk-go => github.com/devopsext/newrelic-telemetry-sdk-go v0.8.2

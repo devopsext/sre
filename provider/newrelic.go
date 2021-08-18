@@ -9,24 +9,22 @@ import (
 
 	"github.com/devopsext/sre/common"
 	utils "github.com/devopsext/utils"
-	client "github.com/newrelic/newrelic-client-go/newrelic"
-	config "github.com/newrelic/newrelic-client-go/pkg/config"
 	telemetry "github.com/newrelic/newrelic-telemetry-sdk-go/telemetry"
 	"github.com/sirupsen/logrus"
 )
 
 type NewRelicOptions struct {
-	License     string
+	ApiKey      string
 	ServiceName string
 	Environment string
 	Version     string
 	Attributes  string
 	Debug       bool
-	Region      string
 }
 
 type NewRelicLoggerOptions struct {
 	NewRelicOptions
+	Endpoint  string
 	AgentHost string
 	AgentPort int
 	Level     string
@@ -38,13 +36,8 @@ type NewRelicMeterOptions struct {
 	Prefix   string
 }
 
-type NewRelicLogWriter struct {
-	client *client.NewRelic
-	stdout *Stdout
-}
-
 type NewRelicLogger struct {
-	client       *client.NewRelic
+	harvester    *telemetry.Harvester
 	connection   *net.TCPConn
 	stdout       *Stdout
 	log          *logrus.Logger
@@ -66,19 +59,6 @@ type NewRelicMeter struct {
 	callerOffset int
 }
 
-func (nrlw NewRelicLogWriter) Write(p []byte) (n int, err error) {
-
-	if nrlw.client != nil {
-		err := nrlw.client.Logs.CreateLogEntry(p)
-		if err != nil {
-			nrlw.stdout.Error(err)
-			return 0, err
-		}
-		return len(p), nil
-	}
-	return 0, nil
-}
-
 func (nr *NewRelicLogger) addSpanFields(span common.TracerSpan, fields logrus.Fields) logrus.Fields {
 
 	if span == nil {
@@ -96,10 +76,37 @@ func (nr *NewRelicLogger) addSpanFields(span common.TracerSpan, fields logrus.Fi
 	return fields
 }
 
+func (nr *NewRelicLogger) logToApi(level, message string, fields logrus.Fields) bool {
+
+	if nr.harvester != nil {
+
+		attributes := fields
+		if attributes != nil {
+			attributes["level"] = level
+		}
+
+		err := nr.harvester.RecordLog(telemetry.Log{
+			Timestamp:  time.Now(),
+			Message:    message,
+			Attributes: attributes,
+		})
+		if err != nil {
+			nr.stdout.Error(err)
+			return false
+		}
+		return true
+	}
+	return false
+}
+
 func (nr *NewRelicLogger) Info(obj interface{}, args ...interface{}) common.Logger {
 
 	if exists, fields, message := nr.exists(logrus.InfoLevel, obj, args...); exists {
-		nr.log.WithFields(fields).Infoln(message)
+		if nr.log != nil {
+			nr.log.WithFields(fields).Infoln(message)
+		} else {
+			nr.logToApi("info", message, fields)
+		}
 	}
 	return nr
 }
@@ -108,7 +115,11 @@ func (nr *NewRelicLogger) SpanInfo(span common.TracerSpan, obj interface{}, args
 
 	if exists, fields, message := nr.exists(logrus.InfoLevel, obj, args...); exists {
 		fields = nr.addSpanFields(span, fields)
-		nr.log.WithFields(fields).Infoln(message)
+		if nr.log != nil {
+			nr.log.WithFields(fields).Infoln(message)
+		} else {
+			nr.logToApi("info", message, fields)
+		}
 	}
 	return nr
 }
@@ -116,7 +127,11 @@ func (nr *NewRelicLogger) SpanInfo(span common.TracerSpan, obj interface{}, args
 func (nr *NewRelicLogger) Warn(obj interface{}, args ...interface{}) common.Logger {
 
 	if exists, fields, message := nr.exists(logrus.WarnLevel, obj, args...); exists {
-		nr.log.WithFields(fields).Warnln(message)
+		if nr.log != nil {
+			nr.log.WithFields(fields).Warnln(message)
+		} else {
+			nr.logToApi("warn", message, fields)
+		}
 	}
 	return nr
 }
@@ -125,7 +140,11 @@ func (nr *NewRelicLogger) SpanWarn(span common.TracerSpan, obj interface{}, args
 
 	if exists, fields, message := nr.exists(logrus.WarnLevel, obj, args...); exists {
 		fields = nr.addSpanFields(span, fields)
-		nr.log.WithFields(fields).Warnln(message)
+		if nr.log != nil {
+			nr.log.WithFields(fields).Warnln(message)
+		} else {
+			nr.logToApi("warn", message, fields)
+		}
 	}
 	return nr
 }
@@ -133,7 +152,11 @@ func (nr *NewRelicLogger) SpanWarn(span common.TracerSpan, obj interface{}, args
 func (nr *NewRelicLogger) Error(obj interface{}, args ...interface{}) common.Logger {
 
 	if exists, fields, message := nr.exists(logrus.ErrorLevel, obj, args...); exists {
-		nr.log.WithFields(fields).Errorln(message)
+		if nr.log != nil {
+			nr.log.WithFields(fields).Errorln(message)
+		} else {
+			nr.logToApi("error", message, fields)
+		}
 	}
 	return nr
 }
@@ -142,7 +165,11 @@ func (nr *NewRelicLogger) SpanError(span common.TracerSpan, obj interface{}, arg
 
 	if exists, fields, message := nr.exists(logrus.ErrorLevel, obj, args...); exists {
 		fields = nr.addSpanFields(span, fields)
-		nr.log.WithFields(fields).Errorln(message)
+		if nr.log != nil {
+			nr.log.WithFields(fields).Errorln(message)
+		} else {
+			nr.logToApi("error", message, fields)
+		}
 	}
 	return nr
 }
@@ -150,7 +177,11 @@ func (nr *NewRelicLogger) SpanError(span common.TracerSpan, obj interface{}, arg
 func (nr *NewRelicLogger) Debug(obj interface{}, args ...interface{}) common.Logger {
 
 	if exists, fields, message := nr.exists(logrus.DebugLevel, obj, args...); exists {
-		nr.log.WithFields(fields).Debugln(message)
+		if nr.log != nil {
+			nr.log.WithFields(fields).Debugln(message)
+		} else {
+			nr.logToApi("debug", message, fields)
+		}
 	}
 	return nr
 }
@@ -159,7 +190,11 @@ func (nr *NewRelicLogger) SpanDebug(span common.TracerSpan, obj interface{}, arg
 
 	if exists, fields, message := nr.exists(logrus.DebugLevel, obj, args...); exists {
 		fields = nr.addSpanFields(span, fields)
-		nr.log.WithFields(fields).Debugln(message)
+		if nr.log != nil {
+			nr.log.WithFields(fields).Debugln(message)
+		} else {
+			nr.logToApi("debug", message, fields)
+		}
 	}
 	return nr
 }
@@ -167,7 +202,12 @@ func (nr *NewRelicLogger) SpanDebug(span common.TracerSpan, obj interface{}, arg
 func (nr *NewRelicLogger) Panic(obj interface{}, args ...interface{}) {
 
 	if exists, fields, message := nr.exists(logrus.PanicLevel, obj, args...); exists {
-		nr.log.WithFields(fields).Panicln(message)
+		if nr.log != nil {
+			nr.log.WithFields(fields).Panicln(message)
+		} else {
+			nr.logToApi("panic", message, fields)
+			nr.stdout.Panic(message)
+		}
 	}
 }
 
@@ -175,7 +215,12 @@ func (nr *NewRelicLogger) SpanPanic(span common.TracerSpan, obj interface{}, arg
 
 	if exists, fields, message := nr.exists(logrus.PanicLevel, obj, args...); exists {
 		fields = nr.addSpanFields(span, fields)
-		nr.log.WithFields(fields).Panicln(message)
+		if nr.log != nil {
+			nr.log.WithFields(fields).Panicln(message)
+		} else {
+			nr.logToApi("panic", message, fields)
+			nr.stdout.SpanPanic(span, message)
+		}
 	}
 }
 
@@ -226,8 +271,8 @@ func (nr *NewRelicLogger) Stop() {
 	if nr.connection != nil {
 		nr.connection.Close()
 	}
-	if nr.client != nil {
-		nr.client.Logs.Flush()
+	if nr.harvester != nil {
+		nr.harvester.HarvestNow(context.Background())
 	}
 }
 
@@ -237,14 +282,15 @@ func NewNewRelicLogger(options NewRelicLoggerOptions, logger common.Logger, stdo
 		logger = stdout
 	}
 
-	if utils.IsEmpty(options.Region) && utils.IsEmpty(options.AgentHost) {
+	if utils.IsEmpty(options.Endpoint) && utils.IsEmpty(options.AgentHost) {
 		stdout.Debug("NewRelic logger is disabled.")
 		return nil
 	}
 
 	var connection *net.TCPConn = nil
+	var log *logrus.Logger = nil
 
-	if utils.IsEmpty(options.Region) && !utils.IsEmpty(options.AgentHost) {
+	if utils.IsEmpty(options.Endpoint) && !utils.IsEmpty(options.AgentHost) {
 
 		address := fmt.Sprintf("%s:%d", options.AgentHost, options.AgentPort)
 		serverAddr, err := net.ResolveTCPAddr("tcp", address)
@@ -258,81 +304,75 @@ func NewNewRelicLogger(options NewRelicLoggerOptions, logger common.Logger, stdo
 			stdout.Error(err)
 			return nil
 		}
-	}
 
-	var newrelic *client.NewRelic = nil
+		formatter := &logrus.JSONFormatter{
+			FieldMap: logrus.FieldMap{
+				logrus.FieldKeyTime:  "timestamp",
+				logrus.FieldKeyLevel: "level",
+				logrus.FieldKeyMsg:   "message",
+			},
+		}
+		formatter.TimestampFormat = time.RFC3339Nano
 
-	if !utils.IsEmpty(options.Region) {
+		log := logrus.New()
+		log.SetFormatter(formatter)
 
-		configLicense := func(name string) client.ConfigOption {
-			return func(cfg *config.Config) error {
-				if name != "" {
-					cfg.LicenseKey = name
-				}
-
-				return nil
-			}
+		switch options.Level {
+		case "info":
+			log.SetLevel(logrus.InfoLevel)
+		case "error":
+			log.SetLevel(logrus.ErrorLevel)
+		case "panic":
+			log.SetLevel(logrus.PanicLevel)
+		case "warn":
+			log.SetLevel(logrus.WarnLevel)
+		case "debug":
+			log.SetLevel(logrus.DebugLevel)
+		default:
+			log.SetLevel(logrus.InfoLevel)
 		}
 
-		c, err := client.New(
-			client.ConfigRegion(options.Region),
-			client.ConfigServiceName(options.ServiceName),
-			client.ConfigPersonalAPIKey(options.License), // why we need this? we use license instead
-			client.ConfigLogJSON(true),
-			client.ConfigLogLevel(options.Level),
-			configLicense(options.License),
+		if connection != nil {
+			log.SetOutput(connection)
+		}
+	}
+
+	var harvester *telemetry.Harvester = nil
+
+	if !utils.IsEmpty(options.Endpoint) {
+
+		attribites := make(map[string]interface{})
+		m := common.GetKeyValues(options.Attributes)
+		for k, v := range m {
+			attribites[k] = v
+		}
+
+		var cfgs []func(*telemetry.Config)
+		cfgs = append(cfgs,
+			telemetry.ConfigAPIKey(options.ApiKey),
+			telemetry.ConfigLogsURLOverride(options.Endpoint),
+			telemetry.ConfigCommonAttributes(attribites),
 		)
+
+		if options.Debug {
+			cfgs = append(cfgs,
+				telemetry.ConfigBasicErrorLogger(stdout.log.Writer()),
+				telemetry.ConfigBasicDebugLogger(stdout.log.Writer()),
+			)
+		}
+
+		h, err := telemetry.NewHarvester(cfgs...)
 		if err != nil {
 			stdout.Error(err)
 			return nil
 		}
-		newrelic = c
-
-	}
-
-	formatter := &logrus.JSONFormatter{
-		FieldMap: logrus.FieldMap{
-			logrus.FieldKeyTime:  "timestamp",
-			logrus.FieldKeyLevel: "level",
-			logrus.FieldKeyMsg:   "message",
-		},
-	}
-	formatter.TimestampFormat = time.RFC3339Nano
-
-	log := logrus.New()
-	log.SetFormatter(formatter)
-
-	switch options.Level {
-	case "info":
-		log.SetLevel(logrus.InfoLevel)
-	case "error":
-		log.SetLevel(logrus.ErrorLevel)
-	case "panic":
-		log.SetLevel(logrus.PanicLevel)
-	case "warn":
-		log.SetLevel(logrus.WarnLevel)
-	case "debug":
-		log.SetLevel(logrus.DebugLevel)
-	default:
-		log.SetLevel(logrus.InfoLevel)
-	}
-
-	if connection != nil {
-		log.SetOutput(connection)
-	}
-
-	if newrelic != nil {
-
-		log.SetOutput(NewRelicLogWriter{
-			client: newrelic,
-			stdout: stdout,
-		})
+		harvester = h
 	}
 
 	logger.Info("NewRelic logger is up...")
 
 	return &NewRelicLogger{
-		client:       newrelic,
+		harvester:    harvester,
 		connection:   connection,
 		stdout:       stdout,
 		log:          log,
@@ -360,10 +400,12 @@ func (nrc *NewRelicCounter) Inc(labelValues ...string) common.Counter {
 	_, file, line := common.GetCallerInfo(nrc.meter.callerOffset + 3)
 	attributes["file"] = fmt.Sprintf("%s:%d", file, line)
 
-	counter := nrc.meter.harvester.MetricAggregator().Count(nrc.name, attributes)
-	if counter != nil {
-		counter.Increment()
-	}
+	nrc.meter.harvester.RecordMetric(telemetry.Count{
+		Timestamp:  time.Now(),
+		Name:       nrc.name,
+		Value:      1,
+		Attributes: attributes,
+	})
 
 	return nrc
 }
@@ -404,7 +446,7 @@ func NewNewRelicMeter(options NewRelicMeterOptions, logger common.Logger, stdout
 		logger = stdout
 	}
 
-	if utils.IsEmpty(options.Region) {
+	if utils.IsEmpty(options.Endpoint) {
 		stdout.Debug("NewRelic meter is disabled.")
 		return nil
 	}
@@ -417,7 +459,7 @@ func NewNewRelicMeter(options NewRelicMeterOptions, logger common.Logger, stdout
 
 	var cfgs []func(*telemetry.Config)
 	cfgs = append(cfgs,
-		telemetry.ConfigAPIKey(options.License),
+		telemetry.ConfigAPIKey(options.ApiKey),
 		telemetry.ConfigMetricsURLOverride(options.Endpoint),
 		telemetry.ConfigCommonAttributes(attribites),
 	)

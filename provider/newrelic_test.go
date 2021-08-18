@@ -10,6 +10,33 @@ import (
 	"github.com/devopsext/sre/common"
 )
 
+func newrelicNewMeter(endpoint string) (*NewRelicMeter, *Stdout) {
+
+	stdout := NewStdout(StdoutOptions{
+		Format:          "template",
+		Level:           "debug",
+		Template:        "{{.msg}}",
+		TimestampFormat: time.RFC3339Nano,
+	})
+	if stdout == nil {
+		return nil, nil
+	}
+	stdout.SetCallerOffset(1)
+
+	newrelic := NewNewRelicMeter(NewRelicMeterOptions{
+		Endpoint: endpoint,
+		Prefix:   "test",
+		NewRelicOptions: NewRelicOptions{
+			ApiKey:      "sdfsFFDfd",
+			ServiceName: "sre-newrelic-meter-test",
+			Attributes:  "tag1=value1,,tag3=${key3:value3}",
+			Debug:       true,
+		},
+	}, nil, stdout)
+
+	return newrelic, stdout
+}
+
 func newrelicNewLogger(agentHost, level string) (*NewRelicLogger, *Stdout, net.Listener) {
 
 	agentPort := 51710
@@ -41,6 +68,38 @@ func newrelicNewLogger(agentHost, level string) (*NewRelicLogger, *Stdout, net.L
 	}, nil, stdout)
 
 	return newrelic, stdout, listener
+}
+
+func TestNewRelicMeter(t *testing.T) {
+
+	newrelic, _ := newrelicNewMeter("localhost")
+	if newrelic == nil {
+		t.Fatal("Invalid newrelic")
+	}
+	newrelic.SetCallerOffset(1)
+
+	secondPrefix := "counter"
+	metricName := "some"
+
+	counter := newrelic.Counter(metricName, "description", []string{"one", "two", "three"}, secondPrefix)
+	if counter == nil {
+		t.Fatal("Invalid newrelic counter")
+	}
+
+	maxCounter := 5
+	for i := 0; i < maxCounter; i++ {
+		counter.Inc("value1", "value2", "value3")
+	}
+
+	newrelic.Stop()
+}
+
+func TestNewRelicMeterWrongAgentHost(t *testing.T) {
+
+	newrelic, _ := newrelicNewMeter("")
+	if newrelic != nil {
+		t.Fatal("Valid newrelic")
+	}
 }
 
 func testNewRelicLogger(t *testing.T, level string) (*NewRelicLogger, common.TracerSpan, net.Listener) {
