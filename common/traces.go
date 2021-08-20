@@ -1,12 +1,7 @@
 package common
 
 import (
-	"math/rand"
-	"sync"
-	"time"
-
 	utils "github.com/devopsext/utils"
-	genUtils "github.com/uber/jaeger-client-go/utils"
 )
 
 type TracesSpanContext struct {
@@ -23,8 +18,7 @@ type TracesSpan struct {
 }
 
 type Traces struct {
-	randomNumber func() uint64
-	tracers      []Tracer
+	tracers []Tracer
 }
 
 func (tssc TracesSpanContext) GetTraceID() string {
@@ -119,8 +113,8 @@ func (ts *Traces) Register(t Tracer) {
 
 func (ts *Traces) StartSpan() TracerSpan {
 
-	traceID := ts.NewTraceID()
-	spanID := ts.NewSpanID()
+	traceID := NewTraceID()
+	spanID := NewSpanID()
 
 	span := TracesSpan{
 		traces:  ts,
@@ -142,11 +136,11 @@ func (ts *Traces) StartSpan() TracerSpan {
 func (ts *Traces) StartSpanWithTraceID(traceID, spanID string) TracerSpan {
 
 	if utils.IsEmpty(traceID) {
-		traceID = ts.NewTraceID()
+		traceID = NewTraceID()
 	}
 
 	if utils.IsEmpty(spanID) {
-		spanID = ts.NewSpanID()
+		spanID = NewSpanID()
 	}
 
 	span := TracesSpan{
@@ -265,31 +259,8 @@ func (ts *Traces) Stop() {
 	}
 }
 
-func (ts *Traces) NewTraceID() string {
-	return TraceIDUint64ToHex(ts.randomNumber())
-}
-
-func (ts *Traces) NewSpanID() string {
-	return SpanIDUint64ToHex(ts.randomNumber())
-}
-
 func NewTraces() *Traces {
 
 	ts := Traces{}
-
-	generator := genUtils.NewRand(time.Now().UnixNano())
-	pool := sync.Pool{
-		New: func() interface{} {
-			return rand.NewSource(generator.Int63())
-		},
-	}
-
-	ts.randomNumber = func() uint64 {
-		generator := pool.Get().(rand.Source)
-		number := uint64(generator.Int63())
-		pool.Put(generator)
-		return number
-	}
-
 	return &ts
 }

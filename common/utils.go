@@ -5,15 +5,18 @@ import (
 	"encoding/hex"
 	"fmt"
 	"math/big"
+	"math/rand"
 	"net"
 	"net/http"
 	"path"
 	"runtime"
 	"strings"
+	"sync"
 	"time"
 
-	"github.com/devopsext/utils"
+	utils "github.com/devopsext/utils"
 	"github.com/rs/xid"
+	genUtils "github.com/uber/jaeger-client-go/utils"
 )
 
 func MakeHttpClient(timeout int) *http.Client {
@@ -106,6 +109,28 @@ func TraceIDUint64ToHex(n uint64) string {
 func TraceIDBytesToHex(bytes [16]byte) string {
 
 	return hex.EncodeToString(bytes[:])
+}
+
+var generator = genUtils.NewRand(time.Now().UnixNano())
+var pool = sync.Pool{
+	New: func() interface{} {
+		return rand.NewSource(generator.Int63())
+	},
+}
+
+func randomNumber() uint64 {
+	generator := pool.Get().(rand.Source)
+	number := uint64(generator.Int63())
+	pool.Put(generator)
+	return number
+}
+
+func NewTraceID() string {
+	return TraceIDUint64ToHex(randomNumber())
+}
+
+func NewSpanID() string {
+	return SpanIDUint64ToHex(randomNumber())
 }
 
 func GetKeyValues(s string) map[string]string {
