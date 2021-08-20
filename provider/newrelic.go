@@ -4,6 +4,7 @@ import (
 	"context"
 	"fmt"
 	"net"
+	"net/http"
 	"strings"
 	"time"
 
@@ -42,12 +43,26 @@ type NewRelicMeterOptions struct {
 	Prefix   string
 }
 
+type NewRelicTracerSpanContext struct {
+	tracerSpan *NewRelicTracerSpan
+}
+
+type NewRelicTracerSpan struct {
+	tracer            *NewRelicTracer
+	traceID           string
+	spanID            string
+	parentID          string
+	operation         string
+	timestamp         time.Time
+	attributes        map[string]interface{}
+	events            []telemetry.Event
+	tracerSpanContext *NewRelicTracerSpanContext
+}
+
 type NewRelicTracer struct {
-	options NewRelicTracerOptions
-	logger  common.Logger
-	//tracer       trace.Tracer
-	//provider     *sdktrace.TracerProvider
-	//attributes   []attribute.KeyValue
+	options      NewRelicTracerOptions
+	harvester    *telemetry.Harvester
+	logger       common.Logger
 	callerOffset int
 }
 
@@ -74,33 +89,267 @@ type NewRelicMeter struct {
 	callerOffset int
 }
 
+func (nrtsc *NewRelicTracerSpanContext) GetTraceID() string {
+
+	return nrtsc.tracerSpan.traceID
+}
+
+func (nrtsc *NewRelicTracerSpanContext) GetSpanID() string {
+
+	return nrtsc.tracerSpan.spanID
+}
+
+func (nrts *NewRelicTracerSpan) GetContext() common.TracerSpanContext {
+
+	if nrts.tracerSpanContext != nil {
+		return nrts.tracerSpanContext
+	}
+
+	nrts.tracerSpanContext = &NewRelicTracerSpanContext{
+		tracerSpan: nrts,
+	}
+	return nrts.tracerSpanContext
+}
+
+func (nrts *NewRelicTracerSpan) SetCarrier(object interface{}) common.TracerSpan {
+
+	/*if nrts.span == nil {
+		return nil
+	}*/
+
+	h, ok := object.(http.Header)
+	if ok {
+
+		ctx := nrts.GetContext()
+		if ctx != nil {
+			name := http.CanonicalHeaderKey(headerTraceID)
+			if len(h[name]) == 0 {
+				h[name] = append(h[name], ctx.GetTraceID())
+			}
+		}
+		if ctx != nil {
+			name := http.CanonicalHeaderKey(headerSpanID)
+			if len(h[name]) == 0 {
+				h[name] = append(h[name], ctx.GetTraceID())
+			}
+		}
+	}
+	return nrts
+}
+
+func (nrts *NewRelicTracerSpan) SetName(name string) common.TracerSpan {
+
+	nrts.operation = name
+	return nrts
+}
+
+func (nrts *NewRelicTracerSpan) SetTag(key string, value interface{}) common.TracerSpan {
+
+	nrts.attributes[key] = value
+	return nrts
+}
+
+func (nrts *NewRelicTracerSpan) SetBaggageItem(restrictedKey, value string) common.TracerSpan {
+
+	attributes := make(map[string]interface{})
+	attributes["event"] = "baggage"
+	attributes["key"] = restrictedKey
+	attributes["value"] = value
+
+	nrts.events = append(nrts.events, telemetry.Event{
+		EventType:  "baggage",
+		Attributes: attributes,
+	})
+
+	return nrts
+}
+
+func (nrts *NewRelicTracerSpan) Error(err error) common.TracerSpan {
+
+	nrts.attributes["status"] = "error"
+
+	attributes := make(map[string]interface{})
+	attributes["error.message"] = err.Error()
+
+	nrts.events = append(nrts.events, telemetry.Event{
+		EventType:  "error",
+		Attributes: attributes,
+	})
+	return nrts
+}
+
+func (nrts *NewRelicTracerSpan) Finish() {
+
+	span := telemetry.Span{
+		TraceID:     nrts.traceID,
+		ID:          nrts.spanID,
+		ParentID:    nrts.parentID,
+		Name:        nrts.operation,
+		Timestamp:   nrts.timestamp,
+		Duration:    time.Second,
+		ServiceName: nrts.tracer.options.ServiceName,
+		Attributes:  nrts.attributes,
+		Events:      nrts.events,
+	}
+
+	err := nrts.tracer.harvester.RecordSpan(span)
+	if err != nil {
+		nrts.tracer.logger.Error(err)
+	}
+}
+
+func (nrt *NewRelicTracer) getSpanAttributes() (string, map[string]interface{}) {
+
+	operation, file, line := common.GetCallerInfo(nrt.callerOffset + 4)
+
+	attribites := make(map[string]interface{})
+	attribites["file"] = fmt.Sprintf("%s:%d", file, line)
+
+	return operation, attribites
+}
+
+func (nrt *NewRelicTracer) StartSpan() common.TracerSpan {
+
+	operation, attributes := nrt.getSpanAttributes()
+
+	return &NewRelicTracerSpan{
+		traceID:    common.NewTraceID(),
+		spanID:     common.NewSpanID(),
+		operation:  operation,
+		timestamp:  time.Now(),
+		attributes: attributes,
+		tracer:     nrt,
+	}
+}
+
+func (nrt *NewRelicTracer) StartSpanWithTraceID(traceID, spanID string) common.TracerSpan {
+
+	operation, attributes := nrt.getSpanAttributes()
+
+	return &NewRelicTracerSpan{
+		traceID:    traceID,
+		spanID:     spanID,
+		operation:  operation,
+		timestamp:  time.Now(),
+		attributes: attributes,
+		tracer:     nrt,
+	}
+}
+
+func (nrt *NewRelicTracer) getParentSpanID(object interface{}) (string, string) {
+
+	h, ok := object.(http.Header)
+	if ok {
+
+		traceID := ""
+		spanID := ""
+
+		arr := h[http.CanonicalHeaderKey(headerTraceID)]
+		if len(arr) > 0 {
+			traceID = arr[len(arr)-1]
+		}
+
+		arr = h[http.CanonicalHeaderKey(headerSpanID)]
+		if len(arr) > 0 {
+			spanID = arr[len(arr)-1]
+		}
+
+		return spanID, traceID
+	}
+
+	nrtsc, ok := object.(*NewRelicTracerSpanContext)
+	if ok {
+		return nrtsc.tracerSpan.spanID, nrtsc.tracerSpan.traceID
+	}
+	return "", ""
+}
+
+func (nrt *NewRelicTracer) StartChildSpan(object interface{}) common.TracerSpan {
+
+	parentID, traceID := nrt.getParentSpanID(object)
+	operation, attributes := nrt.getSpanAttributes()
+
+	return &NewRelicTracerSpan{
+		traceID:    traceID,
+		spanID:     common.NewSpanID(),
+		parentID:   parentID,
+		operation:  operation,
+		timestamp:  time.Now(),
+		attributes: attributes,
+		tracer:     nrt,
+	}
+}
+
+func (nrt *NewRelicTracer) StartFollowSpan(object interface{}) common.TracerSpan {
+
+	parentID, traceID := nrt.getParentSpanID(object)
+	operation, attributes := nrt.getSpanAttributes()
+
+	return &NewRelicTracerSpan{
+		traceID:    traceID,
+		spanID:     common.NewSpanID(),
+		parentID:   parentID,
+		operation:  operation,
+		timestamp:  time.Now(),
+		attributes: attributes,
+		tracer:     nrt,
+	}
+}
+
+func (nrt *NewRelicTracer) SetCallerOffset(offset int) {
+	nrt.callerOffset = offset
+}
+
+func (nrt *NewRelicTracer) Stop() {
+
+	if nrt.harvester != nil {
+		nrt.harvester.HarvestNow(context.Background())
+	}
+}
+
 func NewNewRelicTracer(options NewRelicTracerOptions, logger common.Logger, stdout *Stdout) *NewRelicTracer {
 
 	if logger == nil {
 		logger = stdout
 	}
 
-	/*tracer, provider := startOpentelemtryTracer(options, logger, stdout)
-	if tracer == nil {
+	if utils.IsEmpty(options.Endpoint) {
 		stdout.Debug("NewRelic tracer is disabled.")
 		return nil
 	}
 
-	attributes := make([]attribute.KeyValue, 0)
+	attribites := make(map[string]interface{})
 	m := common.GetKeyValues(options.Attributes)
 	for k, v := range m {
-		attribute := attribute.String(k, v)
-		attributes = append(attributes, attribute)
-	}*/
+		attribites[k] = v
+	}
+
+	var cfgs []func(*telemetry.Config)
+	cfgs = append(cfgs,
+		telemetry.ConfigAPIKey(options.ApiKey),
+		telemetry.ConfigSpansURLOverride(options.Endpoint),
+		telemetry.ConfigCommonAttributes(attribites),
+	)
+
+	if options.Debug {
+		cfgs = append(cfgs,
+			telemetry.ConfigBasicErrorLogger(stdout.log.Writer()),
+			telemetry.ConfigBasicDebugLogger(stdout.log.Writer()),
+		)
+	}
+
+	harvester, err := telemetry.NewHarvester(cfgs...)
+	if err != nil {
+		stdout.Error(err)
+		return nil
+	}
 
 	logger.Info("NewRelic tracer is up...")
 
 	return &NewRelicTracer{
-		options: options,
-		logger:  logger,
-		//tracer:       tracer,
-		//provider:     provider,
-		//attributes:   attributes,
+		options:      options,
+		harvester:    harvester,
+		logger:       logger,
 		callerOffset: 1,
 	}
 }

@@ -2,6 +2,7 @@ package cmd
 
 import (
 	"bytes"
+	"errors"
 	"fmt"
 	"io/ioutil"
 	"net/http"
@@ -283,6 +284,9 @@ func Execute() {
 
 			rootSpan := traces.StartSpan()
 			rootSpan.SetBaggageItem("some-restriction", "enabled")
+			rootSpan.SetTag("tag", "value")
+			rootSpan.Error(errors.New("some error"))
+
 			spanCtx := rootSpan.GetContext()
 			if spanCtx != nil {
 				logs.Info("Trace ID is %s", spanCtx.GetTraceID())
@@ -414,6 +418,7 @@ func Execute() {
 	flags.StringVar(&newrelicOptions.Environment, "newrelic-environment", newrelicOptions.Environment, "NewRelic environment")
 	flags.StringVar(&newrelicOptions.Attributes, "newrelic-attributes", newrelicOptions.Attributes, "NewRelic Attributes")
 	flags.BoolVar(&newrelicOptions.Debug, "newrelic-debug", newrelicOptions.Debug, "NewRelic debug")
+	flags.StringVar(&newrelicTracerOptions.Endpoint, "newrelic-tracer-endpoint", newrelicTracerOptions.Endpoint, "NewRelic tracer endpoint")
 	flags.StringVar(&newrelicLoggerOptions.Endpoint, "newrelic-logger-endpoint", newrelicLoggerOptions.Endpoint, "NewRelic logger endpoint")
 	flags.StringVar(&newrelicLoggerOptions.AgentHost, "newrelic-logger-agent-host", newrelicLoggerOptions.AgentHost, "NewRelic logger agent host")
 	flags.IntVar(&newrelicLoggerOptions.AgentPort, "newrelic-logger-agent-port", newrelicLoggerOptions.AgentPort, "NewRelic logger agent port")
