@@ -10,7 +10,6 @@ import (
 	"time"
 
 	"github.com/devopsext/sre/common"
-	"github.com/devopsext/utils"
 )
 
 func stdoutTestSpan(t *testing.T, stdout *Stdout, level string, span common.TracerSpan, args ...interface{}) string {
@@ -122,17 +121,18 @@ func stdoutTestTemplateSpan(t *testing.T, level string) {
 		t.Fatal("Invalid tracer")
 	}
 
-	traceID := tracer.NewTraceID()
-	if utils.IsEmpty(traceID) {
-		t.Fatal("Invalid trace ID")
-	}
+	/*	traceID := tracer.NewTraceID()
+			if utils.IsEmpty(traceID) {
+				t.Fatal("Invalid trace ID")
+			}
 
-	span := tracer.StartSpanWithTraceID(traceID, "")
-	if span == nil {
-		t.Fatal("Invalid span")
-	}
+		span := tracer.StartSpanWithTraceID(traceID, "")
+		if span == nil {
+			t.Fatal("Invalid span")
+		}
 
-	stdoutTest(t, "template", level, "{{.msg}} {{.trace_id}}", span)
+		stdoutTest(t, "template", level, "{{.msg}} {{.trace_id}}", span)
+	*/
 }
 
 func TestStdoutNormal(t *testing.T) {

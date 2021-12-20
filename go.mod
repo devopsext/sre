@@ -1,6 +1,6 @@
 module github.com/devopsext/sre
 
-go 1.16
+go 1.17
 
 require (
 	github.com/DataDog/datadog-go v4.7.0+incompatible
@@ -8,7 +8,6 @@ require (
 	github.com/Microsoft/go-winio v0.5.0 // indirect
 	github.com/devopsext/utils v0.0.3
 	github.com/google/uuid v1.2.0 // indirect
-	github.com/newrelic/newrelic-client-go v0.62.1
 	github.com/newrelic/newrelic-telemetry-sdk-go v0.8.1
 	github.com/opentracing/opentracing-go v1.2.0
 	github.com/philhofer/fwd v1.1.1 // indirect
@@ -29,7 +28,9 @@ require (
 	go.uber.org/atomic v1.7.0 // indirect
 	golang.org/x/time v0.0.0-20210608053304-ed9ce3a009e4 // indirect
 	gopkg.in/DataDog/dd-trace-go.v1 v1.31.1
+	gopkg.in/yaml.v3 v3.0.0-20200615113413-eeeca48fe776 // indirect
 )
 
 replace gopkg.in/DataDog/dd-trace-go.v1 => github.com/devopsext/dd-trace-go v1.31.2
+
 //replace	github.com/newrelic/newrelic-telemetry-sdk-go => github.com/devopsext/newrelic-telemetry-sdk-go v0.8.2
