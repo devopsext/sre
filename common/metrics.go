@@ -6,7 +6,7 @@ type MetricsCounter struct {
 }
 
 type Metrics struct {
-	Meters []Meter
+	meters []Meter
 }
 
 func (msc *MetricsCounter) Inc(values ...string) Counter {
@@ -24,7 +24,7 @@ func (ms *Metrics) Counter(name, description string, labels []string, prefixes .
 		counters: make(map[Meter]Counter),
 	}
 
-	for _, m := range ms.Meters {
+	for _, m := range ms.meters {
 
 		c := m.Counter(name, description, labels, prefixes...)
 		if c != nil {
@@ -36,14 +36,14 @@ func (ms *Metrics) Counter(name, description string, labels []string, prefixes .
 
 func (ms *Metrics) Stop() {
 
-	for _, m := range ms.Meters {
+	for _, m := range ms.meters {
 		m.Stop()
 	}
 }
 
 func (ms *Metrics) Register(m Meter) {
 	if ms != nil {
-		ms.Meters = append(ms.Meters, m)
+		ms.meters = append(ms.meters, m)
 	}
 }
 
