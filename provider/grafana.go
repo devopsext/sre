@@ -103,15 +103,20 @@ func (ge *GrafanaEventer) createAnnotation(a GrafanaAnnotation) (*GrafanaAnnotat
 	return &res, nil
 }
 
-func (ge *GrafanaEventer) Trigger(message string) {
+func (ge *GrafanaEventer) Interval(name string, attributes map[string]string, begin, end time.Time) {
 
-	when := time.Now()
+	tags := common.MapToArray(attributes)
+	for _, v := range ge.tags {
+		if !utils.Contains(tags, v) {
+			tags = append(tags, v)
+		}
+	}
 
 	a := GrafanaAnnotation{
-		Time:    int(when.UTC().UnixMilli()),
-		TimeEnd: int(when.Add(time.Second * 1).UTC().UnixMilli()),
-		Tags:    []string{"high"},
-		Text:    message,
+		Time:    int(begin.UTC().UnixMilli()),
+		TimeEnd: int(end.UTC().UnixMilli()),
+		Tags:    tags,
+		Text:    name,
 	}
 
 	ar, err := ge.createAnnotation(a)
@@ -120,6 +125,14 @@ func (ge *GrafanaEventer) Trigger(message string) {
 		return
 	}
 	ge.logger.Debug("Annotation %d. %s", ar.ID, ar.Message)
+}
+
+func (ge *GrafanaEventer) Now(name string, attributes map[string]string) {
+	ge.At(name, attributes, time.Now())
+}
+
+func (ge *GrafanaEventer) At(name string, attributes map[string]string, when time.Time) {
+	ge.Interval(name, attributes, when, when)
 }
 
 func (ge *GrafanaEventer) Stop() {
@@ -137,19 +150,13 @@ func NewGrafanaEventer(options GrafanaEventerOptions, logger common.Logger, stdo
 		return nil
 	}
 
-	/*tags := make(map[string]interface{})
-	m := common.GetKeyValues(options.Tags)
-	for k, v := range m {
-		tags[k] = v
-	}*/
-
 	logger.Info("Grafana eventer is up...")
 
 	return &GrafanaEventer{
 		options: options,
 		logger:  logger,
-		//		tags:    tags,
-		client: common.MakeHttpClient(options.Timeout),
-		ctx:    context.Background(),
+		tags:    common.MapToArray(common.GetKeyValues(options.Tags)),
+		client:  common.MakeHttpClient(options.Timeout),
+		ctx:     context.Background(),
 	}
 }

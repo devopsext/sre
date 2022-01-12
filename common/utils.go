@@ -146,18 +146,37 @@ func GetKeyValues(s string) map[string]string {
 			continue
 		}
 		kv := strings.SplitN(p, "=", 2)
-		k, v := strings.TrimSpace(kv[0]), strings.TrimSpace(kv[1])
-
-		if strings.HasPrefix(v, "${") && strings.HasSuffix(v, "}") {
-			ed := strings.SplitN(v[2:len(v)-1], ":", 2)
-			e, d := ed[0], ed[1]
-			v = env.Get(e, "").(string)
-			if v == "" && d != "" {
-				v = d
+		k := strings.TrimSpace(kv[0])
+		if len(kv) > 1 {
+			v := strings.TrimSpace(kv[1])
+			if strings.HasPrefix(v, "${") && strings.HasSuffix(v, "}") {
+				ed := strings.SplitN(v[2:len(v)-1], ":", 2)
+				e, d := ed[0], ed[1]
+				v = env.Get(e, "").(string)
+				if v == "" && d != "" {
+					v = d
+				}
 			}
+			m[k] = v
+		} else {
+			m[k] = ""
 		}
-
-		m[k] = v
 	}
 	return m
+}
+
+func MapToArray(m map[string]string) []string {
+
+	var arr []string
+	if m == nil {
+		return arr
+	}
+	for k, v := range m {
+		if utils.IsEmpty(v) {
+			arr = append(arr, k)
+		} else {
+			arr = append(arr, fmt.Sprintf("%s=%v", k, v))
+		}
+	}
+	return arr
 }

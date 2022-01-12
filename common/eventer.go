@@ -1,10 +1,10 @@
 package common
 
-type Event interface {
-	Stop()
-}
+import "time"
 
 type Eventer interface {
-	Trigger(message string)
+	Now(name string, attributes map[string]string)
+	At(name string, attributes map[string]string, when time.Time)
+	Interval(name string, attributes map[string]string, begin, end time.Time)
 	Stop()
 }
