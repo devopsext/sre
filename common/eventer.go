@@ -1,5 +1,10 @@
 package common
 
+type Event interface {
+	Stop()
+}
+
 type Eventer interface {
-	Trigger()
+	Trigger(message string)
+	Stop()
 }

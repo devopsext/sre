@@ -4,10 +4,10 @@ type Events struct {
 	eventers []Eventer
 }
 
-func (es *Events) Trigger() {
+func (es *Events) Trigger(message string) {
 
 	for _, e := range es.eventers {
-		e.Trigger()
+		e.Trigger(message)
 	}
 }
 

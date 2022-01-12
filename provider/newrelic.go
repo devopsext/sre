@@ -43,6 +43,11 @@ type NewRelicMeterOptions struct {
 	Prefix   string
 }
 
+type NewRelicEventerOptions struct {
+	NewRelicOptions
+	Endpoint string
+}
+
 type NewRelicTracerSpanContext struct {
 	tracerSpan *NewRelicTracerSpan
 }
@@ -87,6 +92,12 @@ type NewRelicMeter struct {
 	options      NewRelicMeterOptions
 	logger       common.Logger
 	callerOffset int
+}
+
+type NewRelicEventer struct {
+	harvester *telemetry.Harvester
+	options   NewRelicEventerOptions
+	logger    common.Logger
 }
 
 func (nrtsc *NewRelicTracerSpanContext) GetTraceID() string {
@@ -779,5 +790,84 @@ func NewNewRelicMeter(options NewRelicMeterOptions, logger common.Logger, stdout
 		options:      options,
 		logger:       logger,
 		callerOffset: 1,
+	}
+}
+
+func (nre *NewRelicEventer) Trigger(message string) {
+
+	event := telemetry.Event{
+		EventType: message,
+		Timestamp: time.Now().UTC(),
+		Attributes: ,
+	}
+	/*span := telemetry.{
+		TraceID:     nrts.traceID,
+		ID:          nrts.spanID,
+		ParentID:    nrts.parentID,
+		Name:        nrts.operation,
+		Timestamp:   nrts.timestamp,
+		Duration:    time.Second,
+		ServiceName: nrts.tracer.options.ServiceName,
+		Attributes:  nrts.attributes,
+		Events:      nrts.events,
+	}*/
+
+	err := nre.harvester.RecordEvent(event)
+	if err != nil {
+		nre.logger.Error(err)
+		return
+	}
+}
+
+func (nre *NewRelicEventer) Stop() {
+	if nre.harvester != nil {
+		nre.harvester.HarvestNow(context.Background())
+	}
+}
+
+func NewNewRelicEventer(options NewRelicEventerOptions, logger common.Logger, stdout *Stdout) *NewRelicEventer {
+
+	if logger == nil {
+		logger = stdout
+	}
+
+	if utils.IsEmpty(options.Endpoint) {
+		stdout.Debug("NewRelic eventer is disabled.")
+		return nil
+	}
+
+	attribites := make(map[string]interface{})
+	m := common.GetKeyValues(options.Attributes)
+	for k, v := range m {
+		attribites[k] = v
+	}
+
+	var cfgs []func(*telemetry.Config)
+	cfgs = append(cfgs,
+		telemetry.ConfigAPIKey(options.ApiKey),
+		telemetry.ConfigMetricsURLOverride(options.Endpoint),
+		telemetry.ConfigCommonAttributes(attribites),
+	)
+
+	if options.Debug {
+		cfgs = append(cfgs,
+			telemetry.ConfigBasicErrorLogger(stdout.log.Writer()),
+			telemetry.ConfigBasicDebugLogger(stdout.log.Writer()),
+		)
+	}
+
+	harvester, err := telemetry.NewHarvester(cfgs...)
+	if err != nil {
+		stdout.Error(err)
+		return nil
+	}
+
+	logger.Info("Grafana eventer is up...")
+
+	return &NewRelicEventer{
+		harvester: harvester,
+		options:   options,
+		logger:    logger,
+		//		tags:    tags,
 	}
 }
