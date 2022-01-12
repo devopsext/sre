@@ -142,9 +142,10 @@ var newrelicMeterOptions = provider.NewRelicMeterOptions{
 }
 
 var grafanaOptions = provider.GrafanaOptions{
-	URL:    "",
-	ApiKey: "admim:admin",
-	Tags:   "",
+	URL:     "",
+	ApiKey:  "admim:admin",
+	Tags:    "",
+	Timeout: 5000,
 }
 
 var grafanaEventerOptions = provider.GrafanaEventerOptions{
@@ -293,6 +294,7 @@ func Execute() {
 			grafanaEventerOptions.URL = grafanaOptions.URL
 			grafanaEventerOptions.ApiKey = grafanaOptions.ApiKey
 			grafanaEventerOptions.Tags = grafanaOptions.Tags
+			grafanaEventerOptions.Timeout = grafanaOptions.Timeout
 			grafanaEventer := provider.NewGrafanaEventer(grafanaEventerOptions, logs, stdout)
 			if utils.Contains(rootOptions.Events, "grafana") && grafanaEventer != nil {
 				events.Register(grafanaEventer)
@@ -305,7 +307,9 @@ func Execute() {
 
 			logs.Info("Log message to every log provider...")
 
-			events.Trigger()
+			//e := events.Start()
+			//e.Finish()
+			events.Trigger("Trigger an event")
 
 			rootSpan := traces.StartSpan()
 			rootSpan.SetBaggageItem("some-restriction", "enabled")
@@ -455,6 +459,7 @@ func Execute() {
 	flags.StringVar(&grafanaOptions.URL, "grafana-url", grafanaOptions.URL, "Grafana URL")
 	flags.StringVar(&grafanaOptions.ApiKey, "grafana-api-key", grafanaOptions.ApiKey, "Grafana API key")
 	flags.StringVar(&grafanaOptions.Tags, "grafana-tags", grafanaOptions.Tags, "Grafana tags")
+	flags.IntVar(&grafanaOptions.Timeout, "grafana-timeout", grafanaOptions.Timeout, "Grafana timeout")
 	flags.StringVar(&grafanaEventerOptions.Endpoint, "grafana-eventer-endpoint", grafanaEventerOptions.Tags, "Grafana eventer endpoint")
 
 	interceptSyscall()
