@@ -95,9 +95,10 @@ type NewRelicMeter struct {
 }
 
 type NewRelicEventer struct {
-	harvester *telemetry.Harvester
-	options   NewRelicEventerOptions
-	logger    common.Logger
+	harvester  *telemetry.Harvester
+	options    NewRelicEventerOptions
+	logger     common.Logger
+	attributes map[string]interface{}
 }
 
 func (nrtsc *NewRelicTracerSpanContext) GetTraceID() string {
@@ -793,30 +794,33 @@ func NewNewRelicMeter(options NewRelicMeterOptions, logger common.Logger, stdout
 	}
 }
 
-func (nre *NewRelicEventer) Trigger(message string) {
+func (nre *NewRelicEventer) Interval(name string, attributes map[string]string, begin, end time.Time) {
+
+	attrs := make(map[string]interface{})
+	if attributes != nil {
+		for k, v := range attributes {
+			attrs[k] = v
+		}
+	}
 
 	event := telemetry.Event{
-		EventType: message,
-		Timestamp: time.Now().UTC(),
-		Attributes: ,
+		EventType:  name,
+		Timestamp:  begin,
+		Attributes: attrs,
 	}
-	/*span := telemetry.{
-		TraceID:     nrts.traceID,
-		ID:          nrts.spanID,
-		ParentID:    nrts.parentID,
-		Name:        nrts.operation,
-		Timestamp:   nrts.timestamp,
-		Duration:    time.Second,
-		ServiceName: nrts.tracer.options.ServiceName,
-		Attributes:  nrts.attributes,
-		Events:      nrts.events,
-	}*/
 
 	err := nre.harvester.RecordEvent(event)
 	if err != nil {
 		nre.logger.Error(err)
-		return
 	}
+}
+
+func (nre *NewRelicEventer) Now(name string, attributes map[string]string) {
+	nre.At(name, attributes, time.Now())
+}
+
+func (nre *NewRelicEventer) At(name string, attributes map[string]string, when time.Time) {
+	nre.Interval(name, attributes, when, when)
 }
 
 func (nre *NewRelicEventer) Stop() {
@@ -845,7 +849,7 @@ func NewNewRelicEventer(options NewRelicEventerOptions, logger common.Logger, st
 	var cfgs []func(*telemetry.Config)
 	cfgs = append(cfgs,
 		telemetry.ConfigAPIKey(options.ApiKey),
-		telemetry.ConfigMetricsURLOverride(options.Endpoint),
+		telemetry.ConfigEventsURLOverride(options.Endpoint),
 		telemetry.ConfigCommonAttributes(attribites),
 	)
 
@@ -862,12 +866,12 @@ func NewNewRelicEventer(options NewRelicEventerOptions, logger common.Logger, st
 		return nil
 	}
 
-	logger.Info("Grafana eventer is up...")
+	logger.Info("NewRelic eventer is up...")
 
 	return &NewRelicEventer{
-		harvester: harvester,
-		options:   options,
-		logger:    logger,
-		//		tags:    tags,
+		harvester:  harvester,
+		options:    options,
+		logger:     logger,
+		attributes: attribites,
 	}
 }

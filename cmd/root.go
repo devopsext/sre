@@ -141,6 +141,10 @@ var newrelicMeterOptions = provider.NewRelicMeterOptions{
 	Prefix:   "sre",
 }
 
+var newrelicEventerOptions = provider.NewRelicEventerOptions{
+	Endpoint: "",
+}
+
 var grafanaOptions = provider.GrafanaOptions{
 	URL:     "",
 	ApiKey:  "admim:admin",
@@ -300,6 +304,17 @@ func Execute() {
 				events.Register(grafanaEventer)
 			}
 
+			newrelicEventerOptions.Version = VERSION
+			newrelicEventerOptions.ApiKey = newrelicOptions.ApiKey
+			newrelicEventerOptions.ServiceName = newrelicOptions.ServiceName
+			newrelicEventerOptions.Environment = newrelicOptions.Environment
+			newrelicEventerOptions.Attributes = newrelicOptions.Attributes
+			newrelicEventerOptions.Debug = newrelicOptions.Debug
+			newrelicEventer := provider.NewNewRelicEventer(newrelicEventerOptions, logs, stdout)
+			if utils.Contains(rootOptions.Events, "newrelic") && newrelicEventer != nil {
+				events.Register(newrelicEventer)
+			}
+
 		},
 		Run: func(cmd *cobra.Command, args []string) {
 
@@ -307,9 +322,14 @@ func Execute() {
 
 			logs.Info("Log message to every log provider...")
 
-			//e := events.Start()
-			//e.Finish()
-			events.Trigger("Trigger an event")
+			events.Now("First", nil)
+
+			m := make(map[string]string)
+			m["attr1"] = "value"
+
+			events.At("Second", m, time.Now().Add(time.Second*5))
+
+			events.Interval("Third", nil, time.Now().Add(-time.Second*2), time.Now().Add(-time.Second*1))
 
 			rootSpan := traces.StartSpan()
 			rootSpan.SetBaggageItem("some-restriction", "enabled")
@@ -396,7 +416,7 @@ func Execute() {
 	flags.StringSliceVar(&rootOptions.Logs, "logs", rootOptions.Logs, "Log providers: stdout, datadog, newrelic")
 	flags.StringSliceVar(&rootOptions.Metrics, "metrics", rootOptions.Metrics, "Metric providers: prometheus, datadog, opentelemetry")
 	flags.StringSliceVar(&rootOptions.Traces, "traces", rootOptions.Traces, "Trace providers: jaeger, datadog, opentelemetry")
-	flags.StringSliceVar(&rootOptions.Events, "events", rootOptions.Events, "Events providers: grafana")
+	flags.StringSliceVar(&rootOptions.Events, "events", rootOptions.Events, "Events providers: grafana, newrelic")
 
 	flags.StringVar(&stdoutOptions.Format, "stdout-format", stdoutOptions.Format, "Stdout format: json, text, template")
 	flags.StringVar(&stdoutOptions.Level, "stdout-level", stdoutOptions.Level, "Stdout level: info, warn, error, debug, panic")
@@ -455,6 +475,7 @@ func Execute() {
 	flags.StringVar(&newrelicLoggerOptions.Level, "newrelic-logger-level", newrelicLoggerOptions.Level, "NewRelic logger level: info, warn, error, debug, panic")
 	flags.StringVar(&newrelicMeterOptions.Endpoint, "newrelic-meter-endpoint", newrelicMeterOptions.Endpoint, "NewRelic meter endpoint")
 	flags.StringVar(&newrelicMeterOptions.Prefix, "newrelic-meter-prefix", newrelicMeterOptions.Prefix, "NewRelic meter prefix")
+	flags.StringVar(&newrelicEventerOptions.Endpoint, "newrelic-eventer-endpoint", newrelicEventerOptions.Endpoint, "NewRelic eventer endpoint")
 
 	flags.StringVar(&grafanaOptions.URL, "grafana-url", grafanaOptions.URL, "Grafana URL")
 	flags.StringVar(&grafanaOptions.ApiKey, "grafana-api-key", grafanaOptions.ApiKey, "Grafana API key")
