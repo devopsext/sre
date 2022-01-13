@@ -1,6 +1,6 @@
 # SRE framework 
 
-Framework for golang applications which helps to send metrics, logs and traces into different monitoring tools or vendors. 
+Framework for golang applications which helps to send metrics, logs, traces and events into different monitoring tools or vendors. 
 
 [![godoc](https://godoc.org/github.com/devopsext/sre?status.svg)](https://godoc.org/github.com/devopsext/sre)
 [![go report](	https://goreportcard.com/badge/github.com/devopsext/sre)](https://goreportcard.com/report/github.com/devopsext/sre)
@@ -24,6 +24,9 @@ Framework for golang applications which helps to send metrics, logs and traces i
   - [Jaeger](https://github.com/jaegertracing/jaeger-client-go)
   - [DataDog](https://github.com/DataDog/dd-trace-go)
   - [Opentelemetry](https://github.com/open-telemetry/opentelemetry-go)
+- Support eventing tools (aka events)
+  - [NewRelic](https://github.com/newrelic/newrelic-telemetry-sdk-go)
+  - [Grafana](https://github.com/grafana/grafana)
 
 
 ## Usage
@@ -33,14 +36,15 @@ Framework for golang applications which helps to send metrics, logs and traces i
 - Jaeger works with its [Jaeger agent](https://www.jaegertracing.io/docs/latest/getting-started/)
 - DataDog uses [DataDog agent](https://docs.datadoghq.com/agent/) for logs, metrics and traces
 - NewRelic uses [NewRelic standalone infrastructure agent](https://docs.newrelic.com/docs/infrastructure/install-infrastructure-agent/) for logs
-- NewRelic uses [NewRelic Telemetry SDK](https://docs.newrelic.com/docs/telemetry-data-platform/ingest-apis/telemetry-sdks-report-custom-telemetry-data/) for logs, metrics, traces
+- NewRelic uses [NewRelic Telemetry SDK](https://docs.newrelic.com/docs/telemetry-data-platform/ingest-apis/telemetry-sdks-report-custom-telemetry-data/) for logs, metrics, traces, events
 - Opentelemetry communicates with its [Opentelemetry agent](https://github.com/open-telemetry/opentelemetry-collector)
+- Grafana uses [Grafana Annotations API](https://grafana.com/docs/grafana/latest/http_api/annotations/) 
 
 ### Set envs
 
 Set proper GOROOT and PATH variables
 ```sh
-export GOROOT="$HOME/go/root/1.16.4"
+export GOROOT="$HOME/go/root/1.17.4"
 export PATH="$PATH:$GOROOT/bin"
 ```
 
@@ -50,7 +54,7 @@ Set go.mod manually
 ```plain
 module sre
 
-go 1.16
+go 1.17
 
 require github.com/devopsext/sre vX.Y.Z
 ```
@@ -72,7 +76,7 @@ go: found github.com/devopsext/sre/provider in github.com/devopsext/sre vX.Y.Z
 - [Logs](examples/logs.md)
 - [Metrics](examples/metrics.md)
 - [Traces](examples/traces.md)
-
+- [Events](examples/events.md)
 
 ## Framework in other projects
 

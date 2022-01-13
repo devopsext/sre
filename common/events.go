@@ -24,6 +24,12 @@ func (es *Events) Interval(name string, attributes map[string]string, begin, end
 	}
 }
 
+func (es *Events) Stop() {
+	for _, e := range es.eventers {
+		e.Stop()
+	}
+}
+
 func (es *Events) Register(e Eventer) {
 	if es != nil {
 		es.eventers = append(es.eventers, e)
