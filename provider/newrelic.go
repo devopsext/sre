@@ -801,6 +801,9 @@ func (nre *NewRelicEventer) Interval(name string, attributes map[string]string, 
 		for k, v := range attributes {
 			attrs[k] = v
 		}
+		for k, v := range nre.attributes {
+			attrs[k] = v
+		}
 	}
 
 	event := telemetry.Event{

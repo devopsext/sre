@@ -171,6 +171,7 @@ func Finish() {
 	traces.Stop()
 	metrics.Stop()
 	logs.Stop()
+	events.Stop()
 	os.Exit(0)
 }
 
@@ -328,7 +329,6 @@ func Execute() {
 			m["attr1"] = "value"
 
 			events.At("Second", m, time.Now().Add(time.Second*5))
-
 			events.Interval("Third", nil, time.Now().Add(-time.Second*2), time.Now().Add(-time.Second*1))
 
 			rootSpan := traces.StartSpan()
