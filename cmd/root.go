@@ -99,6 +99,10 @@ var datadogMeterOptions = provider.DataDogMeterOptions{
 	Prefix:    "sre",
 }
 
+var datadogEventerOptions = provider.DataDogEventerOptions{
+	Site: "",
+}
+
 var opentelemetryOptions = provider.OpentelemetryOptions{
 	ServiceName: "",
 	Environment: "",
@@ -316,6 +320,17 @@ func Execute() {
 				events.Register(newrelicEventer)
 			}
 
+			datadogEventerOptions.Version = VERSION
+			datadogEventerOptions.ApiKey = datadogOptions.ApiKey
+			datadogEventerOptions.ServiceName = datadogOptions.ServiceName
+			datadogEventerOptions.Environment = datadogOptions.Environment
+			datadogEventerOptions.Tags = datadogOptions.Tags
+			datadogEventerOptions.Debug = datadogOptions.Debug
+			datadogEventer := provider.NewDataDogEventer(datadogEventerOptions, logs, stdout)
+			if utils.Contains(rootOptions.Events, "datadog") && datadogEventer != nil {
+				events.Register(datadogEventer)
+			}
+
 		},
 		Run: func(cmd *cobra.Command, args []string) {
 
@@ -416,7 +431,7 @@ func Execute() {
 	flags.StringSliceVar(&rootOptions.Logs, "logs", rootOptions.Logs, "Log providers: stdout, datadog, newrelic")
 	flags.StringSliceVar(&rootOptions.Metrics, "metrics", rootOptions.Metrics, "Metric providers: prometheus, datadog, opentelemetry")
 	flags.StringSliceVar(&rootOptions.Traces, "traces", rootOptions.Traces, "Trace providers: jaeger, datadog, opentelemetry")
-	flags.StringSliceVar(&rootOptions.Events, "events", rootOptions.Events, "Events providers: grafana, newrelic")
+	flags.StringSliceVar(&rootOptions.Events, "events", rootOptions.Events, "Events providers: grafana, newrelic, datadog")
 
 	flags.StringVar(&stdoutOptions.Format, "stdout-format", stdoutOptions.Format, "Stdout format: json, text, template")
 	flags.StringVar(&stdoutOptions.Level, "stdout-level", stdoutOptions.Level, "Stdout level: info, warn, error, debug, panic")
@@ -453,6 +468,7 @@ func Execute() {
 	flags.StringVar(&datadogMeterOptions.AgentHost, "datadog-meter-agent-host", datadogMeterOptions.AgentHost, "DataDog meter agent host")
 	flags.IntVar(&datadogMeterOptions.AgentPort, "datadog-meter-agent-port", datadogMeterOptions.AgentPort, "Datadog meter agent port")
 	flags.StringVar(&datadogMeterOptions.Prefix, "datadog-meter-prefix", datadogMeterOptions.Prefix, "DataDog meter prefix")
+	flags.StringVar(&datadogEventerOptions.Site, "datadog-eventer-site", datadogEventerOptions.Site, "DataDog eventer site (eg. datadoghq.eu)")
 
 	flags.StringVar(&opentelemetryOptions.ServiceName, "opentelemetry-service-name", opentelemetryOptions.ServiceName, "Opentelemetry service name")
 	flags.StringVar(&opentelemetryOptions.Environment, "opentelemetry-environment", opentelemetryOptions.Environment, "Opentelemetry environment")

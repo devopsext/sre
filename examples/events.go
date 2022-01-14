@@ -15,12 +15,16 @@ func test() {
 	events.Now("First", nil)
 
 	m := make(map[string]string)
-	m["attr1"] = "value"
-	m["team"] = "SRE"
-	m["priority"] = "high"
+	m["alert_type"] = "warning"
+	m["device_name"] = "test machine"
+	m["host"] = "xciber's macbook"
+	m["priority"] = "low"
+	m["related_event_id"] = "123"
+	m["source_type_name"] = "sre framework"
 
 	events.At("Second", m, time.Now().Add(time.Second*5))
-	events.Interval("Third", nil, time.Now().Add(-time.Second*2), time.Now().Add(-time.Second*1))
+	m["priority"] = "normal"
+	events.Interval("Third", m, time.Now().Add(-time.Second*2), time.Now().Add(-time.Second*1))
 }
 
 func main() {
@@ -65,6 +69,8 @@ func main() {
 			ApiKey:      "", // set API key
 			ServiceName: "sre-datadog",
 			Environment: "stage",
+			Tags:        "tag1=asd,tag2=kjh",
+			Debug:       true,
 		},
 		Site: "datadoghq.eu", //
 	},
