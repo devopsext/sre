@@ -138,7 +138,7 @@ func GetKeyValues(s string) map[string]string {
 	env := utils.GetEnvironment()
 	pairs := strings.Split(s, ",")
 
-	var m map[string]string = make(map[string]string)
+	m := make(map[string]string)
 
 	for _, p := range pairs {
 

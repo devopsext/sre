@@ -50,8 +50,7 @@ type DataDogMeterOptions struct {
 
 type DataDogEventerOptions struct {
 	DataDogOptions
-	attributes map[string]interface{}
-	Site       string
+	Site string
 }
 
 type DataDogTracerSpanContext struct {
@@ -203,23 +202,23 @@ func (dd *DataDogTracer) startSpanFromContext(ctx context.Context, offset int, o
 
 	operation, file, line := common.GetCallerInfo(offset)
 
-	span, ctx2 := tracer.StartSpanFromContext(ctx, operation, opts...)
+	span, sContext := tracer.StartSpanFromContext(ctx, operation, opts...)
 	if span != nil {
 		span.SetTag("file", fmt.Sprintf("%s:%d", file, line))
 	}
-	return span, ctx2
+	return span, sContext
 }
 
 func (dd *DataDogTracer) startChildOfSpan(ctx context.Context, spanContext ddtrace.SpanContext) (ddtrace.Span, context.Context) {
 
 	var span ddtrace.Span
-	var ctx2 context.Context
+	var sContext context.Context
 	if spanContext != nil {
-		span, ctx2 = dd.startSpanFromContext(ctx, dd.callerOffset+5, tracer.ChildOf(spanContext))
+		span, sContext = dd.startSpanFromContext(ctx, dd.callerOffset+5, tracer.ChildOf(spanContext))
 	} else {
-		span, ctx2 = dd.startSpanFromContext(ctx, dd.callerOffset+5)
+		span, sContext = dd.startSpanFromContext(ctx, dd.callerOffset+5)
 	}
-	return span, ctx2
+	return span, sContext
 }
 
 func (dd *DataDogTracer) StartSpan() common.TracerSpan {
@@ -680,22 +679,57 @@ func NewDataDogMeter(options DataDogMeterOptions, logger common.Logger, stdout *
 
 func (dde *DataDogEventer) Interval(name string, attributes map[string]string, begin, end time.Time) {
 
-	tags := common.MapToArrayWithSeparator(attributes, ":")
-	for _, v := range dde.tags {
-		if !utils.Contains(tags, v) {
-			tags = append(tags, v)
+	dateHappened := begin.UTC().Unix()
+
+	body := ddClient.EventCreateRequest{
+		AggregationKey: nil,
+		AlertType:      nil,
+		DateHappened:   &dateHappened,
+		DeviceName:     nil,
+		Host:           nil,
+		Id:             nil,
+		Payload:        nil,
+		Priority:       nil,
+		RelatedEventId: nil,
+		SourceTypeName: nil,
+		Tags:           &dde.tags,
+		Text:           name,
+		Title:          name,
+		Url:            nil,
+		UnparsedObject: nil,
+	}
+
+	if aggregationKey, ok := attributes["aggregation_key"]; ok {
+		body.SetAggregationKey(aggregationKey)
+	}
+
+	if alertType, ok := attributes["alert_type"]; ok {
+		body.SetAlertType(ddClient.EventAlertType(alertType))
+	}
+
+	if deviceName, ok := attributes["device_name"]; ok {
+		body.SetDeviceName(deviceName)
+	}
+
+	if host, ok := attributes["host"]; ok {
+		body.SetHost(host)
+	}
+
+	if priority, ok := attributes["priority"]; ok {
+		body.SetPriority(ddClient.EventPriority(priority))
+	}
+
+	if relatedEventIdStr, ok := attributes["related_event_id"]; ok {
+		relatedEventId, err := strconv.ParseInt(relatedEventIdStr, 10, 64)
+		if err != nil {
+			dde.logger.Warn("wrong related_event_id format")
+		} else {
+			body.SetRelatedEventId(relatedEventId)
 		}
 	}
 
-	dateHappened := begin.UTC().Unix()
-	alertType := ddClient.EVENTALERTTYPE_INFO
-
-	body := ddClient.EventCreateRequest{
-		AlertType:    &alertType,
-		DateHappened: &dateHappened,
-		Tags:         &tags,
-		Text:         name,
-		Title:        name,
+	if sourceTypeName, ok := attributes["source_type_name"]; ok {
+		body.SetSourceTypeName(sourceTypeName)
 	}
 
 	resp, r, err := dde.client.EventsApi.CreateEvent(dde.ctx, body)
@@ -757,7 +791,7 @@ func NewDataDogEventer(options DataDogEventerOptions, logger common.Logger, stdo
 	return &DataDogEventer{
 		options: options,
 		logger:  logger,
-		tags:    common.MapToArray(common.GetKeyValues(options.Tags)),
+		tags:    common.MapToArrayWithSeparator(common.GetKeyValues(options.Tags), ":"),
 		client:  ddClient.NewAPIClient(configuration),
 		ctx:     ctx,
 	}
