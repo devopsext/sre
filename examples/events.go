@@ -16,6 +16,8 @@ func test() {
 
 	m := make(map[string]string)
 	m["attr1"] = "value"
+	m["team"] = "SRE"
+	m["priority"] = "high"
 
 	events.At("Second", m, time.Now().Add(time.Second*5))
 	events.Interval("Third", nil, time.Now().Add(-time.Second*2), time.Now().Add(-time.Second*1))
@@ -57,9 +59,21 @@ func main() {
 		Endpoint: "https://insights-collector.eu01.nr-data.net/v1/accounts/$ACCOUNT_ID/events",
 	}, logs, stdout)
 
+	// initialize DataDog Eventer
+	datadog := provider.NewDataDogEventer(provider.DataDogEventerOptions{
+		DataDogOptions: provider.DataDogOptions{
+			ApiKey:      "", // set API key
+			ServiceName: "sre-datadog",
+			Environment: "stage",
+		},
+		Site: "datadoghq.eu", //
+	},
+		logs, stdout)
+
 	// add events
 	events.Register(grafana)
 	events.Register(newrelic)
+	events.Register(datadog)
 
 	test()
 }
