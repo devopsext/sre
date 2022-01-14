@@ -3,6 +3,7 @@ module github.com/devopsext/sre
 go 1.17
 
 require (
+	github.com/DataDog/datadog-api-client-go v1.7.0
 	github.com/DataDog/datadog-go v4.7.0+incompatible
 	github.com/devopsext/utils v0.0.3
 	github.com/newrelic/newrelic-telemetry-sdk-go v0.8.1
@@ -49,10 +50,12 @@ require (
 	go.opentelemetry.io/proto/otlp v0.9.0 // indirect
 	go.uber.org/atomic v1.7.0 // indirect
 	golang.org/x/net v0.0.0-20200822124328-c89045814202 // indirect
+	golang.org/x/oauth2 v0.0.0-20200107190931-bf48bf16ab8d // indirect
 	golang.org/x/sys v0.0.0-20210603081109-ebe580a85c40 // indirect
 	golang.org/x/text v0.3.2 // indirect
 	golang.org/x/time v0.0.0-20210608053304-ed9ce3a009e4 // indirect
 	golang.org/x/xerrors v0.0.0-20200804184101-5ec99f83aff1 // indirect
+	google.golang.org/appengine v1.6.1 // indirect
 	google.golang.org/genproto v0.0.0-20200526211855-cb27e3aa2013 // indirect
 	google.golang.org/grpc v1.38.0 // indirect
 	google.golang.org/protobuf v1.26.0 // indirect
