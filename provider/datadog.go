@@ -4,6 +4,7 @@ import (
 	"context"
 	"errors"
 	"fmt"
+	ddClient "github.com/DataDog/datadog-api-client-go/api/v1/datadog"
 	"net"
 	"net/http"
 	"strconv"
@@ -47,6 +48,12 @@ type DataDogMeterOptions struct {
 	Prefix    string
 }
 
+type DataDogEventerOptions struct {
+	DataDogOptions
+	attributes map[string]interface{}
+	Site       string
+}
+
 type DataDogTracerSpanContext struct {
 	context ddtrace.SpanContext
 }
@@ -88,6 +95,14 @@ type DataDogMeter struct {
 	logger       common.Logger
 	callerOffset int
 	client       *statsd.Client
+}
+
+type DataDogEventer struct {
+	options DataDogEventerOptions
+	logger  common.Logger
+	client  *ddClient.APIClient
+	ctx     context.Context
+	tags    []string
 }
 
 func (ddsc *DataDogTracerSpanContext) GetTraceID() string {
@@ -188,23 +203,23 @@ func (dd *DataDogTracer) startSpanFromContext(ctx context.Context, offset int, o
 
 	operation, file, line := common.GetCallerInfo(offset)
 
-	span, context := tracer.StartSpanFromContext(ctx, operation, opts...)
+	span, ctx2 := tracer.StartSpanFromContext(ctx, operation, opts...)
 	if span != nil {
 		span.SetTag("file", fmt.Sprintf("%s:%d", file, line))
 	}
-	return span, context
+	return span, ctx2
 }
 
 func (dd *DataDogTracer) startChildOfSpan(ctx context.Context, spanContext ddtrace.SpanContext) (ddtrace.Span, context.Context) {
 
 	var span ddtrace.Span
-	var context context.Context
+	var ctx2 context.Context
 	if spanContext != nil {
-		span, context = dd.startSpanFromContext(ctx, dd.callerOffset+5, tracer.ChildOf(spanContext))
+		span, ctx2 = dd.startSpanFromContext(ctx, dd.callerOffset+5, tracer.ChildOf(spanContext))
 	} else {
-		span, context = dd.startSpanFromContext(ctx, dd.callerOffset+5)
+		span, ctx2 = dd.startSpanFromContext(ctx, dd.callerOffset+5)
 	}
-	return span, context
+	return span, ctx2
 }
 
 func (dd *DataDogTracer) StartSpan() common.TracerSpan {
@@ -660,5 +675,90 @@ func NewDataDogMeter(options DataDogMeterOptions, logger common.Logger, stdout *
 		logger:       logger,
 		callerOffset: 1,
 		client:       client,
+	}
+}
+
+func (dde *DataDogEventer) Interval(name string, attributes map[string]string, begin, end time.Time) {
+
+	tags := common.MapToArrayWithSeparator(attributes, ":")
+	for _, v := range dde.tags {
+		if !utils.Contains(tags, v) {
+			tags = append(tags, v)
+		}
+	}
+
+	dateHappened := begin.UTC().Unix()
+	alertType := ddClient.EVENTALERTTYPE_INFO
+
+	body := ddClient.EventCreateRequest{
+		AlertType:    &alertType,
+		DateHappened: &dateHappened,
+		Tags:         &tags,
+		Text:         name,
+		Title:        name,
+	}
+
+	resp, r, err := dde.client.EventsApi.CreateEvent(dde.ctx, body)
+
+	if err != nil {
+		dde.logger.Error(err)
+		dde.logger.Error("Full HTTP response:", r)
+		return
+	}
+	dde.logger.Debug(fmt.Sprintf("%v", resp))
+}
+
+func (dde *DataDogEventer) Now(name string, attributes map[string]string) {
+	dde.At(name, attributes, time.Now())
+}
+
+func (dde *DataDogEventer) At(name string, attributes map[string]string, when time.Time) {
+	dde.Interval(name, attributes, when, when)
+}
+
+func (dde *DataDogEventer) Stop() {
+	dde.logger.Info("DataDog eventer is stopped.")
+}
+
+func NewDataDogEventer(options DataDogEventerOptions, logger common.Logger, stdout *Stdout) *DataDogEventer {
+
+	if logger == nil {
+		logger = stdout
+	}
+
+	if utils.IsEmpty(options.Site) {
+		stdout.Debug("DataDog eventer is disabled.")
+		return nil
+	}
+
+	configuration := ddClient.NewConfiguration()
+
+	ctx := context.WithValue(
+		context.Background(),
+		ddClient.ContextAPIKeys,
+		map[string]ddClient.APIKey{
+			"apiKeyAuth": {
+				Key: options.ApiKey,
+			},
+			"appKeyAuth": {
+				Key: options.ApiKey,
+			},
+		},
+	)
+
+	ctx = context.WithValue(ctx,
+		ddClient.ContextServerVariables,
+		map[string]string{
+			"site": options.Site, // "datadoghq.eu"
+		})
+
+	logger.Info("DataDog eventer is up...")
+
+	return &DataDogEventer{
+		options: options,
+		logger:  logger,
+		tags:    common.MapToArray(common.GetKeyValues(options.Tags)),
+		client:  ddClient.NewAPIClient(configuration),
+		ctx:     ctx,
 	}
 }

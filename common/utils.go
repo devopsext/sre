@@ -165,7 +165,7 @@ func GetKeyValues(s string) map[string]string {
 	return m
 }
 
-func MapToArray(m map[string]string) []string {
+func MapToArrayWithSeparator(m map[string]string, s string) []string {
 
 	var arr []string
 	if m == nil {
@@ -175,8 +175,12 @@ func MapToArray(m map[string]string) []string {
 		if utils.IsEmpty(v) {
 			arr = append(arr, k)
 		} else {
-			arr = append(arr, fmt.Sprintf("%s=%v", k, v))
+			arr = append(arr, fmt.Sprintf("%s%s%v", k, s, v))
 		}
 	}
 	return arr
+}
+
+func MapToArray(m map[string]string) []string {
+	return MapToArrayWithSeparator(m, "=")
 }
