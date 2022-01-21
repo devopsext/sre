@@ -153,11 +153,12 @@ var grafanaOptions = provider.GrafanaOptions{
 	URL:     "",
 	ApiKey:  "admim:admin",
 	Tags:    "",
-	Timeout: 5000,
+	Timeout: 50,
 }
 
 var grafanaEventerOptions = provider.GrafanaEventerOptions{
 	Endpoint: "",
+	Duration: 5,
 }
 
 func interceptSyscall() {

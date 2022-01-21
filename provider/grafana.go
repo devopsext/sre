@@ -30,17 +30,17 @@ type GrafanaAnnotation struct {
 }
 
 type GrafanaOptions struct {
-	URL      string
-	ApiKey   string
-	Tags     string
-	Version  string
-	Timeout  int
-	Duration int
+	URL     string
+	ApiKey  string
+	Tags    string
+	Version string
+	Timeout int
 }
 
 type GrafanaEventerOptions struct {
 	GrafanaOptions
 	Endpoint string
+	Duration int
 }
 
 type GrafanaEventer struct {
@@ -132,7 +132,7 @@ func (ge *GrafanaEventer) Now(name string, attributes map[string]string) {
 }
 
 func (ge *GrafanaEventer) At(name string, attributes map[string]string, when time.Time) {
-	ge.Interval(name, attributes, when, when)
+	ge.Interval(name, attributes, when, when.Add(time.Second*time.Duration(ge.options.Duration)))
 }
 
 func (ge *GrafanaEventer) Stop() {
