@@ -19,9 +19,10 @@ import (
 	"go.opentelemetry.io/otel/metric"
 	"go.opentelemetry.io/otel/metric/global"
 	"go.opentelemetry.io/otel/propagation"
+	"go.opentelemetry.io/otel/sdk/export/metric/aggregation"
 	controller "go.opentelemetry.io/otel/sdk/metric/controller/basic"
 	processor "go.opentelemetry.io/otel/sdk/metric/processor/basic"
-	"go.opentelemetry.io/otel/sdk/metric/selector/simple"
+	selector "go.opentelemetry.io/otel/sdk/metric/selector/simple"
 	"go.opentelemetry.io/otel/sdk/resource"
 	sdktrace "go.opentelemetry.io/otel/sdk/trace"
 	semconv "go.opentelemetry.io/otel/semconv/v1.4.0"
@@ -523,7 +524,7 @@ func (otm *OpentelemetryMeter) Counter(name, description string, labels []string
 	newName := strings.Join(names, ".")
 
 	counter := metric.Must(*otm.meter).NewInt64Counter(newName, metric.WithDescription(description))
-	counter.Bind(otm.attributes...)
+	//	counter.Bind(otm.attributes...)
 
 	return &OpentelemetryCounter{
 		meter:   otm,
@@ -589,10 +590,11 @@ func startOpentelemetryMeter(options OpentelemetryMeterOptions, stdout *Stdout) 
 	}
 
 	cont := controller.New(
-		processor.New(
-			simple.NewWithExactDistribution(),
-			metricExporter,
-		),
+		processor.NewFactory(selector.NewWithInexpensiveDistribution(), aggregation.CumulativeTemporalitySelector(), processor.WithMemory(true)),
+		// processor.New(
+		// 	simple.NewWithExactDistribution(),
+		// 	metricExporter,
+		// ),
 		controller.WithCollectPeriod(time.Duration(collectPeriod)*time.Millisecond),
 		controller.WithExporter(metricExporter),
 		//controller.WithExporter(stdoutExporter),
@@ -604,7 +606,7 @@ func startOpentelemetryMeter(options OpentelemetryMeterOptions, stdout *Stdout) 
 		stdout.Error(err)
 		return nil, nil, nil
 	}
-	global.SetMeterProvider(cont.MeterProvider())
+	//global.SetMeterProvider(cont.MeterProvider())
 
 	_, file, _ := common.GetCallerInfo(1)
 	meter := global.Meter(file)
