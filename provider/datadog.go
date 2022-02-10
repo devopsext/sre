@@ -699,38 +699,37 @@ func (dde *DataDogEventer) Interval(name string, attributes map[string]string, b
 		UnparsedObject: nil,
 	}
 
-	if aggregationKey, ok := attributes["aggregation_key"]; ok {
-		body.SetAggregationKey(aggregationKey)
-	}
+	tags := dde.tags
 
-	if alertType, ok := attributes["alert_type"]; ok {
-		body.SetAlertType(ddClient.EventAlertType(alertType))
-	}
-
-	if deviceName, ok := attributes["device_name"]; ok {
-		body.SetDeviceName(deviceName)
-	}
-
-	if host, ok := attributes["host"]; ok {
-		body.SetHost(host)
-	}
-
-	if priority, ok := attributes["priority"]; ok {
-		body.SetPriority(ddClient.EventPriority(priority))
-	}
-
-	if relatedEventIdStr, ok := attributes["related_event_id"]; ok {
-		relatedEventId, err := strconv.ParseInt(relatedEventIdStr, 10, 64)
-		if err != nil {
-			dde.logger.Warn("wrong related_event_id format")
-		} else {
-			body.SetRelatedEventId(relatedEventId)
+	for key, attr := range attributes {
+		switch key {
+		case "text":
+			body.SetText(attr)
+		case "aggregation_key":
+			body.SetAggregationKey(attr)
+		case "alert_type":
+			body.SetAlertType(ddClient.EventAlertType(attr))
+		case "device_name":
+			body.SetDeviceName(attr)
+		case "host":
+			body.SetHost(attr)
+		case "priority":
+			body.SetPriority(ddClient.EventPriority(attr))
+		case "related_event_id":
+			relatedEventId, err := strconv.ParseInt(attr, 10, 64)
+			if err != nil {
+				dde.logger.Warn("wrong related_event_id format")
+			} else {
+				body.SetRelatedEventId(relatedEventId)
+			}
+		case "source_type_name":
+			body.SetSourceTypeName(attr)
+		default:
+			tags = append(tags, fmt.Sprintf("%s:%s", key, attr))
 		}
 	}
 
-	if sourceTypeName, ok := attributes["source_type_name"]; ok {
-		body.SetSourceTypeName(sourceTypeName)
-	}
+	body.SetTags(tags)
 
 	resp, r, err := dde.client.EventsApi.CreateEvent(dde.ctx, body)
 
