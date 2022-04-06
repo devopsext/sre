@@ -201,7 +201,7 @@ func (ddtl *DataDogInternalLogger) Log(msg string) {
 
 func (dd *DataDogTracer) startSpanFromContext(ctx context.Context, offset int, opts ...tracer.StartSpanOption) (ddtrace.Span, context.Context) {
 
-	operation, file, line := common.GetCallerInfo(offset)
+	operation, file, line := utils.CallerGetInfo(offset)
 
 	span, sContext := tracer.StartSpanFromContext(ctx, operation, opts...)
 	if span != nil {
@@ -493,7 +493,7 @@ func (dd *DataDogLogger) exists(level logrus.Level, obj interface{}, args ...int
 		return false, nil, ""
 	}
 
-	function, file, line := common.GetCallerInfo(dd.callerOffset + 5)
+	function, file, line := utils.CallerGetInfo(dd.callerOffset + 5)
 	fields := logrus.Fields{
 		"file":    fmt.Sprintf("%s:%d", file, line),
 		"func":    function,
@@ -608,7 +608,7 @@ func (ddmc *DataDogCounter) getLabelTags(labelValues ...string) []string {
 func (ddmc *DataDogCounter) Inc(labelValues ...string) common.Counter {
 
 	newValues := ddmc.getLabelTags(labelValues...)
-	_, file, line := common.GetCallerInfo(ddmc.meter.callerOffset + 3)
+	_, file, line := utils.CallerGetInfo(ddmc.meter.callerOffset + 3)
 	newValues = append(newValues, fmt.Sprintf("file:%s", fmt.Sprintf("%s:%d", file, line)))
 
 	err := ddmc.meter.client.Incr(ddmc.name, newValues, 1)

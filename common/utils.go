@@ -5,46 +5,12 @@ import (
 	"fmt"
 	"math/big"
 	"math/rand"
-	"path"
-	"runtime"
 	"sync"
 	"time"
 
-	utils "github.com/devopsext/utils"
 	"github.com/rs/xid"
 	genUtils "github.com/uber/jaeger-client-go/utils"
 )
-
-func getLastPath(s string, limit int) string {
-
-	index := 0
-	dir := s
-	var arr []string
-
-	for !utils.IsEmpty(dir) {
-		if index >= limit {
-			break
-		}
-		index++
-		arr = append([]string{path.Base(dir)}, arr...)
-		dir = path.Dir(dir)
-	}
-	return path.Join(arr...)
-}
-
-func GetCallerInfo(offset int) (string, string, int) {
-
-	pc := make([]uintptr, 15)
-	n := runtime.Callers(offset, pc)
-	frames := runtime.CallersFrames(pc[:n])
-	frame, _ := frames.Next()
-
-	function := getLastPath(frame.Function, 1)
-	file := getLastPath(frame.File, 3)
-	line := frame.Line
-
-	return function, file, line
-}
 
 func GetGuid() string {
 	guid := xid.New()

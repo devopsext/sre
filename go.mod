@@ -5,7 +5,7 @@ go 1.17
 require (
 	github.com/DataDog/datadog-api-client-go v1.7.0
 	github.com/DataDog/datadog-go v4.7.0+incompatible
-	github.com/devopsext/utils v0.1.2
+	github.com/devopsext/utils v0.1.4
 	github.com/newrelic/newrelic-telemetry-sdk-go v0.8.1
 	github.com/opentracing/opentracing-go v1.2.0
 	github.com/prometheus/client_golang v1.11.0

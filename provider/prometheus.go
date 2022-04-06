@@ -34,7 +34,7 @@ type PrometheusMeter struct {
 
 func (pc *PrometheusCounter) Inc(labelValues ...string) common.Counter {
 
-	_, file, line := common.GetCallerInfo(pc.meter.callerOffset + 3)
+	_, file, line := utils.CallerGetInfo(pc.meter.callerOffset + 3)
 	newValues := append(labelValues, fmt.Sprintf("%s:%d", file, line))
 
 	pc.counterVec.WithLabelValues(newValues...).Inc()
