@@ -370,7 +370,7 @@ func newJaegerTracer(options JaegerOptions, logger common.Logger, stdout *Stdout
 	}
 
 	tags := make([]opentracing.Tag, 0)
-	m := common.GetKeyValues(options.Tags)
+	m := utils.MapGetKeyValues(options.Tags)
 	for k, v := range m {
 		tag := opentracing.Tag{Key: k, Value: v}
 		tags = append(tags, tag)

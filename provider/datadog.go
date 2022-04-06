@@ -4,12 +4,13 @@ import (
 	"context"
 	"errors"
 	"fmt"
-	ddClient "github.com/DataDog/datadog-api-client-go/api/v1/datadog"
 	"net"
 	"net/http"
 	"strconv"
 	"strings"
 	"time"
+
+	ddClient "github.com/DataDog/datadog-api-client-go/api/v1/datadog"
 
 	"github.com/DataDog/datadog-go/statsd"
 	"github.com/devopsext/sre/common"
@@ -334,7 +335,7 @@ func startDataDogTracer(options DataDogTracerOptions, logger common.Logger) bool
 		opts = append(opts, tracer.WithLogger(&DataDogInternalLogger{logger: logger}))
 	}
 
-	m := common.GetKeyValues(options.Tags)
+	m := utils.MapGetKeyValues(options.Tags)
 	for k, v := range m {
 		tag := tracer.WithGlobalTag(k, v)
 		opts = append(opts, tag)
@@ -501,7 +502,7 @@ func (dd *DataDogLogger) exists(level logrus.Level, obj interface{}, args ...int
 		"env":     dd.options.Environment,
 	}
 
-	m := common.GetKeyValues(dd.options.Tags)
+	m := utils.MapGetKeyValues(dd.options.Tags)
 	for k, v := range m {
 		fields[k] = v
 	}
@@ -790,7 +791,7 @@ func NewDataDogEventer(options DataDogEventerOptions, logger common.Logger, stdo
 	return &DataDogEventer{
 		options: options,
 		logger:  logger,
-		tags:    common.MapToArrayWithSeparator(common.GetKeyValues(options.Tags), ":"),
+		tags:    utils.MapToArrayWithSeparator(utils.MapGetKeyValues(options.Tags), ":"),
 		client:  ddClient.NewAPIClient(configuration),
 		ctx:     ctx,
 	}

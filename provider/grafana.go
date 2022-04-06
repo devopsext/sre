@@ -105,7 +105,7 @@ func (ge *GrafanaEventer) createAnnotation(a GrafanaAnnotation) (*GrafanaAnnotat
 
 func (ge *GrafanaEventer) Interval(name string, attributes map[string]string, begin, end time.Time) {
 
-	tags := common.MapToArray(attributes)
+	tags := utils.MapToArray(attributes)
 	for _, v := range ge.tags {
 		if !utils.Contains(tags, v) {
 			tags = append(tags, v)
@@ -155,8 +155,8 @@ func NewGrafanaEventer(options GrafanaEventerOptions, logger common.Logger, stdo
 	return &GrafanaEventer{
 		options: options,
 		logger:  logger,
-		tags:    common.MapToArray(common.GetKeyValues(options.Tags)),
-		client:  common.MakeHttpClient(options.Timeout),
+		tags:    utils.MapToArray(utils.MapGetKeyValues(options.Tags)),
+		client:  utils.NewHttpInsecureClient(options.Timeout),
 		ctx:     context.Background(),
 	}
 }
