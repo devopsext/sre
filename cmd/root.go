@@ -14,7 +14,7 @@ import (
 	"sync"
 	"syscall"
 
-	"github.com/devopsext/sre/common"
+	common "github.com/devopsext/sre/common"
 	"github.com/devopsext/sre/provider"
 	"github.com/devopsext/utils"
 	"github.com/spf13/cobra"
@@ -400,7 +400,7 @@ func Execute() {
 			traceID := ctx.GetTraceID()
 			req.Header.Set("X-Trace-ID", traceID)
 
-			client := common.MakeHttpClient(5000)
+			client := utils.NewHttpInsecureClient(5000)
 
 			resp, err := client.Do(req)
 			if err != nil {

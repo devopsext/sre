@@ -331,7 +331,7 @@ func NewNewRelicTracer(options NewRelicTracerOptions, logger common.Logger, stdo
 	}
 
 	attribites := make(map[string]interface{})
-	m := common.GetKeyValues(options.Attributes)
+	m := utils.MapGetKeyValues(options.Attributes)
 	for k, v := range m {
 		attribites[k] = v
 	}
@@ -566,7 +566,7 @@ func (nr *NewRelicLogger) exists(level logrus.Level, obj interface{}, args ...in
 		"env":     nr.options.Environment,
 	}
 
-	m := common.GetKeyValues(nr.options.Attributes)
+	m := utils.MapGetKeyValues(nr.options.Attributes)
 	for k, v := range m {
 		fields[k] = v
 	}
@@ -649,7 +649,7 @@ func NewNewRelicLogger(options NewRelicLoggerOptions, logger common.Logger, stdo
 	if !utils.IsEmpty(options.Endpoint) {
 
 		attribites := make(map[string]interface{})
-		m := common.GetKeyValues(options.Attributes)
+		m := utils.MapGetKeyValues(options.Attributes)
 		for k, v := range m {
 			attribites[k] = v
 		}
@@ -759,7 +759,7 @@ func NewNewRelicMeter(options NewRelicMeterOptions, logger common.Logger, stdout
 	}
 
 	attribites := make(map[string]interface{})
-	m := common.GetKeyValues(options.Attributes)
+	m := utils.MapGetKeyValues(options.Attributes)
 	for k, v := range m {
 		attribites[k] = v
 	}
@@ -844,7 +844,7 @@ func NewNewRelicEventer(options NewRelicEventerOptions, logger common.Logger, st
 	}
 
 	attribites := make(map[string]interface{})
-	m := common.GetKeyValues(options.Attributes)
+	m := utils.MapGetKeyValues(options.Attributes)
 	for k, v := range m {
 		attribites[k] = v
 	}

@@ -468,7 +468,7 @@ func NewOpentelemetryTracer(options OpentelemetryTracerOptions, logger common.Lo
 	}
 
 	attributes := make([]attribute.KeyValue, 0)
-	m := common.GetKeyValues(options.Attributes)
+	m := utils.MapGetKeyValues(options.Attributes)
 	for k, v := range m {
 		attribute := attribute.String(k, v)
 		attributes = append(attributes, attribute)
@@ -627,7 +627,7 @@ func NewOpentelemetryMeter(options OpentelemetryMeterOptions, logger common.Logg
 	}
 
 	attributes := make([]attribute.KeyValue, 0)
-	m := common.GetKeyValues(options.Attributes)
+	m := utils.MapGetKeyValues(options.Attributes)
 	for k, v := range m {
 		attribute := attribute.String(k, v)
 		attributes = append(attributes, attribute)
