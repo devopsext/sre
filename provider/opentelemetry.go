@@ -225,7 +225,7 @@ func (otts *OpentelemetryTracerSpan) Finish() {
 
 func (ott *OpentelemetryTracer) startSpanFromContext(ctx context.Context, offset int, opts ...trace.SpanStartOption) (trace.Span, context.Context) {
 
-	operation, file, line := common.GetCallerInfo(offset)
+	operation, file, line := utils.CallerGetInfo(offset)
 
 	context, span := ott.tracer.Start(ctx, operation, opts...)
 	if span != nil {
@@ -449,7 +449,7 @@ func startOpentelemtryTracer(options OpentelemetryTracerOptions, logger common.L
 
 	otel.SetTextMapPropagator(propagation.TraceContext{})
 
-	_, file, _ := common.GetCallerInfo(1)
+	_, file, _ := utils.CallerGetInfo(1)
 	tracer := otel.Tracer(file)
 
 	return tracer, tracerProvider
@@ -504,7 +504,7 @@ func (otc *OpentelemetryCounter) getGlobalTags(labelValues ...string) []attribut
 func (otc *OpentelemetryCounter) Inc(labelValues ...string) common.Counter {
 
 	labels := otc.getGlobalTags(labelValues...)
-	_, file, line := common.GetCallerInfo(otc.meter.callerOffset + 3)
+	_, file, line := utils.CallerGetInfo(otc.meter.callerOffset + 3)
 	labels = append(labels, attribute.String("file", fmt.Sprintf("%s:%d", file, line)))
 
 	otc.counter.Add(context.Background(), 1, labels...)
@@ -608,7 +608,7 @@ func startOpentelemetryMeter(options OpentelemetryMeterOptions, stdout *Stdout) 
 	}
 	//global.SetMeterProvider(cont.MeterProvider())
 
-	_, file, _ := common.GetCallerInfo(1)
+	_, file, _ := utils.CallerGetInfo(1)
 	meter := global.Meter(file)
 
 	return &meter, cont, metricExporter

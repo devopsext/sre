@@ -7,6 +7,7 @@ import (
 	"text/template"
 
 	"github.com/devopsext/sre/common"
+	utils "github.com/devopsext/utils"
 	"github.com/sirupsen/logrus"
 )
 
@@ -84,7 +85,7 @@ func (so *Stdout) addSpanFields(span common.TracerSpan, fields logrus.Fields) lo
 
 func (so *Stdout) addCallerFields(offset int) logrus.Fields {
 
-	function, file, line := common.GetCallerInfo(so.callerOffset + offset)
+	function, file, line := utils.CallerGetInfo(so.callerOffset + offset)
 	return logrus.Fields{
 		"file": fmt.Sprintf("%s:%d", file, line),
 		"func": function,

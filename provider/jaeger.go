@@ -208,7 +208,7 @@ func (js JaegerSpan) Finish() {
 
 func (j *JaegerTracer) startSpanFromContext(ctx context.Context, offset int, opts ...opentracing.StartSpanOption) (opentracing.Span, context.Context) {
 
-	operation, file, line := common.GetCallerInfo(offset)
+	operation, file, line := utils.CallerGetInfo(offset)
 
 	span, context := opentracing.StartSpanFromContextWithTracer(ctx, j.tracer, operation, opts...)
 	if span != nil {

@@ -212,7 +212,7 @@ func (nrts *NewRelicTracerSpan) Finish() {
 
 func (nrt *NewRelicTracer) getSpanAttributes() (string, map[string]interface{}) {
 
-	operation, file, line := common.GetCallerInfo(nrt.callerOffset + 4)
+	operation, file, line := utils.CallerGetInfo(nrt.callerOffset + 4)
 
 	attribites := make(map[string]interface{})
 	attribites["file"] = fmt.Sprintf("%s:%d", file, line)
@@ -557,7 +557,7 @@ func (nr *NewRelicLogger) exists(level logrus.Level, obj interface{}, args ...in
 		return false, nil, ""
 	}
 
-	function, file, line := common.GetCallerInfo(nr.callerOffset + 5)
+	function, file, line := utils.CallerGetInfo(nr.callerOffset + 5)
 	fields := logrus.Fields{
 		"file":    fmt.Sprintf("%s:%d", file, line),
 		"func":    function,
@@ -704,7 +704,7 @@ func (nrc *NewRelicCounter) getGlobalTags(labelValues ...string) map[string]inte
 func (nrc *NewRelicCounter) Inc(labelValues ...string) common.Counter {
 
 	attributes := nrc.getGlobalTags(labelValues...)
-	_, file, line := common.GetCallerInfo(nrc.meter.callerOffset + 3)
+	_, file, line := utils.CallerGetInfo(nrc.meter.callerOffset + 3)
 	attributes["file"] = fmt.Sprintf("%s:%d", file, line)
 
 	nrc.meter.harvester.RecordMetric(telemetry.Count{
