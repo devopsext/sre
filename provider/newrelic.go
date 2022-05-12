@@ -794,7 +794,7 @@ func NewNewRelicMeter(options NewRelicMeterOptions, logger common.Logger, stdout
 	}
 }
 
-func (nre *NewRelicEventer) Interval(name string, attributes map[string]string, begin, end time.Time) {
+func (nre *NewRelicEventer) Interval(name string, attributes map[string]string, begin, end time.Time) error {
 
 	attrs := make(map[string]interface{})
 	if attributes != nil {
@@ -815,15 +815,17 @@ func (nre *NewRelicEventer) Interval(name string, attributes map[string]string, 
 	err := nre.harvester.RecordEvent(event)
 	if err != nil {
 		nre.logger.Error(err)
+		return err
 	}
+	return nil
 }
 
-func (nre *NewRelicEventer) Now(name string, attributes map[string]string) {
-	nre.At(name, attributes, time.Now())
+func (nre *NewRelicEventer) Now(name string, attributes map[string]string) error {
+	return nre.At(name, attributes, time.Now())
 }
 
-func (nre *NewRelicEventer) At(name string, attributes map[string]string, when time.Time) {
-	nre.Interval(name, attributes, when, when)
+func (nre *NewRelicEventer) At(name string, attributes map[string]string, when time.Time) error {
+	return nre.Interval(name, attributes, when, when)
 }
 
 func (nre *NewRelicEventer) Stop() {
