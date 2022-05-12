@@ -678,7 +678,7 @@ func NewDataDogMeter(options DataDogMeterOptions, logger common.Logger, stdout *
 	}
 }
 
-func (dde *DataDogEventer) Interval(name string, attributes map[string]string, begin, end time.Time) {
+func (dde *DataDogEventer) Interval(name string, attributes map[string]string, begin, end time.Time) error {
 
 	dateHappened := begin.UTC().Unix()
 
@@ -737,17 +737,18 @@ func (dde *DataDogEventer) Interval(name string, attributes map[string]string, b
 	if err != nil {
 		dde.logger.Error(err)
 		dde.logger.Error("Full HTTP response:", r)
-		return
+		return err
 	}
 	dde.logger.Debug(fmt.Sprintf("%v", resp))
+	return nil
 }
 
-func (dde *DataDogEventer) Now(name string, attributes map[string]string) {
-	dde.At(name, attributes, time.Now())
+func (dde *DataDogEventer) Now(name string, attributes map[string]string) error {
+	return dde.At(name, attributes, time.Now())
 }
 
-func (dde *DataDogEventer) At(name string, attributes map[string]string, when time.Time) {
-	dde.Interval(name, attributes, when, when)
+func (dde *DataDogEventer) At(name string, attributes map[string]string, when time.Time) error {
+	return dde.Interval(name, attributes, when, when)
 }
 
 func (dde *DataDogEventer) Stop() {
