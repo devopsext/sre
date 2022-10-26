@@ -1,0 +1,213 @@
+{
+  "kind": "AdmissionReview",
+  "apiVersion": "admission.k8s.io/v1beta1",
+  "request": {
+    "uid": "23172a7a-f4c6-11e9-953e-0050568aa55b",
+    "kind": {
+      "group": "",
+      "version": "v1",
+      "kind": "Pod"
+    },
+    "resource": {
+      "group": "",
+      "version": "v1",
+      "resource": "pods"
+    },
+    "namespace": "kube-system",
+    "operation": "CREATE",
+    "userInfo": {
+      "username": "some-user",
+      "uid": "380bb127-e96f-11e8-ae7d-0050568a9a8e",
+      "groups": [
+        "system:serviceaccounts",
+        "system:serviceaccounts:kube-system",
+        "system:authenticated"
+      ]
+    },
+    "object": {
+      "metadata": {
+        "name": "ack-controlplane-healthchec",
+        "generateName": "ack-controlplane-healthcheck",
+        "namespace": "kube-system",
+        "uid": "23171eb4-f4c6-11e9-953e-0050568aa55b",
+        "creationTimestamp": "2019-10-22T12:19:04Z",
+        "labels": {
+          "controller-uid": "231132ee-f4c6-11e9-953e-0050568aa55b",
+          "job-name": "someservice-php-order-1571746740",
+          "k8s-app": "someservice-php-order",
+          "platform.collector/injected": "true",
+          "version": "v0.4"
+        },
+        "annotations": {
+          "app": "someservice-php-order",
+          "prometheus.io/path": "/metrics",
+          "prometheus.io/port": "60000",
+          "prometheus.io/scrape": "true"
+        },
+        "ownerReferences": [
+          {
+            "apiVersion": "batch/v1",
+            "kind": "Job",
+            "name": "someservice-php-order-1571746740",
+            "uid": "231132ee-f4c6-11e9-953e-0050568aa55b",
+            "controller": true,
+            "blockOwnerDeletion": true
+          }
+        ]
+      },
+      "spec": {
+        "volumes": [
+          {
+            "name": "someservice-php-env-file-volume",
+            "configMap": {
+              "name": "someservice-php-env-file",
+              "defaultMode": 420
+            }
+          },
+          {
+            "name": "default-token-mn7zd",
+            "secret": {
+              "secretName": "default-token-mn7zd",
+              "defaultMode": 420
+            }
+          },
+          {
+            "name": "dockersock",
+            "hostPath": {
+              "path": "/var/run/docker.sock",
+              "type": ""
+            }
+          },
+          {
+            "name": "platform-collector-token",
+            "secret": {
+              "secretName": "platform-collector-token",
+              "defaultMode": 420
+            }
+          }
+        ],
+        "containers": [
+          {
+            "name": "someservice-php-order",
+            "image": "someregistry.com/someservice-php:v0.4",
+            "command": [
+              "/bin/bash",
+              "-c",
+              "cd /var/www ; php -d memory_limit=512M artisan transform:order; echo \"Done\"; sleep 3"
+            ],
+            "env": [
+              {
+                "name": "POD_NAME",
+                "valueFrom": {
+                  "fieldRef": {
+                    "apiVersion": "v1",
+                    "fieldPath": "metadata.name"
+                  }
+                }
+              }
+            ],
+            "resources": {
+              "limits": {
+                "cpu": "1",
+                "memory": "200Mi"
+              },
+              "requests": {
+                "cpu": "500m",
+                "memory": "150Mi"
+              }
+            },
+            "volumeMounts": [
+              {
+                "name": "someservice-php-env-file-volume",
+                "mountPath": "/env"
+              },
+              {
+                "name": "default-token-mn7zd",
+                "readOnly": true,
+                "mountPath": "/var/run/secrets/kubernetes.io/serviceaccount"
+              }
+            ],
+            "terminationMessagePath": "/dev/termination-log",
+            "terminationMessagePolicy": "File",
+            "imagePullPolicy": "IfNotPresent"
+          },
+          {
+            "name": "collector",
+            "image": "collector/pod:1.9.3.11-1.1.0",
+            "env": [
+              {
+                "name": "KAFKA_BROKERS",
+                "value": "broker:9092"
+              },
+              {
+                "name": "POD_NAME",
+                "valueFrom": {
+                  "fieldRef": {
+                    "apiVersion": "v1",
+                    "fieldPath": "metadata.name"
+                  }
+                }
+              },
+              {
+                "name": "COLLECTOR_GLOBAL_TAGS_ORCHESTRATION",
+                "value": "k8s.test.env"
+              }
+            ],
+            "resources": {},
+            "volumeMounts": [
+              {
+                "name": "platform-collector-token",
+                "readOnly": true,
+                "mountPath": "/var/run/secrets/kubernetes.io/serviceaccount"
+              },
+              {
+                "name": "dockersock",
+                "readOnly": true,
+                "mountPath": "/var/run/docker.sock"
+              }
+            ],
+            "terminationMessagePath": "/dev/termination-log",
+            "terminationMessagePolicy": "File",
+            "imagePullPolicy": "Always"
+          }
+        ],
+        "restartPolicy": "Never",
+        "terminationGracePeriodSeconds": 30,
+        "dnsPolicy": "ClusterFirst",
+        "nodeSelector": {
+          "platform.isolation/nodegroup": "nodegroup"
+        },
+        "serviceAccountName": "default",
+        "serviceAccount": "default",
+        "securityContext": {},
+        "imagePullSecrets": [
+          {
+            "name": "registry.some.io"
+          }
+        ],
+        "schedulerName": "default-scheduler",
+        "tolerations": [
+          {
+            "key": "node.kubernetes.io/not-ready",
+            "operator": "Exists",
+            "effect": "NoExecute",
+            "tolerationSeconds": 300
+          },
+          {
+            "key": "node.kubernetes.io/unreachable",
+            "operator": "Exists",
+            "effect": "NoExecute",
+            "tolerationSeconds": 300
+          }
+        ],
+        "priority": 0
+      },
+      "status": {
+        "phase": "Pending",
+        "qosClass": "Burstable"
+      }
+    },
+    "oldObject": null,
+    "dryRun": false
+  }
+}
