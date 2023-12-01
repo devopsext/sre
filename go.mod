@@ -1,6 +1,6 @@
 module github.com/devopsext/sre
 
-go 1.17
+go 1.21
 
 require (
 	github.com/DataDog/datadog-api-client-go v1.7.0
