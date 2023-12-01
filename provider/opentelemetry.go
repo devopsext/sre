@@ -82,6 +82,12 @@ type OpentelemetryCounter struct {
 	labels  []string
 }
 
+type OpentelemetryGauge struct {
+	meter  *OpentelemetryMeter
+	gauge  *metric.Float64Counter
+	labels []string
+}
+
 type OpentelemetryMeter struct {
 	options      OpentelemetryMeterOptions
 	logger       common.Logger
@@ -530,6 +536,37 @@ func (otm *OpentelemetryMeter) Counter(name, description string, labels []string
 		meter:   otm,
 		counter: &counter,
 		labels:  labels,
+	}
+}
+
+func (otg *OpentelemetryGauge) Set(value float64, labelValues ...string) common.Gauge {
+
+	/*labels := otg.getGlobalTags(labelValues...)
+	_, file, line := utils.CallerGetInfo(otc.meter.callerOffset + 3)
+	labels = append(labels, attribute.String("file", fmt.Sprintf("%s:%d", file, line)))
+	*/
+	//otg.gauge.Count(context.Background(), value, labels...)
+	return otg
+}
+
+func (otm *OpentelemetryMeter) Gauge(name, description string, labels []string, prefixes ...string) common.Gauge {
+
+	var names []string
+
+	if !utils.IsEmpty(otm.options.Prefix) {
+		names = append(names, otm.options.Prefix)
+	}
+
+	names = append(names, prefixes...)
+	names = append(names, name)
+	newName := strings.Join(names, ".")
+
+	gauge := metric.Must(*otm.meter).NewFloat64Counter(newName, metric.WithDescription(description))
+
+	return &OpentelemetryGauge{
+		meter:  otm,
+		gauge:  &gauge,
+		labels: labels,
 	}
 }
 

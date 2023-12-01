@@ -25,6 +25,11 @@ type PrometheusCounter struct {
 	counterVec *prometheus.CounterVec
 }
 
+type PrometheusGauge struct {
+	meter    *PrometheusMeter
+	gaugeVec *prometheus.GaugeVec
+}
+
 type PrometheusMeter struct {
 	options      PrometheusOptions
 	logger       common.Logger
@@ -66,6 +71,43 @@ func (p *PrometheusMeter) Counter(name, description string, labels []string, pre
 	return &PrometheusCounter{
 		meter:      p,
 		counterVec: counterVec,
+	}
+}
+
+func (pc *PrometheusGauge) Set(value float64, labelValues ...string) common.Gauge {
+
+	_, file, line := utils.CallerGetInfo(pc.meter.callerOffset + 3)
+	newValues := append(labelValues, fmt.Sprintf("%s:%d", file, line))
+
+	pc.gaugeVec.WithLabelValues(newValues...).Set(value)
+	return pc
+}
+
+func (p *PrometheusMeter) Gauge(name, description string, labels []string, prefixes ...string) common.Gauge {
+
+	var names []string
+
+	if !utils.IsEmpty(p.options.Prefix) {
+		names = append(names, p.options.Prefix)
+	}
+
+	names = append(names, prefixes...)
+	names = append(names, name)
+	newName := strings.Join(names, "_")
+
+	config := prometheus.GaugeOpts{
+		Name: newName,
+		Help: description,
+	}
+
+	labels = append(labels, "file")
+
+	gaugeVec := prometheus.NewGaugeVec(config, labels)
+	prometheus.Register(gaugeVec)
+
+	return &PrometheusGauge{
+		meter:    p,
+		gaugeVec: gaugeVec,
 	}
 }
 

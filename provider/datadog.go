@@ -90,6 +90,13 @@ type DataDogCounter struct {
 	labels      []string
 }
 
+type DataDogGauge struct {
+	meter       *DataDogMeter
+	name        string
+	description string
+	labels      []string
+}
+
 type DataDogMeter struct {
 	options      DataDogMeterOptions
 	logger       common.Logger
@@ -574,40 +581,45 @@ func NewDataDogLogger(options DataDogLoggerOptions, logger common.Logger, stdout
 	}
 }
 
-func (ddmc *DataDogCounter) getGlobalTags() []string {
+func (ddm *DataDogMeter) getGlobalTags() []string {
 
 	var tags []string
 
-	for _, v := range strings.Split(ddmc.meter.options.Tags, ",") {
+	for _, v := range strings.Split(ddm.options.Tags, ",") {
 		tags = append(tags, strings.Replace(v, "=", ":", 1))
 	}
 	return tags
 }
 
-func (ddmc *DataDogCounter) getLabelTags(labelValues ...string) []string {
+func (ddm *DataDogMeter) getLabelTags(labelValues ...string) []string {
 
 	var tags []string
 
-	tags = append(tags, ddmc.getGlobalTags()...)
-	tags = append(tags, fmt.Sprintf("dd.service:%s", ddmc.meter.options.ServiceName))
-	tags = append(tags, fmt.Sprintf("dd.version:%s", ddmc.meter.options.Version))
-	tags = append(tags, fmt.Sprintf("dd.env:%s", ddmc.meter.options.Environment))
+	tags = append(tags, ddm.getGlobalTags()...)
+	tags = append(tags, fmt.Sprintf("dd.service:%s", ddm.options.ServiceName))
+	tags = append(tags, fmt.Sprintf("dd.version:%s", ddm.options.Version))
+	tags = append(tags, fmt.Sprintf("dd.env:%s", ddm.options.Environment))
 
+	return tags
+}
+
+func (ddm *DataDogMeter) SetCallerOffset(offset int) {
+	ddm.callerOffset = offset
+}
+
+func (ddmc *DataDogCounter) Inc(labelValues ...string) common.Counter {
+
+	newValues := ddmc.meter.getLabelTags(labelValues...)
 	for k, v := range ddmc.labels {
 
 		value := ""
 		if len(labelValues) > (k - 1) {
 			value = labelValues[k]
 			tag := fmt.Sprintf("%s:%s", v, value)
-			tags = append(tags, tag)
+			newValues = append(newValues, tag)
 		}
 	}
-	return tags
-}
 
-func (ddmc *DataDogCounter) Inc(labelValues ...string) common.Counter {
-
-	newValues := ddmc.getLabelTags(labelValues...)
 	_, file, line := utils.CallerGetInfo(ddmc.meter.callerOffset + 3)
 	newValues = append(newValues, fmt.Sprintf("file:%s", fmt.Sprintf("%s:%d", file, line)))
 
@@ -616,10 +628,6 @@ func (ddmc *DataDogCounter) Inc(labelValues ...string) common.Counter {
 		ddmc.meter.logger.Error(err)
 	}
 	return ddmc
-}
-
-func (ddm *DataDogMeter) SetCallerOffset(offset int) {
-	ddm.callerOffset = offset
 }
 
 func (ddm *DataDogMeter) Counter(name, description string, labels []string, prefixes ...string) common.Counter {
@@ -640,6 +648,54 @@ func (ddm *DataDogMeter) Counter(name, description string, labels []string, pref
 	}
 
 	return &DataDogCounter{
+		meter:       ddm,
+		name:        newName,
+		description: description,
+		labels:      labels,
+	}
+}
+
+func (ddmg *DataDogGauge) Set(value float64, labelValues ...string) common.Gauge {
+
+	newValues := ddmg.meter.getLabelTags(labelValues...)
+	for k, v := range ddmg.labels {
+
+		value := ""
+		if len(labelValues) > (k - 1) {
+			value = labelValues[k]
+			tag := fmt.Sprintf("%s:%s", v, value)
+			newValues = append(newValues, tag)
+		}
+	}
+
+	_, file, line := utils.CallerGetInfo(ddmg.meter.callerOffset + 3)
+	newValues = append(newValues, fmt.Sprintf("file:%s", fmt.Sprintf("%s:%d", file, line)))
+
+	err := ddmg.meter.client.Gauge(ddmg.name, value, newValues, value)
+	if err != nil {
+		ddmg.meter.logger.Error(err)
+	}
+	return ddmg
+}
+
+func (ddm *DataDogMeter) Gauge(name, description string, labels []string, prefixes ...string) common.Gauge {
+
+	var names []string
+
+	if !utils.IsEmpty(ddm.options.Prefix) {
+		names = append(names, ddm.options.Prefix)
+	}
+
+	if len(prefixes) > 0 {
+		names = append(names, strings.Join(prefixes, "_"))
+	}
+
+	newName := name
+	if len(names) > 0 {
+		newName = fmt.Sprintf("%s.%s", strings.Join(names, "."), newName)
+	}
+
+	return &DataDogGauge{
 		meter:       ddm,
 		name:        newName,
 		description: description,

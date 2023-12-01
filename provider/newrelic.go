@@ -87,6 +87,13 @@ type NewRelicCounter struct {
 	labels      []string
 }
 
+type NewRelicGauge struct {
+	meter       *NewRelicMeter
+	name        string
+	description string
+	labels      []string
+}
+
 type NewRelicMeter struct {
 	harvester    *telemetry.Harvester
 	options      NewRelicMeterOptions
@@ -730,6 +737,55 @@ func (nrm *NewRelicMeter) Counter(name, description string, labels []string, pre
 	newName := strings.Join(names, ".")
 
 	return &NewRelicCounter{
+		meter:       nrm,
+		name:        newName,
+		description: description,
+		labels:      labels,
+	}
+}
+
+func (nrg *NewRelicGauge) getGlobalTags(labelValues ...string) map[string]interface{} {
+
+	m := make(map[string]interface{})
+	l := len(labelValues)
+
+	for index, name := range nrg.labels {
+		if l > index {
+			m[name] = labelValues[index]
+		}
+	}
+	return m
+}
+
+func (nrg *NewRelicGauge) Set(value float64, labelValues ...string) common.Gauge {
+
+	attributes := nrg.getGlobalTags(labelValues...)
+	_, file, line := utils.CallerGetInfo(nrg.meter.callerOffset + 3)
+	attributes["file"] = fmt.Sprintf("%s:%d", file, line)
+
+	nrg.meter.harvester.RecordMetric(telemetry.Gauge{
+		Timestamp:  time.Now(),
+		Name:       nrg.name,
+		Value:      value,
+		Attributes: attributes,
+	})
+
+	return nrg
+}
+
+func (nrm *NewRelicMeter) Gauge(name, description string, labels []string, prefixes ...string) common.Gauge {
+
+	var names []string
+
+	if !utils.IsEmpty(nrm.options.Prefix) {
+		names = append(names, nrm.options.Prefix)
+	}
+
+	names = append(names, prefixes...)
+	names = append(names, name)
+	newName := strings.Join(names, ".")
+
+	return &NewRelicGauge{
 		meter:       nrm,
 		name:        newName,
 		description: description,
