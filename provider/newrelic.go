@@ -757,6 +757,11 @@ func (nrg *NewRelicGauge) getGlobalTags(labelValues ...string) map[string]interf
 	return m
 }
 
+func (nrg *NewRelicGauge) WithLabels(labels common.Labels) common.Gauge {
+
+	return nrg
+}
+
 func (nrg *NewRelicGauge) Set(value float64, labelValues ...string) common.Gauge {
 
 	attributes := nrg.getGlobalTags(labelValues...)

@@ -655,6 +655,11 @@ func (ddm *DataDogMeter) Counter(name, description string, labels []string, pref
 	}
 }
 
+func (ddmg *DataDogGauge) WithLabels(labels common.Labels) common.Gauge {
+
+	return ddmg
+}
+
 func (ddmg *DataDogGauge) Set(value float64, labelValues ...string) common.Gauge {
 
 	newValues := ddmg.meter.getLabelTags(labelValues...)

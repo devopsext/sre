@@ -81,17 +81,23 @@ func (p *PrometheusMeter) Counter(name, description string, labels []string, pre
 	}
 }
 
-func (pc *PrometheusGauge) Set(value float64, labelValues ...string) common.Gauge {
+func (pg *PrometheusGauge) WithLabels(labels common.Labels) common.Gauge {
+
+	pg.gaugeVec.With(labels)
+	return pg
+}
+
+func (pg *PrometheusGauge) Set(value float64, labelValues ...string) common.Gauge {
 
 	newValues := labelValues
 
-	if pc.meter.options.Debug {
-		_, file, line := utils.CallerGetInfo(pc.meter.callerOffset + 3)
+	if pg.meter.options.Debug {
+		_, file, line := utils.CallerGetInfo(pg.meter.callerOffset + 3)
 		newValues = append(labelValues, fmt.Sprintf("%s:%d", file, line))
 	}
 
-	pc.gaugeVec.WithLabelValues(newValues...).Set(value)
-	return pc
+	pg.gaugeVec.WithLabelValues(newValues...).Set(value)
+	return pg
 }
 
 func (p *PrometheusMeter) Gauge(name, description string, labels []string, prefixes ...string) common.Gauge {

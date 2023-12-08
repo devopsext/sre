@@ -39,6 +39,13 @@ func (ms *Metrics) Counter(name, description string, labels []string, prefixes .
 	return &counter
 }
 
+func (msg *MetricsGauge) WithLabels(labels Labels) Gauge {
+	for _, m := range msg.gauges {
+		m.WithLabels(labels)
+	}
+	return msg
+}
+
 func (msg *MetricsGauge) Set(value float64, values ...string) Gauge {
 
 	for _, m := range msg.gauges {

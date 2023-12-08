@@ -1,10 +1,13 @@
 package common
 
+type Labels = map[string]string
+
 type Counter interface {
 	Inc(labelValues ...string) Counter
 }
 
 type Gauge interface {
+	WithLabels(labels Labels) Gauge
 	Set(value float64, labelValues ...string) Gauge
 }
 

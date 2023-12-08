@@ -539,6 +539,11 @@ func (otm *OpentelemetryMeter) Counter(name, description string, labels []string
 	}
 }
 
+func (otg *OpentelemetryGauge) WithLabels(labels common.Labels) common.Gauge {
+
+	return otg
+}
+
 func (otg *OpentelemetryGauge) Set(value float64, labelValues ...string) common.Gauge {
 
 	/*labels := otg.getGlobalTags(labelValues...)
