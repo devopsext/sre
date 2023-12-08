@@ -59,6 +59,7 @@ var prometheusOptions = provider.PrometheusOptions{
 	URL:    "/metrics",
 	Listen: "127.0.0.1:8080",
 	Prefix: "sre",
+	Debug:  true,
 }
 
 var jaegerOptions = provider.JaegerOptions{
