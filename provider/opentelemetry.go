@@ -4,7 +4,6 @@ import (
 	"context"
 	"fmt"
 	"net/http"
-	"strings"
 	"time"
 
 	"github.com/devopsext/sre/common"
@@ -507,19 +506,21 @@ func (otc *OpentelemetryCounter) getGlobalTags(labelValues ...string) []attribut
 	return labels
 }
 
-func (otc *OpentelemetryCounter) Inc(labelValues ...string) common.Counter {
+func (otc *OpentelemetryCounter) Inc() common.Counter {
 
-	labels := otc.getGlobalTags(labelValues...)
-	_, file, line := utils.CallerGetInfo(otc.meter.callerOffset + 3)
-	labels = append(labels, attribute.String("file", fmt.Sprintf("%s:%d", file, line)))
+	/*
+		labels := otc.getGlobalTags(labelValues...)
+		_, file, line := utils.CallerGetInfo(otc.meter.callerOffset + 3)
+		labels = append(labels, attribute.String("file", fmt.Sprintf("%s:%d", file, line)))
 
-	otc.counter.Add(context.Background(), 1, labels...)
-	return otc
+		otc.counter.Add(context.Background(), 1, labels...)
+		return otc*/
+	return nil
 }
 
-func (otm *OpentelemetryMeter) Counter(name, description string, labels []string, prefixes ...string) common.Counter {
+func (otm *OpentelemetryMeter) Counter(name, description string, labels common.Labels, prefixes ...string) common.Counter {
 
-	var names []string
+	/*var names []string
 
 	if !utils.IsEmpty(otm.options.Prefix) {
 		names = append(names, otm.options.Prefix)
@@ -536,27 +537,23 @@ func (otm *OpentelemetryMeter) Counter(name, description string, labels []string
 		meter:   otm,
 		counter: &counter,
 		labels:  labels,
-	}
+	}*/
+	return nil
 }
 
-func (otg *OpentelemetryGauge) WithLabels(labels common.Labels) common.Gauge {
-
-	return otg
-}
-
-func (otg *OpentelemetryGauge) Set(value float64, labelValues ...string) common.Gauge {
+func (otg *OpentelemetryGauge) Set(value float64) common.Gauge {
 
 	/*labels := otg.getGlobalTags(labelValues...)
 	_, file, line := utils.CallerGetInfo(otc.meter.callerOffset + 3)
 	labels = append(labels, attribute.String("file", fmt.Sprintf("%s:%d", file, line)))
 	*/
 	//otg.gauge.Count(context.Background(), value, labels...)
-	return otg
+	return nil
 }
 
-func (otm *OpentelemetryMeter) Gauge(name, description string, labels []string, prefixes ...string) common.Gauge {
+func (otm *OpentelemetryMeter) Gauge(name, description string, labels common.Labels, prefixes ...string) common.Gauge {
 
-	var names []string
+	/*var names []string
 
 	if !utils.IsEmpty(otm.options.Prefix) {
 		names = append(names, otm.options.Prefix)
@@ -572,7 +569,8 @@ func (otm *OpentelemetryMeter) Gauge(name, description string, labels []string, 
 		meter:  otm,
 		gauge:  &gauge,
 		labels: labels,
-	}
+	}*/
+	return nil
 }
 
 func (otm *OpentelemetryMeter) SetCallerOffset(offset int) {

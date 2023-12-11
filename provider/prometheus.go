@@ -4,13 +4,13 @@ import (
 	"fmt"
 	"net"
 	"net/http"
+	"sort"
 	"strings"
 	"sync"
 
+	"github.com/VictoriaMetrics/metrics"
 	"github.com/devopsext/sre/common"
 	"github.com/devopsext/utils"
-	"github.com/prometheus/client_golang/prometheus"
-	"github.com/prometheus/client_golang/prometheus/promhttp"
 )
 
 type PrometheusOptions struct {
@@ -18,127 +18,111 @@ type PrometheusOptions struct {
 	Listen  string
 	Version string
 	Prefix  string
-	Debug   bool
 }
 
 type PrometheusCounter struct {
-	meter      *PrometheusMeter
-	counterVec *prometheus.CounterVec
+	meter   *PrometheusMeter
+	counter *metrics.Counter
 }
 
 type PrometheusGauge struct {
-	meter    *PrometheusMeter
-	gaugeVec *prometheus.GaugeVec
+	meter *PrometheusMeter
+	value float64
+	gauge *metrics.Gauge
 }
 
 type PrometheusMeter struct {
-	options      PrometheusOptions
-	logger       common.Logger
-	callerOffset int
-	listener     *net.Listener
+	options  PrometheusOptions
+	logger   common.Logger
+	listener *net.Listener
+	counters *sync.Map
+	gauges   *sync.Map
 }
 
-func (pc *PrometheusCounter) Inc(labelValues ...string) common.Counter {
+func (p *PrometheusMeter) buildIdent(name string, labels common.Labels, prefixes ...string) string {
 
-	newValues := labelValues
+	var names []string
 
-	if pc.meter.options.Debug {
-		_, file, line := utils.CallerGetInfo(pc.meter.callerOffset + 3)
-		newValues = append(labelValues, fmt.Sprintf("%s:%d", file, line))
+	if !utils.IsEmpty(p.options.Prefix) {
+		names = append(names, p.options.Prefix)
 	}
 
-	pc.counterVec.WithLabelValues(newValues...).Inc()
+	names = append(names, prefixes...)
+	names = append(names, name)
+	name = strings.Join(names, "_")
+
+	lbs := ""
+	if len(labels) > 0 {
+		arr := []string{}
+		for k, v := range labels {
+			arr = append(arr, fmt.Sprintf(`%s="%s"`, k, v))
+		}
+		sort.Strings(arr)
+		lbs = fmt.Sprintf("{%s}", strings.Join(arr, ","))
+	}
+	return fmt.Sprintf(`%s%s`, name, lbs)
+}
+
+func (pc *PrometheusCounter) Inc() common.Counter {
+
+	pc.counter.Inc()
 	return pc
 }
 
-func (p *PrometheusMeter) Counter(name, description string, labels []string, prefixes ...string) common.Counter {
+func (pc *PrometheusCounter) Add(value int) common.Counter {
 
-	var names []string
-
-	if !utils.IsEmpty(p.options.Prefix) {
-		names = append(names, p.options.Prefix)
-	}
-
-	names = append(names, prefixes...)
-	names = append(names, name)
-	newName := strings.Join(names, "_")
-
-	config := prometheus.CounterOpts{
-		Name: newName,
-		Help: description,
-	}
-
-	if p.options.Debug {
-		labels = append(labels, "file")
-	}
-
-	counterVec := prometheus.NewCounterVec(config, labels)
-	prometheus.MustRegister(counterVec)
-
-	return &PrometheusCounter{
-		meter:      p,
-		counterVec: counterVec,
-	}
+	pc.counter.Add(value)
+	return pc
 }
 
-func (pg *PrometheusGauge) WithLabels(labels common.Labels) common.Gauge {
+func (p *PrometheusMeter) Counter(name, description string, labels common.Labels, prefixes ...string) common.Counter {
 
-	pg.gaugeVec.With(labels)
+	ident := p.buildIdent(name, labels, prefixes...)
+	co, ok := p.counters.Load(ident)
+	if ok && co != nil {
+		return co.(*PrometheusCounter)
+	}
+
+	counter := &PrometheusCounter{
+		meter:   p,
+		counter: metrics.GetOrCreateCounter(ident),
+	}
+	p.counters.Store(ident, counter)
+	return counter
+}
+
+func (pg *PrometheusGauge) Set(value float64) common.Gauge {
+
+	pg.value = value
 	return pg
 }
 
-func (pg *PrometheusGauge) Set(value float64, labelValues ...string) common.Gauge {
+func (p *PrometheusMeter) Gauge(name, description string, labels common.Labels, prefixes ...string) common.Gauge {
 
-	newValues := labelValues
-
-	if pg.meter.options.Debug {
-		_, file, line := utils.CallerGetInfo(pg.meter.callerOffset + 3)
-		newValues = append(labelValues, fmt.Sprintf("%s:%d", file, line))
+	ident := p.buildIdent(name, labels, prefixes...)
+	gg, ok := p.gauges.Load(ident)
+	if ok && gg != nil {
+		return gg.(*PrometheusGauge)
 	}
+	var gauge *PrometheusGauge
 
-	pg.gaugeVec.WithLabelValues(newValues...).Set(value)
-	return pg
-}
-
-func (p *PrometheusMeter) Gauge(name, description string, labels []string, prefixes ...string) common.Gauge {
-
-	var names []string
-
-	if !utils.IsEmpty(p.options.Prefix) {
-		names = append(names, p.options.Prefix)
+	gauge = &PrometheusGauge{
+		meter: p,
+		gauge: metrics.GetOrCreateGauge(ident, func() float64 {
+			return gauge.value
+		}),
 	}
-
-	names = append(names, prefixes...)
-	names = append(names, name)
-	newName := strings.Join(names, "_")
-
-	config := prometheus.GaugeOpts{
-		Name: newName,
-		Help: description,
-	}
-
-	if p.options.Debug {
-		labels = append(labels, "file")
-	}
-
-	gaugeVec := prometheus.NewGaugeVec(config, labels)
-	prometheus.MustRegister(gaugeVec)
-
-	return &PrometheusGauge{
-		meter:    p,
-		gaugeVec: gaugeVec,
-	}
-}
-
-func (p *PrometheusMeter) SetCallerOffset(offset int) {
-	p.callerOffset = offset
+	p.gauges.Store(ident, gauge)
+	return gauge
 }
 
 func (p *PrometheusMeter) Start() bool {
 
 	p.logger.Info("Start prometheus endpoint...")
 
-	http.Handle(p.options.URL, promhttp.Handler())
+	http.HandleFunc(p.options.URL, func(w http.ResponseWriter, req *http.Request) {
+		metrics.WritePrometheus(w, false)
+	})
 
 	listener, err := net.Listen("tcp", p.options.Listen)
 	if err != nil {
@@ -180,8 +164,9 @@ func NewPrometheusMeter(options PrometheusOptions, logger common.Logger, stdout 
 	}
 
 	return &PrometheusMeter{
-		options:      options,
-		logger:       logger,
-		callerOffset: 1,
+		options:  options,
+		logger:   logger,
+		counters: &sync.Map{},
+		gauges:   &sync.Map{},
 	}
 }

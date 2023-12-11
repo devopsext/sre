@@ -44,20 +44,24 @@ func TestPrometheus(t *testing.T) {
 	if prometheus == nil {
 		t.Fatal("Invalid prometheus")
 	}
-	prometheus.SetCallerOffset(1)
 
 	var wg sync.WaitGroup
 	prometheus.StartInWaitGroup(&wg)
 	defer prometheus.Stop()
 
-	counter := prometheus.Counter(metricName, "description", []string{"one", "two", "three"}, secondPrefix)
+	labels := make(common.Labels)
+	labels["one"] = "value1"
+	labels["two"] = "value2"
+	labels["three"] = "value2"
+
+	counter := prometheus.Counter(metricName, "description", labels, secondPrefix)
 	if counter == nil {
 		t.Fatal("Invalid prometheus")
 	}
 
 	maxCounter := 5
 	for i := 0; i < maxCounter; i++ {
-		counter.Inc("value1", "value2", "value3")
+		counter.Inc()
 	}
 
 	time.Sleep(time.Duration(1) * time.Second)
@@ -129,7 +133,6 @@ func TestPrometheusWrongListen(t *testing.T) {
 	if prometheus == nil {
 		t.Fatal("Invalid prometheus")
 	}
-	prometheus.SetCallerOffset(1)
 
 	if prometheus.Start() {
 		t.Fatal("Invalid startup option")

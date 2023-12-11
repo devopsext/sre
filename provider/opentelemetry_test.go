@@ -6,6 +6,7 @@ import (
 	"testing"
 	"time"
 
+	"github.com/devopsext/sre/common"
 	"github.com/devopsext/utils"
 	"go.opentelemetry.io/otel/trace"
 )
@@ -254,14 +255,19 @@ func TestOpentelemetryMeter(t *testing.T) {
 	secondPrefix := "counter"
 	metricName := "some"
 
-	counter := opentelemetry.Counter(metricName, "description", []string{"one", "two", "three"}, secondPrefix)
+	labels := make(common.Labels)
+	labels["one"] = "value1"
+	labels["two"] = "value2"
+	labels["three"] = "value2"
+
+	counter := opentelemetry.Counter(metricName, "description", labels, secondPrefix)
 	if counter == nil {
 		t.Fatal("Invalid opentelemetry")
 	}
 
 	maxCounter := 5
 	for i := 0; i < maxCounter; i++ {
-		counter.Inc("value1", "value2", "value3")
+		counter.Inc()
 	}
 
 	opentelemetry.Stop()

@@ -13,8 +13,10 @@ var metrics = common.NewMetrics()
 var mainWG sync.WaitGroup
 
 func test() {
-	counter := metrics.Counter("calls", "Calls counter", []string{"time"})
-	counter.Inc(time.Now().String())
+	labels := make(common.Labels)
+	labels["time"] = time.Now().String()
+	counter := metrics.Counter("calls", "Calls counter", labels)
+	counter.Inc()
 }
 
 func main() {

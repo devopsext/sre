@@ -14,15 +14,23 @@ type Metrics struct {
 	meters []Meter
 }
 
-func (msc *MetricsCounter) Inc(values ...string) Counter {
+func (msc *MetricsCounter) Inc() Counter {
 
 	for _, m := range msc.counters {
-		m.Inc(values...)
+		m.Inc()
 	}
 	return msc
 }
 
-func (ms *Metrics) Counter(name, description string, labels []string, prefixes ...string) Counter {
+func (msc *MetricsCounter) Add(value int) Counter {
+
+	for _, m := range msc.counters {
+		m.Add(value)
+	}
+	return msc
+}
+
+func (ms *Metrics) Counter(name, description string, labels Labels, prefixes ...string) Counter {
 
 	counter := MetricsCounter{
 		metrics:  ms,
@@ -39,22 +47,15 @@ func (ms *Metrics) Counter(name, description string, labels []string, prefixes .
 	return &counter
 }
 
-func (msg *MetricsGauge) WithLabels(labels Labels) Gauge {
+func (msg *MetricsGauge) Set(value float64) Gauge {
+
 	for _, m := range msg.gauges {
-		m.WithLabels(labels)
+		m.Set(value)
 	}
 	return msg
 }
 
-func (msg *MetricsGauge) Set(value float64, values ...string) Gauge {
-
-	for _, m := range msg.gauges {
-		m.Set(value, values...)
-	}
-	return msg
-}
-
-func (ms *Metrics) Gauge(name, description string, labels []string, prefixes ...string) Gauge {
+func (ms *Metrics) Gauge(name, description string, labels Labels, prefixes ...string) Gauge {
 
 	gauge := MetricsGauge{
 		metrics: ms,

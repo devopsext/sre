@@ -8,7 +8,6 @@ import (
 	"net/http"
 	"os"
 	"os/signal"
-	"strconv"
 	"time"
 
 	"sync"
@@ -59,7 +58,6 @@ var prometheusOptions = provider.PrometheusOptions{
 	URL:    "/metrics",
 	Listen: "127.0.0.1:8080",
 	Prefix: "sre",
-	Debug:  true,
 }
 
 var jaegerOptions = provider.JaegerOptions{
@@ -361,7 +359,12 @@ func Execute() {
 
 			logs.SpanInfo(rootSpan, "This message has correlation with span...")
 
-			counter := metrics.Counter("calls", "Calls counter", []string{"label"}, "counter", "of", "iteration")
+			labels := make(common.Labels)
+			labels["one"] = "value1"
+			labels["two"] = "value2"
+			labels["three"] = "value2"
+
+			counter := metrics.Counter("calls", "Calls counter", labels, "counter", "of", "iteration")
 
 			for i := 0; i < 10; i++ {
 
@@ -369,7 +372,7 @@ func Execute() {
 				span.SetName(fmt.Sprintf("name-%d", i))
 
 				time.Sleep(time.Duration(100*i) * time.Millisecond)
-				counter.Inc(strconv.Itoa(i))
+				counter.Inc()
 				logs.SpanDebug(span, "Counter increment %d", i)
 
 				spanCtx = span.GetContext()

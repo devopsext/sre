@@ -81,14 +81,19 @@ func TestNewRelicMeter(t *testing.T) {
 	secondPrefix := "counter"
 	metricName := "some"
 
-	counter := newrelic.Counter(metricName, "description", []string{"one", "two", "three"}, secondPrefix)
+	labels := make(common.Labels)
+	labels["one"] = "value1"
+	labels["two"] = "value2"
+	labels["three"] = "value2"
+
+	counter := newrelic.Counter(metricName, "description", labels, secondPrefix)
 	if counter == nil {
 		t.Fatal("Invalid newrelic counter")
 	}
 
 	maxCounter := 5
 	for i := 0; i < maxCounter; i++ {
-		counter.Inc("value1", "value2", "value3")
+		counter.Inc()
 	}
 
 	newrelic.Stop()

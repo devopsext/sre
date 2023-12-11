@@ -267,14 +267,19 @@ func TestDataDogMeter(t *testing.T) {
 	secondPrefix := "counter"
 	metricName := "some"
 
-	counter := datadog.Counter(metricName, "description", []string{"one", "two", "three"}, secondPrefix)
+	labels := make(common.Labels)
+	labels["one"] = "value1"
+	labels["two"] = "value2"
+	labels["three"] = "value2"
+
+	counter := datadog.Counter(metricName, "description", labels, secondPrefix)
 	if counter == nil {
 		t.Fatal("Invalid datadog")
 	}
 
 	maxCounter := 5
 	for i := 0; i < maxCounter; i++ {
-		counter.Inc("value1", "value2", "value3")
+		counter.Inc()
 	}
 
 	datadog.Stop()

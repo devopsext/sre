@@ -3,16 +3,16 @@ package common
 type Labels = map[string]string
 
 type Counter interface {
-	Inc(labelValues ...string) Counter
+	Inc() Counter
+	Add(value int) Counter
 }
 
 type Gauge interface {
-	WithLabels(labels Labels) Gauge
-	Set(value float64, labelValues ...string) Gauge
+	Set(value float64) Gauge
 }
 
 type Meter interface {
-	Counter(name, description string, labels []string, prefixes ...string) Counter
-	Gauge(name, description string, labels []string, prefixes ...string) Gauge
+	Counter(name, description string, labels Labels, prefixes ...string) Counter
+	Gauge(name, description string, labels Labels, prefixes ...string) Gauge
 	Stop()
 }

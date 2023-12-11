@@ -5,7 +5,6 @@ import (
 	"fmt"
 	"net"
 	"net/http"
-	"strings"
 	"time"
 
 	"github.com/devopsext/sre/common"
@@ -708,9 +707,9 @@ func (nrc *NewRelicCounter) getGlobalTags(labelValues ...string) map[string]inte
 	return m
 }
 
-func (nrc *NewRelicCounter) Inc(labelValues ...string) common.Counter {
+func (nrc *NewRelicCounter) Inc() common.Counter {
 
-	attributes := nrc.getGlobalTags(labelValues...)
+	/*attributes := nrc.getGlobalTags(labelValues...)
 	_, file, line := utils.CallerGetInfo(nrc.meter.callerOffset + 3)
 	attributes["file"] = fmt.Sprintf("%s:%d", file, line)
 
@@ -721,12 +720,13 @@ func (nrc *NewRelicCounter) Inc(labelValues ...string) common.Counter {
 		Attributes: attributes,
 	})
 
-	return nrc
+	return nrc*/
+	return nil
 }
 
-func (nrm *NewRelicMeter) Counter(name, description string, labels []string, prefixes ...string) common.Counter {
+func (nrm *NewRelicMeter) Counter(name, description string, labels common.Labels, prefixes ...string) common.Counter {
 
-	var names []string
+	/*var names []string
 
 	if !utils.IsEmpty(nrm.options.Prefix) {
 		names = append(names, nrm.options.Prefix)
@@ -741,7 +741,8 @@ func (nrm *NewRelicMeter) Counter(name, description string, labels []string, pre
 		name:        newName,
 		description: description,
 		labels:      labels,
-	}
+	}*/
+	return nil
 }
 
 func (nrg *NewRelicGauge) getGlobalTags(labelValues ...string) map[string]interface{} {
@@ -757,14 +758,9 @@ func (nrg *NewRelicGauge) getGlobalTags(labelValues ...string) map[string]interf
 	return m
 }
 
-func (nrg *NewRelicGauge) WithLabels(labels common.Labels) common.Gauge {
+func (nrg *NewRelicGauge) Set(value float64) common.Gauge {
 
-	return nrg
-}
-
-func (nrg *NewRelicGauge) Set(value float64, labelValues ...string) common.Gauge {
-
-	attributes := nrg.getGlobalTags(labelValues...)
+	/*attributes := nrg.getGlobalTags(labelValues...)
 	_, file, line := utils.CallerGetInfo(nrg.meter.callerOffset + 3)
 	attributes["file"] = fmt.Sprintf("%s:%d", file, line)
 
@@ -775,12 +771,13 @@ func (nrg *NewRelicGauge) Set(value float64, labelValues ...string) common.Gauge
 		Attributes: attributes,
 	})
 
-	return nrg
+	return nrg*/
+	return nil
 }
 
-func (nrm *NewRelicMeter) Gauge(name, description string, labels []string, prefixes ...string) common.Gauge {
+func (nrm *NewRelicMeter) Gauge(name, description string, labels common.Labels, prefixes ...string) common.Gauge {
 
-	var names []string
+	/*var names []string
 
 	if !utils.IsEmpty(nrm.options.Prefix) {
 		names = append(names, nrm.options.Prefix)
@@ -795,7 +792,8 @@ func (nrm *NewRelicMeter) Gauge(name, description string, labels []string, prefi
 		name:        newName,
 		description: description,
 		labels:      labels,
-	}
+	}*/
+	return nil
 }
 
 func (nrm *NewRelicMeter) SetCallerOffset(offset int) {

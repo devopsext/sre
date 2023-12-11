@@ -607,9 +607,9 @@ func (ddm *DataDogMeter) SetCallerOffset(offset int) {
 	ddm.callerOffset = offset
 }
 
-func (ddmc *DataDogCounter) Inc(labelValues ...string) common.Counter {
+func (ddmc *DataDogCounter) Inc() common.Counter {
 
-	newValues := ddmc.meter.getLabelTags(labelValues...)
+	/*newValues := ddmc.meter.getLabelTags(labelValues...)
 	for k, v := range ddmc.labels {
 
 		value := ""
@@ -627,12 +627,13 @@ func (ddmc *DataDogCounter) Inc(labelValues ...string) common.Counter {
 	if err != nil {
 		ddmc.meter.logger.Error(err)
 	}
-	return ddmc
+	return ddmc*/
+	return nil
 }
 
-func (ddm *DataDogMeter) Counter(name, description string, labels []string, prefixes ...string) common.Counter {
+func (ddm *DataDogMeter) Counter(name, description string, labels common.Labels, prefixes ...string) common.Counter {
 
-	var names []string
+	/*var names []string
 
 	if !utils.IsEmpty(ddm.options.Prefix) {
 		names = append(names, ddm.options.Prefix)
@@ -652,17 +653,13 @@ func (ddm *DataDogMeter) Counter(name, description string, labels []string, pref
 		name:        newName,
 		description: description,
 		labels:      labels,
-	}
+	}*/
+	return nil
 }
 
-func (ddmg *DataDogGauge) WithLabels(labels common.Labels) common.Gauge {
+func (ddmg *DataDogGauge) Set(value float64) common.Gauge {
 
-	return ddmg
-}
-
-func (ddmg *DataDogGauge) Set(value float64, labelValues ...string) common.Gauge {
-
-	newValues := ddmg.meter.getLabelTags(labelValues...)
+	/*newValues := ddmg.meter.getLabelTags(labelValues...)
 	for k, v := range ddmg.labels {
 
 		value := ""
@@ -680,12 +677,13 @@ func (ddmg *DataDogGauge) Set(value float64, labelValues ...string) common.Gauge
 	if err != nil {
 		ddmg.meter.logger.Error(err)
 	}
-	return ddmg
+	return ddmg*/
+	return nil
 }
 
-func (ddm *DataDogMeter) Gauge(name, description string, labels []string, prefixes ...string) common.Gauge {
+func (ddm *DataDogMeter) Gauge(name, description string, labels common.Labels, prefixes ...string) common.Gauge {
 
-	var names []string
+	/*var names []string
 
 	if !utils.IsEmpty(ddm.options.Prefix) {
 		names = append(names, ddm.options.Prefix)
@@ -705,7 +703,8 @@ func (ddm *DataDogMeter) Gauge(name, description string, labels []string, prefix
 		name:        newName,
 		description: description,
 		labels:      labels,
-	}
+	}*/
+	return nil
 }
 
 func (ddm *DataDogMeter) Stop() {
