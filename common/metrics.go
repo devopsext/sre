@@ -10,8 +10,20 @@ type MetricsGauge struct {
 	metrics *Metrics
 }
 
+type MetricsGroup struct {
+	groups  map[Meter]Group
+	metrics *Metrics
+}
+
 type Metrics struct {
 	meters []Meter
+}
+
+func (mg *MetricsGroup) Clear() {
+
+	for _, m := range mg.groups {
+		m.Clear()
+	}
 }
 
 func (msc *MetricsCounter) Inc() Counter {
@@ -70,6 +82,23 @@ func (ms *Metrics) Gauge(group, name, description string, labels Labels, prefixe
 		}
 	}
 	return &gauge
+}
+
+func (ms *Metrics) Group(group string) Group {
+
+	gr := MetricsGroup{
+		metrics: ms,
+		groups:  make(map[Meter]Group),
+	}
+
+	for _, m := range ms.meters {
+
+		g := m.Group(group)
+		if g != nil {
+			gr.groups[m] = g
+		}
+	}
+	return &gr
 }
 
 func (ms *Metrics) Stop() {
