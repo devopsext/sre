@@ -260,7 +260,7 @@ func TestOpentelemetryMeter(t *testing.T) {
 	labels["two"] = "value2"
 	labels["three"] = "value2"
 
-	counter := opentelemetry.Counter(metricName, "description", labels, secondPrefix)
+	counter := opentelemetry.Counter("", metricName, "description", labels, secondPrefix)
 	if counter == nil {
 		t.Fatal("Invalid opentelemetry")
 	}

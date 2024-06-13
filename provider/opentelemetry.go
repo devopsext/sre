@@ -518,7 +518,7 @@ func (otc *OpentelemetryCounter) Inc() common.Counter {
 	return nil
 }
 
-func (otm *OpentelemetryMeter) Counter(name, description string, labels common.Labels, prefixes ...string) common.Counter {
+func (otm *OpentelemetryMeter) Counter(group, name, description string, labels common.Labels, prefixes ...string) common.Counter {
 
 	/*var names []string
 
@@ -551,7 +551,7 @@ func (otg *OpentelemetryGauge) Set(value float64) common.Gauge {
 	return nil
 }
 
-func (otm *OpentelemetryMeter) Gauge(name, description string, labels common.Labels, prefixes ...string) common.Gauge {
+func (otm *OpentelemetryMeter) Gauge(group, name, description string, labels common.Labels, prefixes ...string) common.Gauge {
 
 	/*var names []string
 
@@ -570,6 +570,11 @@ func (otm *OpentelemetryMeter) Gauge(name, description string, labels common.Lab
 		gauge:  &gauge,
 		labels: labels,
 	}*/
+	return nil
+}
+
+func (otm *OpentelemetryMeter) Group(name string) common.Group {
+
 	return nil
 }
 

@@ -11,8 +11,13 @@ type Gauge interface {
 	Set(value float64) Gauge
 }
 
+type Group interface {
+	Clear()
+}
+
 type Meter interface {
-	Counter(name, description string, labels Labels, prefixes ...string) Counter
-	Gauge(name, description string, labels Labels, prefixes ...string) Gauge
+	Group(name string) Group
+	Counter(group, name, description string, labels Labels, prefixes ...string) Counter
+	Gauge(group, name, description string, labels Labels, prefixes ...string) Gauge
 	Stop()
 }

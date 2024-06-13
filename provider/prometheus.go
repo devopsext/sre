@@ -31,12 +31,23 @@ type PrometheusGauge struct {
 	gauge *metrics.Gauge
 }
 
+type PrometheusGroup struct {
+	meter *PrometheusMeter
+	name  string
+	set   *metrics.Set
+}
+
 type PrometheusMeter struct {
 	options  PrometheusOptions
 	logger   common.Logger
 	listener *net.Listener
 	counters *sync.Map
 	gauges   *sync.Map
+	groups   *sync.Map
+}
+
+func (p *PrometheusGroup) Clear() {
+	p.set.UnregisterAllMetrics()
 }
 
 func (p *PrometheusMeter) buildIdent(name string, labels common.Labels, prefixes ...string) string {
@@ -75,7 +86,7 @@ func (pc *PrometheusCounter) Add(value int) common.Counter {
 	return pc
 }
 
-func (p *PrometheusMeter) Counter(name, description string, labels common.Labels, prefixes ...string) common.Counter {
+func (p *PrometheusMeter) Counter(group, name, description string, labels common.Labels, prefixes ...string) common.Counter {
 
 	ident := p.buildIdent(name, labels, prefixes...)
 	co, ok := p.counters.Load(ident)
@@ -83,9 +94,15 @@ func (p *PrometheusMeter) Counter(name, description string, labels common.Labels
 		return co.(*PrometheusCounter)
 	}
 
+	set := metrics.GetDefaultSet()
+	gr := p.findGroup(group)
+	if gr != nil {
+		set = gr.set
+	}
+
 	counter := &PrometheusCounter{
 		meter:   p,
-		counter: metrics.GetOrCreateCounter(ident),
+		counter: set.GetOrCreateCounter(ident),
 	}
 	p.counters.Store(ident, counter)
 	return counter
@@ -97,18 +114,24 @@ func (pg *PrometheusGauge) Set(value float64) common.Gauge {
 	return pg
 }
 
-func (p *PrometheusMeter) Gauge(name, description string, labels common.Labels, prefixes ...string) common.Gauge {
+func (p *PrometheusMeter) Gauge(group, name, description string, labels common.Labels, prefixes ...string) common.Gauge {
 
 	ident := p.buildIdent(name, labels, prefixes...)
 	gg, ok := p.gauges.Load(ident)
 	if ok && gg != nil {
 		return gg.(*PrometheusGauge)
 	}
-	var gauge *PrometheusGauge
 
+	set := metrics.GetDefaultSet()
+	gr := p.findGroup(group)
+	if gr != nil {
+		set = gr.set
+	}
+
+	var gauge *PrometheusGauge
 	gauge = &PrometheusGauge{
 		meter: p,
-		gauge: metrics.GetOrCreateGauge(ident, func() float64 {
+		gauge: set.GetOrCreateGauge(ident, func() float64 {
 			return gauge.value
 		}),
 	}
@@ -116,11 +139,42 @@ func (p *PrometheusMeter) Gauge(name, description string, labels common.Labels, 
 	return gauge
 }
 
+func (p *PrometheusMeter) findGroup(name string) *PrometheusGroup {
+
+	gr, ok := p.groups.Load(name)
+	if ok && gr != nil {
+		return gr.(*PrometheusGroup)
+	}
+	return nil
+}
+
+func (p *PrometheusMeter) Group(name string) common.Group {
+
+	gr := p.findGroup(name)
+	if gr != nil {
+		return gr
+	}
+
+	set := metrics.NewSet()
+
+	group := &PrometheusGroup{
+		meter: p,
+		name:  name,
+		set:   set,
+	}
+	metrics.RegisterSet(set)
+	p.groups.Store(name, group)
+	return group
+}
+
 func (p *PrometheusMeter) Start() bool {
 
 	p.logger.Info("Start prometheus endpoint...")
 
 	http.HandleFunc(p.options.URL, func(w http.ResponseWriter, req *http.Request) {
+		metrics.ExposeMetadata(true)
+		defer metrics.ExposeMetadata(false)
+
 		metrics.WritePrometheus(w, false)
 	})
 
@@ -168,5 +222,6 @@ func NewPrometheusMeter(options PrometheusOptions, logger common.Logger, stdout 
 		logger:   logger,
 		counters: &sync.Map{},
 		gauges:   &sync.Map{},
+		groups:   &sync.Map{},
 	}
 }

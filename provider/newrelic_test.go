@@ -86,7 +86,7 @@ func TestNewRelicMeter(t *testing.T) {
 	labels["two"] = "value2"
 	labels["three"] = "value2"
 
-	counter := newrelic.Counter(metricName, "description", labels, secondPrefix)
+	counter := newrelic.Counter("", metricName, "description", labels, secondPrefix)
 	if counter == nil {
 		t.Fatal("Invalid newrelic counter")
 	}

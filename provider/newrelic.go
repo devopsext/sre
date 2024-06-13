@@ -724,7 +724,7 @@ func (nrc *NewRelicCounter) Inc() common.Counter {
 	return nil
 }
 
-func (nrm *NewRelicMeter) Counter(name, description string, labels common.Labels, prefixes ...string) common.Counter {
+func (nrm *NewRelicMeter) Counter(group, name, description string, labels common.Labels, prefixes ...string) common.Counter {
 
 	/*var names []string
 
@@ -775,7 +775,7 @@ func (nrg *NewRelicGauge) Set(value float64) common.Gauge {
 	return nil
 }
 
-func (nrm *NewRelicMeter) Gauge(name, description string, labels common.Labels, prefixes ...string) common.Gauge {
+func (nrm *NewRelicMeter) Gauge(group, name, description string, labels common.Labels, prefixes ...string) common.Gauge {
 
 	/*var names []string
 
@@ -793,6 +793,11 @@ func (nrm *NewRelicMeter) Gauge(name, description string, labels common.Labels, 
 		description: description,
 		labels:      labels,
 	}*/
+	return nil
+}
+
+func (nrm *NewRelicMeter) Group(name string) common.Group {
+
 	return nil
 }
 

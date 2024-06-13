@@ -272,7 +272,7 @@ func TestDataDogMeter(t *testing.T) {
 	labels["two"] = "value2"
 	labels["three"] = "value2"
 
-	counter := datadog.Counter(metricName, "description", labels, secondPrefix)
+	counter := datadog.Counter("", metricName, "description", labels, secondPrefix)
 	if counter == nil {
 		t.Fatal("Invalid datadog")
 	}

@@ -364,7 +364,7 @@ func Execute() {
 			labels["two"] = "value2"
 			labels["three"] = "value2"
 
-			counter := metrics.Counter("calls", "Calls counter", labels, "counter", "of", "iteration")
+			counter := metrics.Counter("", "calls", "Calls counter", labels, "counter", "of", "iteration")
 
 			for i := 0; i < 10; i++ {
 

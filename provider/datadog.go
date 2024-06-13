@@ -631,7 +631,7 @@ func (ddmc *DataDogCounter) Inc() common.Counter {
 	return nil
 }
 
-func (ddm *DataDogMeter) Counter(name, description string, labels common.Labels, prefixes ...string) common.Counter {
+func (ddm *DataDogMeter) Counter(group, name, description string, labels common.Labels, prefixes ...string) common.Counter {
 
 	/*var names []string
 
@@ -681,7 +681,7 @@ func (ddmg *DataDogGauge) Set(value float64) common.Gauge {
 	return nil
 }
 
-func (ddm *DataDogMeter) Gauge(name, description string, labels common.Labels, prefixes ...string) common.Gauge {
+func (ddm *DataDogMeter) Gauge(group, name, description string, labels common.Labels, prefixes ...string) common.Gauge {
 
 	/*var names []string
 
@@ -704,6 +704,11 @@ func (ddm *DataDogMeter) Gauge(name, description string, labels common.Labels, p
 		description: description,
 		labels:      labels,
 	}*/
+	return nil
+}
+
+func (ddm *DataDogMeter) Group(name string) common.Group {
+
 	return nil
 }
 

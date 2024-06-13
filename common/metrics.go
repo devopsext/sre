@@ -30,7 +30,7 @@ func (msc *MetricsCounter) Add(value int) Counter {
 	return msc
 }
 
-func (ms *Metrics) Counter(name, description string, labels Labels, prefixes ...string) Counter {
+func (ms *Metrics) Counter(group, name, description string, labels Labels, prefixes ...string) Counter {
 
 	counter := MetricsCounter{
 		metrics:  ms,
@@ -39,7 +39,7 @@ func (ms *Metrics) Counter(name, description string, labels Labels, prefixes ...
 
 	for _, m := range ms.meters {
 
-		c := m.Counter(name, description, labels, prefixes...)
+		c := m.Counter(group, name, description, labels, prefixes...)
 		if c != nil {
 			counter.counters[m] = c
 		}
@@ -55,7 +55,7 @@ func (msg *MetricsGauge) Set(value float64) Gauge {
 	return msg
 }
 
-func (ms *Metrics) Gauge(name, description string, labels Labels, prefixes ...string) Gauge {
+func (ms *Metrics) Gauge(group, name, description string, labels Labels, prefixes ...string) Gauge {
 
 	gauge := MetricsGauge{
 		metrics: ms,
@@ -64,7 +64,7 @@ func (ms *Metrics) Gauge(name, description string, labels Labels, prefixes ...st
 
 	for _, m := range ms.meters {
 
-		g := m.Gauge(name, description, labels, prefixes...)
+		g := m.Gauge(group, name, description, labels, prefixes...)
 		if g != nil {
 			gauge.gauges[m] = g
 		}

@@ -54,7 +54,7 @@ func TestPrometheus(t *testing.T) {
 	labels["two"] = "value2"
 	labels["three"] = "value2"
 
-	counter := prometheus.Counter(metricName, "description", labels, secondPrefix)
+	counter := prometheus.Counter("", metricName, "description", labels, secondPrefix)
 	if counter == nil {
 		t.Fatal("Invalid prometheus")
 	}
