@@ -41,8 +41,6 @@ type PrometheusMeter struct {
 	options  PrometheusOptions
 	logger   common.Logger
 	listener *net.Listener
-	counters *sync.Map
-	gauges   *sync.Map
 	groups   *sync.Map
 }
 
@@ -89,10 +87,6 @@ func (pc *PrometheusCounter) Add(value int) common.Counter {
 func (p *PrometheusMeter) Counter(group, name, description string, labels common.Labels, prefixes ...string) common.Counter {
 
 	ident := p.buildIdent(name, labels, prefixes...)
-	co, ok := p.counters.Load(ident)
-	if ok && co != nil {
-		return co.(*PrometheusCounter)
-	}
 
 	set := metrics.GetDefaultSet()
 	gr := p.findGroup(group)
@@ -104,7 +98,6 @@ func (p *PrometheusMeter) Counter(group, name, description string, labels common
 		meter:   p,
 		counter: set.GetOrCreateCounter(ident),
 	}
-	p.counters.Store(ident, counter)
 	return counter
 }
 
@@ -117,10 +110,6 @@ func (pg *PrometheusGauge) Set(value float64) common.Gauge {
 func (p *PrometheusMeter) Gauge(group, name, description string, labels common.Labels, prefixes ...string) common.Gauge {
 
 	ident := p.buildIdent(name, labels, prefixes...)
-	gg, ok := p.gauges.Load(ident)
-	if ok && gg != nil {
-		return gg.(*PrometheusGauge)
-	}
 
 	set := metrics.GetDefaultSet()
 	gr := p.findGroup(group)
@@ -135,7 +124,6 @@ func (p *PrometheusMeter) Gauge(group, name, description string, labels common.L
 			return gauge.value
 		}),
 	}
-	p.gauges.Store(ident, gauge)
 	return gauge
 }
 
@@ -218,10 +206,8 @@ func NewPrometheusMeter(options PrometheusOptions, logger common.Logger, stdout 
 	}
 
 	return &PrometheusMeter{
-		options:  options,
-		logger:   logger,
-		counters: &sync.Map{},
-		gauges:   &sync.Map{},
-		groups:   &sync.Map{},
+		options: options,
+		logger:  logger,
+		groups:  &sync.Map{},
 	}
 }
