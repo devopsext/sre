@@ -107,6 +107,9 @@ type NewRelicEventer struct {
 	attributes map[string]interface{}
 }
 
+const NewRelicHeaderTraceID string = "X-Trace-ID"
+const NewRelicHeaderSpanID string = "X-Span-ID"
+
 func (nrtsc *NewRelicTracerSpanContext) GetTraceID() string {
 
 	return nrtsc.tracerSpan.traceID
@@ -140,13 +143,13 @@ func (nrts *NewRelicTracerSpan) SetCarrier(object interface{}) common.TracerSpan
 
 		ctx := nrts.GetContext()
 		if ctx != nil {
-			name := http.CanonicalHeaderKey(headerTraceID)
+			name := http.CanonicalHeaderKey(NewRelicHeaderTraceID)
 			if len(h[name]) == 0 {
 				h[name] = append(h[name], ctx.GetTraceID())
 			}
 		}
 		if ctx != nil {
-			name := http.CanonicalHeaderKey(headerSpanID)
+			name := http.CanonicalHeaderKey(NewRelicHeaderSpanID)
 			if len(h[name]) == 0 {
 				h[name] = append(h[name], ctx.GetTraceID())
 			}
@@ -262,12 +265,12 @@ func (nrt *NewRelicTracer) getParentSpanID(object interface{}) (string, string) 
 		traceID := ""
 		spanID := ""
 
-		arr := h[http.CanonicalHeaderKey(headerTraceID)]
+		arr := h[http.CanonicalHeaderKey(NewRelicHeaderTraceID)]
 		if len(arr) > 0 {
 			traceID = arr[len(arr)-1]
 		}
 
-		arr = h[http.CanonicalHeaderKey(headerSpanID)]
+		arr = h[http.CanonicalHeaderKey(NewRelicHeaderSpanID)]
 		if len(arr) > 0 {
 			spanID = arr[len(arr)-1]
 		}
