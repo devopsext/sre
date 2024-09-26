@@ -68,7 +68,7 @@ func main() {
 	}, logs, stdout)
 
 	// initialize Opentelemetry meter
-	opentelemetry := provider.NewOpentelemetryMeter(provider.OpentelemetryMeterOptions{
+	/*opentelemetry := provider.NewOpentelemetryMeter(provider.OpentelemetryMeterOptions{
 		OpentelemetryOptions: provider.OpentelemetryOptions{
 			ServiceName: "sre-opentelemetry",
 			Environment: "stage",
@@ -76,13 +76,13 @@ func main() {
 		AgentHost: "localhost", // set Opentelemetry agent metrics host
 		AgentPort: 4317,        // set Opentelemetry agent metrics port
 		Prefix:    "sre",
-	}, logs, stdout)
+	}, logs, stdout)*/
 
 	// add meters
 	metrics.Register(prometheus)
 	metrics.Register(datadog)
 	metrics.Register(newrelic)
-	metrics.Register(opentelemetry)
+	//metrics.Register(opentelemetry)
 
 	test()
 

@@ -102,7 +102,7 @@ var datadogEventerOptions = provider.DataDogEventerOptions{
 	Site: "",
 }
 
-var opentelemetryOptions = provider.OpentelemetryOptions{
+/*var opentelemetryOptions = provider.OpentelemetryOptions{
 	ServiceName: "",
 	Environment: "",
 	Attributes:  "",
@@ -119,7 +119,7 @@ var opentelemetryMeterOptions = provider.OpentelemetryMeterOptions{
 	AgentPort:     4317,
 	Prefix:        "sre",
 	CollectPeriod: 1000,
-}
+}*/
 
 var newrelicOptions = provider.NewRelicOptions{
 	ServiceName: "",
@@ -237,7 +237,7 @@ func Execute() {
 				metrics.Register(datadogMeter)
 			}
 
-			opentelemetryMeterOptions.Version = VERSION
+			/*opentelemetryMeterOptions.Version = VERSION
 			opentelemetryMeterOptions.ServiceName = opentelemetryOptions.ServiceName
 			opentelemetryMeterOptions.Environment = opentelemetryOptions.Environment
 			opentelemetryMeterOptions.Attributes = opentelemetryOptions.Attributes
@@ -245,7 +245,7 @@ func Execute() {
 			opentelemetryMeter := provider.NewOpentelemetryMeter(opentelemetryMeterOptions, logs, stdout)
 			if utils.Contains(rootOptions.Metrics, "opentelemetry") && opentelemetryMeter != nil {
 				metrics.Register(opentelemetryMeter)
-			}
+			}*/
 
 			newrelicMeterOptions.Version = VERSION
 			newrelicMeterOptions.ApiKey = newrelicOptions.ApiKey
@@ -277,7 +277,7 @@ func Execute() {
 				traces.Register(datadogTracer)
 			}
 
-			opentelemetryTracerOptions.Version = VERSION
+			/*opentelemetryTracerOptions.Version = VERSION
 			opentelemetryTracerOptions.ServiceName = opentelemetryOptions.ServiceName
 			opentelemetryTracerOptions.Environment = opentelemetryOptions.Environment
 			opentelemetryTracerOptions.Attributes = opentelemetryOptions.Attributes
@@ -285,7 +285,7 @@ func Execute() {
 			opentelemtryTracer := provider.NewOpentelemetryTracer(opentelemetryTracerOptions, logs, stdout)
 			if utils.Contains(rootOptions.Traces, "opentelemetry") && opentelemtryTracer != nil {
 				traces.Register(opentelemtryTracer)
-			}
+			}*/
 
 			newrelicTracerOptions.Version = VERSION
 			newrelicTracerOptions.ApiKey = newrelicOptions.ApiKey
@@ -475,14 +475,16 @@ func Execute() {
 	flags.StringVar(&datadogMeterOptions.Prefix, "datadog-meter-prefix", datadogMeterOptions.Prefix, "DataDog meter prefix")
 	flags.StringVar(&datadogEventerOptions.Site, "datadog-eventer-site", datadogEventerOptions.Site, "DataDog eventer site (eg. datadoghq.eu)")
 
-	flags.StringVar(&opentelemetryOptions.ServiceName, "opentelemetry-service-name", opentelemetryOptions.ServiceName, "Opentelemetry service name")
-	flags.StringVar(&opentelemetryOptions.Environment, "opentelemetry-environment", opentelemetryOptions.Environment, "Opentelemetry environment")
-	flags.StringVar(&opentelemetryOptions.Attributes, "opentelemetry-attributes", opentelemetryOptions.Attributes, "Opentelemetry attributes")
-	flags.StringVar(&opentelemetryTracerOptions.AgentHost, "opentelemetry-tracer-agent-host", opentelemetryTracerOptions.AgentHost, "Opentelemetry tracer agent host")
-	flags.IntVar(&opentelemetryTracerOptions.AgentPort, "opentelemetry-tracer-agent-port", opentelemetryTracerOptions.AgentPort, "Opentelemetry tracer agent port")
-	flags.StringVar(&opentelemetryMeterOptions.AgentHost, "opentelemetry-meter-agent-host", opentelemetryMeterOptions.AgentHost, "Opentelemetry meter agent host")
-	flags.IntVar(&opentelemetryMeterOptions.AgentPort, "opentelemetry-meter-agent-port", opentelemetryMeterOptions.AgentPort, "Opentelemetry meter agent port")
-	flags.StringVar(&opentelemetryMeterOptions.Prefix, "opentelemetry-meter-prefix", opentelemetryMeterOptions.Prefix, "Opentelemetry meter prefix")
+	/*
+		flags.StringVar(&opentelemetryOptions.ServiceName, "opentelemetry-service-name", opentelemetryOptions.ServiceName, "Opentelemetry service name")
+		flags.StringVar(&opentelemetryOptions.Environment, "opentelemetry-environment", opentelemetryOptions.Environment, "Opentelemetry environment")
+		flags.StringVar(&opentelemetryOptions.Attributes, "opentelemetry-attributes", opentelemetryOptions.Attributes, "Opentelemetry attributes")
+		flags.StringVar(&opentelemetryTracerOptions.AgentHost, "opentelemetry-tracer-agent-host", opentelemetryTracerOptions.AgentHost, "Opentelemetry tracer agent host")
+		flags.IntVar(&opentelemetryTracerOptions.AgentPort, "opentelemetry-tracer-agent-port", opentelemetryTracerOptions.AgentPort, "Opentelemetry tracer agent port")
+		flags.StringVar(&opentelemetryMeterOptions.AgentHost, "opentelemetry-meter-agent-host", opentelemetryMeterOptions.AgentHost, "Opentelemetry meter agent host")
+		flags.IntVar(&opentelemetryMeterOptions.AgentPort, "opentelemetry-meter-agent-port", opentelemetryMeterOptions.AgentPort, "Opentelemetry meter agent port")
+		flags.StringVar(&opentelemetryMeterOptions.Prefix, "opentelemetry-meter-prefix", opentelemetryMeterOptions.Prefix, "Opentelemetry meter prefix")
+	*/
 
 	flags.StringVar(&newrelicOptions.ApiKey, "newrelic-api-key", newrelicOptions.ApiKey, "NewRelic API key")
 	flags.StringVar(&newrelicOptions.ServiceName, "newrelic-service-name", newrelicOptions.ServiceName, "NewRelic service name")
