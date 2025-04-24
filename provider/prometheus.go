@@ -14,10 +14,11 @@ import (
 )
 
 type PrometheusOptions struct {
-	URL     string
-	Listen  string
-	Version string
-	Prefix  string
+	URL       string
+	Listen    string
+	Version   string
+	Prefix    string
+	GoRuntime bool
 }
 
 type PrometheusCounter struct {
@@ -160,10 +161,16 @@ func (p *PrometheusMeter) Start() bool {
 	p.logger.Info("Start prometheus endpoint...")
 
 	http.HandleFunc(p.options.URL, func(w http.ResponseWriter, req *http.Request) {
+
+		if p.options.GoRuntime {
+			metrics.WritePrometheus(w, true)
+		} else {
+			metrics.WritePrometheus(w, false)
+		}
 		//metrics.ExposeMetadata(true)
 		//defer metrics.ExposeMetadata(false)
 
-		metrics.WritePrometheus(w, false)
+		//metrics.WritePrometheus(w, false)
 	})
 
 	listener, err := net.Listen("tcp", p.options.Listen)
