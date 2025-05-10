@@ -2,6 +2,7 @@ package provider
 
 import (
 	"fmt"
+	"math"
 	"net"
 	"net/http"
 	"sort"
@@ -36,6 +37,11 @@ type PrometheusGroup struct {
 	meter *PrometheusMeter
 	name  string
 	set   *metrics.Set
+}
+
+type PrometheusHistogram struct {
+	meter     *PrometheusMeter
+	histogram *metrics.Histogram
 }
 
 type PrometheusMeter struct {
@@ -126,6 +132,34 @@ func (p *PrometheusMeter) Gauge(group, name, description string, labels common.L
 		}),
 	}
 	return gauge
+}
+
+func (ph *PrometheusHistogram) Observe(value float64) common.Histogram {
+
+	if !math.IsNaN(value) && !math.IsInf(value, 0) {
+
+		ph.histogram.Update(value)
+	}
+	return ph
+}
+
+func (p *PrometheusMeter) Histogram(group, name, description string, labels common.Labels, prefixes ...string) common.Histogram {
+	ident := p.buildIdent(name, labels, prefixes...)
+
+	set := metrics.GetDefaultSet()
+	gr := p.findGroup(group)
+	if gr != nil {
+		set = gr.set
+	}
+
+	// Note: VictoriaMetrics histogram implementation doesn't support custom buckets
+	h := set.GetOrCreateHistogram(ident)
+
+	histogram := &PrometheusHistogram{
+		meter:     p,
+		histogram: h,
+	}
+	return histogram
 }
 
 func (p *PrometheusMeter) findGroup(name string) *PrometheusGroup {
