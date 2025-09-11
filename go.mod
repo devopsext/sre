@@ -1,11 +1,11 @@
 module github.com/devopsext/sre
 
-go 1.23
+go 1.24
 
 require (
 	github.com/DataDog/datadog-api-client-go v1.7.0
 	github.com/DataDog/datadog-go v4.7.0+incompatible
-	github.com/VictoriaMetrics/metrics v1.33.1
+	github.com/VictoriaMetrics/metrics v1.40.0
 	github.com/devopsext/utils v0.4.0
 	github.com/newrelic/newrelic-telemetry-sdk-go v0.8.1
 	github.com/opentracing/opentracing-go v1.2.0
