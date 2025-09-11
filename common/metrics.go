@@ -10,6 +10,11 @@ type MetricsGauge struct {
 	metrics *Metrics
 }
 
+type MetricsHistogram struct {
+	histograms map[Meter]Histogram
+	metrics    *Metrics
+}
+
 type MetricsGroup struct {
 	groups  map[Meter]Group
 	metrics *Metrics
@@ -82,6 +87,28 @@ func (ms *Metrics) Gauge(group, name, description string, labels Labels, prefixe
 		}
 	}
 	return &gauge
+}
+
+func (msg *MetricsHistogram) Observe(value float64) Histogram {
+	for _, m := range msg.histograms {
+		m.Observe(value)
+	}
+	return msg
+}
+
+func (ms *Metrics) Histogram(group, name, description string, labels Labels, prefixes ...string) Histogram {
+	histogram := MetricsHistogram{
+		metrics:    ms,
+		histograms: make(map[Meter]Histogram),
+	}
+
+	for _, m := range ms.meters {
+		h := m.Histogram(group, name, description, labels, prefixes...)
+		if h != nil {
+			histogram.histograms[m] = h
+		}
+	}
+	return &histogram
 }
 
 func (ms *Metrics) Group(group string) Group {
