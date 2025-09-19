@@ -103,7 +103,7 @@ func (ge *GrafanaEventer) createAnnotation(a GrafanaAnnotation) (*GrafanaAnnotat
 	return &res, nil
 }
 
-func (ge *GrafanaEventer) Interval(name string, attributes map[string]string, begin, end time.Time) error {
+func (ge *GrafanaEventer) Interval(name string, message string, attributes map[string]string, begin, end time.Time) error {
 
 	tags := utils.MapToArray(attributes)
 	for _, v := range ge.tags {
@@ -128,12 +128,12 @@ func (ge *GrafanaEventer) Interval(name string, attributes map[string]string, be
 	return nil
 }
 
-func (ge *GrafanaEventer) Now(name string, attributes map[string]string) error {
-	return ge.At(name, attributes, time.Now())
+func (ge *GrafanaEventer) Now(name string, message string, attributes map[string]string) error {
+	return ge.At(name, message, attributes, time.Now())
 }
 
-func (ge *GrafanaEventer) At(name string, attributes map[string]string, when time.Time) error {
-	return ge.Interval(name, attributes, when, when.Add(time.Second*time.Duration(ge.options.Duration)))
+func (ge *GrafanaEventer) At(name string, message string, attributes map[string]string, when time.Time) error {
+	return ge.Interval(name, name, attributes, when, when.Add(time.Second*time.Duration(ge.options.Duration)))
 }
 
 func (ge *GrafanaEventer) Stop() {

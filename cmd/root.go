@@ -338,13 +338,13 @@ func Execute() {
 
 			logs.Info("Log message to every log provider...")
 
-			events.Now("First", nil)
+			events.Now("First", "nil", nil)
 
 			m := make(map[string]string)
 			m["attr1"] = "value"
 
-			events.At("Second", m, time.Now().Add(time.Second*5))
-			events.Interval("Third", nil, time.Now().Add(-time.Second*2), time.Now().Add(-time.Second*1))
+			events.At("Second", "", m, time.Now().Add(time.Second*5))
+			events.Interval("Third", "", nil, time.Now().Add(-time.Second*2), time.Now().Add(-time.Second*1))
 
 			rootSpan := traces.StartSpan()
 			rootSpan.SetBaggageItem("some-restriction", "enabled")

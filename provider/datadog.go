@@ -707,6 +707,32 @@ func (ddm *DataDogMeter) Gauge(group, name, description string, labels common.La
 	return nil
 }
 
+func (ddm *DataDogMeter) Histogram(group, name, description string, labels common.Labels, prefixes ...string) common.Histogram {
+
+	/*var names []string
+
+	if !utils.IsEmpty(ddm.options.Prefix) {
+		names = append(names, ddm.options.Prefix)
+	}
+
+	if len(prefixes) > 0 {
+		names = append(names, strings.Join(prefixes, "_"))
+	}
+
+	newName := name
+	if len(names) > 0 {
+		newName = fmt.Sprintf("%s.%s", strings.Join(names, "."), newName)
+	}
+
+	return &DataDogHistogram{
+		meter:       ddm,
+		name:        newName,
+		description: description,
+		labels:      labels,
+	}*/
+	return nil
+}
+
 func (ddm *DataDogMeter) Group(name string) common.Group {
 
 	return nil
@@ -743,7 +769,7 @@ func NewDataDogMeter(options DataDogMeterOptions, logger common.Logger, stdout *
 	}
 }
 
-func (dde *DataDogEventer) Interval(name string, attributes map[string]string, begin, end time.Time) error {
+func (dde *DataDogEventer) Interval(name string, message string, attributes map[string]string, begin, end time.Time) error {
 
 	dateHappened := begin.UTC().Unix()
 
@@ -759,7 +785,7 @@ func (dde *DataDogEventer) Interval(name string, attributes map[string]string, b
 		RelatedEventId: nil,
 		SourceTypeName: nil,
 		Tags:           &dde.tags,
-		Text:           name,
+		Text:           message,
 		Title:          name,
 		Url:            nil,
 		UnparsedObject: nil,
@@ -808,12 +834,12 @@ func (dde *DataDogEventer) Interval(name string, attributes map[string]string, b
 	return nil
 }
 
-func (dde *DataDogEventer) Now(name string, attributes map[string]string) error {
-	return dde.At(name, attributes, time.Now())
+func (dde *DataDogEventer) Now(name string, message string, attributes map[string]string) error {
+	return dde.At(name, message, attributes, time.Now())
 }
 
-func (dde *DataDogEventer) At(name string, attributes map[string]string, when time.Time) error {
-	return dde.Interval(name, attributes, when, when)
+func (dde *DataDogEventer) At(name string, message string, attributes map[string]string, when time.Time) error {
+	return dde.Interval(name, message, attributes, when, when)
 }
 
 func (dde *DataDogEventer) Stop() {
