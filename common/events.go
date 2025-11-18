@@ -6,23 +6,23 @@ type Events struct {
 	eventers []Eventer
 }
 
-func (es *Events) Now(name string, attributes map[string]string) error {
+func (es *Events) Now(name string, message string, attributes map[string]string) error {
 	for _, e := range es.eventers {
-		e.Now(name, attributes)
+		e.Now(name, message, attributes)
 	}
 	return nil
 }
 
-func (es *Events) At(name string, attributes map[string]string, when time.Time) error {
+func (es *Events) At(name string, message string, attributes map[string]string, when time.Time) error {
 	for _, e := range es.eventers {
-		e.At(name, attributes, when)
+		e.At(name, message, attributes, when)
 	}
 	return nil
 }
 
-func (es *Events) Interval(name string, attributes map[string]string, begin, end time.Time) error {
+func (es *Events) Interval(name string, message string, attributes map[string]string, begin, end time.Time) error {
 	for _, e := range es.eventers {
-		e.Interval(name, attributes, begin, end)
+		e.Interval(name, message, attributes, begin, end)
 	}
 	return nil
 }

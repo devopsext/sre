@@ -748,6 +748,27 @@ func (nrm *NewRelicMeter) Counter(group, name, description string, labels common
 	return nil
 }
 
+func (nrm *NewRelicMeter) Histogram(group, name, description string, labels common.Labels, prefixes ...string) common.Histogram {
+
+	/*var names []string
+
+	if !utils.IsEmpty(nrm.options.Prefix) {
+		names = append(names, nrm.options.Prefix)
+	}
+
+	names = append(names, prefixes...)
+	names = append(names, name)
+	newName := strings.Join(names, ".")
+
+	return &NewRelicHistogram{
+		meter:       nrm,
+		name:        newName,
+		description: description,
+		labels:      labels,
+	}*/
+	return nil
+}
+
 func (nrg *NewRelicGauge) getGlobalTags(labelValues ...string) map[string]interface{} {
 
 	m := make(map[string]interface{})
@@ -861,7 +882,7 @@ func NewNewRelicMeter(options NewRelicMeterOptions, logger common.Logger, stdout
 	}
 }
 
-func (nre *NewRelicEventer) Interval(name string, attributes map[string]string, begin, end time.Time) error {
+func (nre *NewRelicEventer) Interval(name string, message string, attributes map[string]string, begin, end time.Time) error {
 
 	attrs := make(map[string]interface{})
 	if attributes != nil {
@@ -887,12 +908,12 @@ func (nre *NewRelicEventer) Interval(name string, attributes map[string]string, 
 	return nil
 }
 
-func (nre *NewRelicEventer) Now(name string, attributes map[string]string) error {
-	return nre.At(name, attributes, time.Now())
+func (nre *NewRelicEventer) Now(name string, message string, attributes map[string]string) error {
+	return nre.At(name, message, attributes, time.Now())
 }
 
-func (nre *NewRelicEventer) At(name string, attributes map[string]string, when time.Time) error {
-	return nre.Interval(name, attributes, when, when)
+func (nre *NewRelicEventer) At(name string, message string, attributes map[string]string, when time.Time) error {
+	return nre.Interval(name, message, attributes, when, when)
 }
 
 func (nre *NewRelicEventer) Stop() {
