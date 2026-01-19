@@ -223,8 +223,13 @@ func newLog(options StdoutOptions) *logrus.Logger {
 
 	switch options.Format {
 	case "json":
-		formatter := &logrus.JSONFormatter{}
-		formatter.TimestampFormat = options.TimestampFormat
+		formatter := &logrus.JSONFormatter{
+			TimestampFormat: options.TimestampFormat,
+			FieldMap: logrus.FieldMap{
+				logrus.FieldKeyMsg: "message",
+			},
+		}
+
 		log.SetFormatter(formatter)
 	case "text":
 		formatter := &logrus.TextFormatter{}
