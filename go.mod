@@ -17,7 +17,7 @@ require (
 )
 
 require (
-	github.com/DataDog/sketches-go v1.0.0 // indirect
+	github.com/DataDog/sketches-go v1.4.8 // indirect
 	github.com/HdrHistogram/hdrhistogram-go v1.1.0 // indirect
 	github.com/Microsoft/go-winio v0.5.0 // indirect
 	github.com/golang/protobuf v1.5.2 // indirect
@@ -38,8 +38,7 @@ require (
 	golang.org/x/time v0.0.0-20210608053304-ed9ce3a009e4 // indirect
 	golang.org/x/xerrors v0.0.0-20200804184101-5ec99f83aff1 // indirect
 	google.golang.org/appengine v1.6.1 // indirect
-	google.golang.org/protobuf v1.27.1 // indirect
-	gopkg.in/yaml.v3 v3.0.0-20200615113413-eeeca48fe776 // indirect
+	google.golang.org/protobuf v1.36.11 // indirect
 )
 
 replace gopkg.in/DataDog/dd-trace-go.v1 => github.com/devopsext/dd-trace-go v1.31.2
