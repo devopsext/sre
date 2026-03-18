@@ -252,9 +252,18 @@ func (dd *DataDogTracer) StartSpanWithTraceID(traceID, spanID string) common.Tra
 		sID = tID
 	}
 
+	carrier := tracer.TextMapCarrier{
+		tracer.DefaultTraceIDHeader:  strconv.FormatUint(tID, 10),
+		tracer.DefaultParentIDHeader: strconv.FormatUint(sID, 10),
+	}
+	parentCtx, err := tracer.Extract(carrier)
+	if err != nil {
+		dd.logger.Error(err)
+		return nil
+	}
+
 	s, ctx := dd.startSpanFromContext(context.Background(), dd.callerOffset+4,
-		tracer.WithSpanID(sID),
-		tracer.WithTraceID(tID),
+		tracer.ChildOf(parentCtx),
 	)
 	return &DataDogTracerSpan{
 		span:    s,
