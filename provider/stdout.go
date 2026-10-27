@@ -49,6 +49,7 @@ func (f *templateFormatter) Format(entry *logrus.Entry) ([]byte, error) {
 	m["msg"] = entry.Message
 	m["time"] = entry.Time.Format(f.timestampFormat)
 	m["level"] = entry.Level.String()
+	m["gid"] = utils.GoRoutineID()
 
 	var err error
 
