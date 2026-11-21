@@ -1,0 +1,35 @@
+{
+  "blocks": [
+    {
+      "type": "header",
+      "text": {
+        "type": "plain_text",
+        "text": "Daily News",
+        "emoji": true
+      }
+    },
+    {
+      "type": "divider"
+    },
+    {
+      "type": "section",
+      "text": {
+        "type": "mrkdwn",
+        "text": "`06:45 UTC (08:45 ETT)`:\t:grey_exclamation:\t| Germany_Industrial Orders MM"
+      }
+    },
+    {
+      "type": "section",
+      "fields": [
+        {
+          "type": "mrkdwn",
+          "text": "*Symbol*: EUR / EUR,CHF,XAG,XAU"
+        },
+        {
+          "type": "mrkdwn",
+          "text": "*Type*: Industry Sector"
+        }
+      ]
+    }
+  ]
+}

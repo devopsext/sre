@@ -28,3 +28,9 @@ sre/provider/grafana.go:127 Annotation 1502808. Annotation added
 ## DataDog UO
 ![DataDog](/examples/datadog-events.png)
 ![DataDog](/examples/datadog-events2.png)
+
+## Slack UI
+
+Send simple messages from `name` field or structured slack BlockKit json from `attributes["payload"]`(if present) 
+
+![Slack](/examples/slack-events.png)
